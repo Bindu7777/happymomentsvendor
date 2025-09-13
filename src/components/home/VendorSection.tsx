@@ -9,15 +9,15 @@ import Vendor from "@/models/vendor";
 const vendors: Array<Vendor> = [
   {
     id: "1",
-    name: "Maxo Events",
-    category: ["Events"],
-    location: "Hyderabad, Telangana",
-    rating: 4.9,
+    name: "Rajesh Kumar Photography",
+    category: ["Photography"],
+    location: "Mumbai, Maharashtra",
+    rating: 4.8,
     reviews: 128,
-    image: "images/vendor.jpeg ",
+    image: "images/vendor.jpeg",
     featured: true,
     subcategory: "",
-    vendorId: "sri-sai-lighting",
+    vendorId: "rajesh-photography",
   },
   {
     id: "2",
@@ -147,13 +147,17 @@ const VendorSection = () => {
 
                 <div className="flex items-stretch">
                   {" "}
-                  <Button onClick={()=>navigate(`/vendor/${vendor.vendorId??""}`)} className="w-full bg-wedding-orange text-white hover:bg-wedding-orange-hover transition-custom">
-                    {/* <Link
-                    to={`/vendor/${vendor.vendorId??""}`}
-                      className="w-full text-white"
-                    > */}
-                      More details
-                    {/* </Link> */}
+                  <Button 
+                    onClick={() => {
+                      if (vendor.vendorId === "rajesh-photography") {
+                        navigate("/vendor-profile");
+                      } else {
+                        navigate(`/vendor/${vendor.vendorId??""}`);
+                      }
+                    }} 
+                    className="w-full bg-wedding-orange text-white hover:bg-wedding-orange-hover transition-custom"
+                  >
+                    More details
                   </Button>
                   <span className="px-1"></span>
                   <Button className="w-full bg-wedding-orange text-white hover:bg-wedding-orange-hover transition-custom">

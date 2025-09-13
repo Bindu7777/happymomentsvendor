@@ -16,6 +16,7 @@ import Mandapas from "./pages/mandapas";
 import GuestTracker from "./pages/guest";
 import InstaEditPackages from "./pages/instaEdit";
 import BeautyVendor from "./pages/beautyVendor";
+import VendorProfile from "./pages/VendorProfile";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -52,6 +53,7 @@ const App = () => {
                 }
               />
               <Route path="/vendor" element={<VendorDetails />} />
+              <Route path="/vendor-profile" element={<VendorProfile />} />
               <Route path="/mandapas" element={<Mandapas />} />
               <Route path="/guestTracker" element={<GuestTracker />} />
               <Route

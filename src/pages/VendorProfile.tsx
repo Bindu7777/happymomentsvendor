@@ -256,23 +256,16 @@ const VendorProfile = () => {
         </div>
       </div>
 
-      {/* Hero Section - Premium Layout */}
+      {/* Hero Section - Clean Layout */}
       <div className="relative min-h-[80vh] bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
-        {/* Background Image with Enhanced Dark Overlay */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${photographer.highlights[currentSlide].image})` }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/20"></div>
-        </div>
         
         <div className="relative z-10 container mx-auto px-6 py-16">
           <div className="max-w-8xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[60vh]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch min-h-[60vh]">
               
               {/* Left Side - Main Content Card */}
-              <div className="flex justify-center lg:justify-start lg:col-span-8">
-                <div className="w-full max-w-[900px] animate-card-slide-up">
+              <div className="flex justify-center lg:justify-start lg:col-span-7">
+                <div className="w-full max-w-[800px] animate-card-slide-up">
                   {/* Main Info Card */}
                   <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
                     
@@ -356,8 +349,8 @@ const VendorProfile = () => {
                       </div>
                     </div>
 
-                    {/* CTA Buttons */}
-                    <div className="space-y-6">
+                    {/* CTA Button */}
+                    <div>
                       <Button 
                         size="lg" 
                         className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-10 py-8 text-2xl font-bold shadow-xl hover:scale-105 hover:shadow-green-500/25 transition-all duration-300 rounded-2xl"
@@ -366,29 +359,19 @@ const VendorProfile = () => {
                         <MessageCircle className="w-7 h-7 mr-4" />
                         Chat to Book Now
                       </Button>
-                      
-                      <Button 
-                        variant="outline"
-                        size="lg" 
-                        className="w-full border-2 border-amber-500 text-amber-700 hover:bg-amber-50 px-10 py-6 text-xl font-semibold transition-all duration-300 rounded-2xl"
-                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                      >
-                        <Phone className="w-6 h-6 mr-3" />
-                        Call for Free Consultation
-                      </Button>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Right Side - Gallery Carousel */}
-              <div className="flex justify-center lg:justify-end lg:col-span-4">
-                <div className="w-full max-w-[500px] animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                  <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+              <div className="flex justify-center lg:justify-end lg:col-span-5 h-full">
+                <div className="w-full max-w-[600px] h-full flex flex-col animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                  <div className="relative rounded-3xl overflow-hidden shadow-2xl flex-1 bg-gradient-to-br from-gray-100 to-gray-200">
                     <img 
                       src={photographer.highlights[currentSlide].image} 
                       alt={photographer.highlights[currentSlide].title}
-                      className="w-full h-[600px] object-cover transition-all duration-1000 hover:scale-105"
+                      className="w-full h-full object-cover transition-all duration-1000 hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                     

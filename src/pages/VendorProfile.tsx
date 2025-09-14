@@ -243,7 +243,34 @@ const VendorProfile = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                WhatsApp
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+              >
+                Chat Now
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); }}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Call Now
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); }}
+                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Request Visit
+              </Button>
               <Button 
                 variant="outline" 
                 size="icon"
@@ -279,16 +306,21 @@ const VendorProfile = () => {
                   <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
                     
                     {/* Name and Profile Row */}
-                    <div className="flex items-center mb-1">
+                    <div className="flex items-start mb-1">
                       <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                         {photographer.name}
                       </h1>
-                      <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-blue-500 flex-shrink-0 -ml-6">
-                        <img 
-                          src={photographer.contactPerson.profilePicture} 
-                          alt={photographer.contactPerson.name}
-                          className="w-full h-full object-cover rounded-full"
-                        />
+                      <div className="flex flex-col items-center -ml-6">
+                        <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-blue-500 flex-shrink-0">
+                          <img 
+                            src={photographer.contactPerson.profilePicture} 
+                            alt={photographer.contactPerson.name}
+                            className="w-full h-full object-cover rounded-full"
+                          />
+                        </div>
+                        <div className="text-center mt-1">
+                          <div className="text-lg font-bold text-gray-800">{photographer.contactPerson.name}</div>
+                        </div>
                       </div>
                     </div>
 
@@ -339,25 +371,6 @@ const VendorProfile = () => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-gray-700">
-                        <div className="w-16 h-16 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full flex items-center justify-center border-2 border-green-300">
-                          <Clock className="w-8 h-8 text-green-700" />
-                        </div>
-                        <div>
-                          <span className="font-bold text-xl text-gray-800">Responds in {photographer.responseTime}</span>
-                          <p className="text-base text-gray-600">Quick Response</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-gray-700">
-                        <div className="w-16 h-16 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full flex items-center justify-center border-2 border-purple-300">
-                          <CheckCircle className="w-8 h-8 text-purple-700" />
-                        </div>
-                        <div>
-                          <span className="font-bold text-xl text-gray-800">Award Winner</span>
-                          <p className="text-base text-gray-600">Certified Professional</p>
-                        </div>
-                      </div>
                     </div>
 
                     {/* CTA Button */}
@@ -470,7 +483,7 @@ const VendorProfile = () => {
               <CardContent className="p-8">
                 <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                   <Camera className="w-8 h-8 text-amber-600" />
-                  South Indian Wedding Services
+                  Our Services
                 </h2>
                 <p className="text-gray-600 mb-8 text-lg">Specialized in traditional ceremonies and modern celebrations</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -608,7 +621,7 @@ const VendorProfile = () => {
               <CardContent className="p-8">
                 <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                   <Video className="w-8 h-8 text-blue-600" />
-                  Portfolio
+                  Catalog
                 </h2>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -621,7 +634,7 @@ const VendorProfile = () => {
                         >
                           <img 
                             src={image} 
-                            alt={`Portfolio ${index + 1}`}
+                            alt={`Catalog ${index + 1}`}
                             className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -636,7 +649,7 @@ const VendorProfile = () => {
                         <div className="relative">
                           <img 
                             src={image} 
-                            alt={`Portfolio ${index + 1}`}
+                            alt={`Catalog ${index + 1}`}
                             className="w-full h-auto rounded-lg"
                           />
                         </div>
@@ -653,7 +666,7 @@ const VendorProfile = () => {
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-3xl font-bold flex items-center gap-3">
                     <Users className="w-8 h-8 text-green-600" />
-                    Client Reviews
+                    Customer Reviews
                   </h2>
                   <div className="text-right">
                     <div className="text-4xl font-bold text-green-600">4.8★</div>

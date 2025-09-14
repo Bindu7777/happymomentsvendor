@@ -15,6 +15,11 @@ const VendorProfile = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 1,
+    minutes: 0,
+    seconds: 0
+  });
 
   // Enhanced photographer data with modern structure
   const photographer = {
@@ -128,12 +133,45 @@ const VendorProfile = () => {
 
   const portfolioImages = photographer.portfolio;
 
-  // WhatsApp integration
+  // WhatsApp integration with urgency message
   const openWhatsApp = () => {
-    const message = `Hi! I'm interested in your photography services. Can you please share more details?`;
+    const message = `🔥 URGENT BOOKING REQUEST 🔥
+
+Hi! I'm interested in your photography services and want to claim the 10% OFF flash deal!
+
+🎁 I want to claim my Happy Moments Coupon
+💌 I need the Free Pre-Wedding Shoot Consultation
+⏳ I want to lock my date before slots run out
+
+Please share more details about:
+- Available dates this week
+- Package details with the discount
+- How to confirm my booking
+
+Thanks!`;
     const whatsappUrl = `https://wa.me/${photographer.contact.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
+
+  // Countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prevTime => {
+        if (prevTime.seconds > 0) {
+          return { ...prevTime, seconds: prevTime.seconds - 1 };
+        } else if (prevTime.minutes > 0) {
+          return { hours: prevTime.hours, minutes: prevTime.minutes - 1, seconds: 59 };
+        } else if (prevTime.hours > 0) {
+          return { hours: prevTime.hours - 1, minutes: 59, seconds: 59 };
+        } else {
+          // Timer expired, reset to 1 hour
+          return { hours: 1, minutes: 0, seconds: 0 };
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Auto-play carousel
   useEffect(() => {
@@ -739,25 +777,35 @@ const VendorProfile = () => {
             {/* Quick Contact Card */}
             <Card className="sticky top-4 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 shadow-xl">
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">Get Your Quote</h3>
-                <div className="text-center mb-8">
-                  <div className="text-4xl font-bold text-amber-700 mb-2">₹30,000+</div>
-                  <div className="text-sm text-gray-600 font-medium">Starting price for South Indian weddings</div>
-                  <div className="text-xs text-gray-500 mt-1">8 hours + 300+ photos included</div>
+                {/* Urgency Header */}
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full text-sm font-bold mb-3 animate-pulse">
+                    🔥 URGENCY
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-800">Get Your Quote</h3>
                 </div>
+
+                {/* Flash Deal Banner */}
+                <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 rounded-xl mb-6 text-center shadow-lg">
+                  <div className="text-lg font-bold mb-1">⚡ FLASH DEAL</div>
+                  <div className="text-sm">Book on WhatsApp in the next hour & get 10% OFF instantly!</div>
+                  <div className="text-xs mt-1 opacity-90">⏳ Offer ends in 1 hour!</div>
+                </div>
+
                 
                 <div className="space-y-4">
                   <Button 
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-300"
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-300 relative overflow-hidden"
                     onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                   >
+                    <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400 animate-pulse"></div>
                     <MessageCircle className="w-6 h-6 mr-3" />
-                    Chat to Book Now
+                    🔥 Book Now & Save 10%
                   </Button>
                   
                   <Button 
                     variant="outline" 
-                    className="w-full border-2 border-amber-500 text-amber-700 hover:bg-amber-50 py-4 text-lg font-semibold rounded-xl transition-all duration-300"
+                    className="w-full border-2 border-purple-500 text-purple-700 hover:bg-purple-50 py-4 text-lg font-semibold rounded-xl transition-all duration-300"
                     onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                   >
                     <Phone className="w-5 h-5 mr-2" />
@@ -765,10 +813,41 @@ const VendorProfile = () => {
                   </Button>
                 </div>
                 
-                <div className="mt-6 text-center space-y-2">
-                  <p className="text-sm text-gray-600">✓ Free consultation</p>
-                  <p className="text-sm text-gray-600">✓ Same day response</p>
-                  <p className="text-sm text-gray-600">✓ Flexible payment options</p>
+                {/* Enhanced Benefits with Urgency */}
+                <div className="mt-6 space-y-3">
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <span className="text-lg">🎁</span>
+                      <span className="text-sm font-bold">Claim your Happy Moments Coupon – only for WhatsApp bookings today!</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <span className="text-lg">💌</span>
+                      <span className="text-sm font-bold">Chat now & receive a Free Pre-Wedding Shoot Consultation!</span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gradient-to-r from-orange-50 to-red-50 p-3 rounded-lg border border-orange-200">
+                    <div className="flex items-center justify-center gap-2 text-orange-700">
+                      <span className="text-lg">⏳</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-bold">Flash Deal Ends In:</span>
+                        <div className="text-lg font-bold" id="countdown-timer">
+                          <span id="hours">{timeLeft.hours.toString().padStart(2, '0')}</span>:
+                          <span id="minutes">{timeLeft.minutes.toString().padStart(2, '0')}</span>:
+                          <span id="seconds">{timeLeft.seconds.toString().padStart(2, '0')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center space-y-1 pt-2">
+                    <p className="text-sm text-gray-600">✓ Free consultation</p>
+                    <p className="text-sm text-gray-600">✓ Same day response</p>
+                    <p className="text-sm text-gray-600">✓ Flexible payment options</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

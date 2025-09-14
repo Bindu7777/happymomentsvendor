@@ -278,31 +278,22 @@ const VendorProfile = () => {
                   {/* Main Info Card */}
                   <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
                     
-                    {/* Name and Rating Row */}
-                    <div className="flex items-center gap-6 mb-8">
+                    {/* Name and Profile Row */}
+                    <div className="flex items-center mb-1">
                       <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                         {photographer.name}
                       </h1>
-                      <div className="flex items-center gap-4 bg-gradient-to-r from-amber-100 to-yellow-100 px-6 py-4 rounded-full border border-amber-300">
-                        <div className="relative">
-                          <img 
-                            src={photographer.contactPerson.profilePicture} 
-                            alt={photographer.contactPerson.name}
-                            className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
-                          />
-                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          </div>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-xl font-bold text-amber-800">{photographer.contactPerson.name}</span>
-                          <span className="text-sm text-amber-700">{photographer.contactPerson.role}</span>
-                        </div>
+                      <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-blue-500 flex-shrink-0 -ml-6">
+                        <img 
+                          src={photographer.contactPerson.profilePicture} 
+                          alt={photographer.contactPerson.name}
+                          className="w-full h-full object-cover rounded-full"
+                        />
                       </div>
                     </div>
 
                     {/* Category Badges Row */}
-                    <div className="flex items-center gap-4 mb-10">
+                    <div className="flex items-center gap-4 mb-8">
                       <Badge className="px-6 py-3 text-base font-medium bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full shadow-md">
                         {photographer.category}
                       </Badge>

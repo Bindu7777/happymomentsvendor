@@ -35,6 +35,11 @@ const VendorProfile = () => {
     startingPrice: "₹30,000",
     experience: "10+ Years",
     additionalInfo: ["Drone Shots", "Photo Editing", "Same Day Delivery", "Award Winner"],
+    contactPerson: {
+      name: "Rajesh",
+      profilePicture: "/images/vendor.jpeg",
+      role: "Contact Person"
+    },
     highlights: [
       {
         image: "/images/wedding.webp",
@@ -158,7 +163,7 @@ const VendorProfile = () => {
 
   return (
     <>
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in-up {
           from {
             opacity: 0;
@@ -226,10 +231,14 @@ const VendorProfile = () => {
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">{photographer.category}</Badge>
                   <Badge variant="outline" className="text-xs">{photographer.subcategory}</Badge>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium">{photographer.rating}</span>
-                    <span className="text-xs text-gray-500">({photographer.reviewCount})</span>
+                  <div className="flex items-center gap-2">
+                    <img 
+                      src={photographer.contactPerson.profilePicture} 
+                      alt={photographer.contactPerson.name}
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                    <span className="text-sm font-medium">{photographer.contactPerson.name}</span>
+                    <span className="text-xs text-gray-500">({photographer.contactPerson.role})</span>
                   </div>
                 </div>
               </div>
@@ -274,10 +283,21 @@ const VendorProfile = () => {
                       <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                         {photographer.name}
                       </h1>
-                      <div className="flex items-center gap-3 bg-gradient-to-r from-amber-100 to-yellow-100 px-6 py-3 rounded-full border border-amber-300">
-                        <Star className="w-7 h-7 text-amber-600 fill-current" />
-                        <span className="text-2xl font-bold text-amber-800">{photographer.rating}</span>
-                        <span className="text-base text-amber-700">(128 reviews)</span>
+                      <div className="flex items-center gap-4 bg-gradient-to-r from-amber-100 to-yellow-100 px-6 py-4 rounded-full border border-amber-300">
+                        <div className="relative">
+                          <img 
+                            src={photographer.contactPerson.profilePicture} 
+                            alt={photographer.contactPerson.name}
+                            className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-xl font-bold text-amber-800">{photographer.contactPerson.name}</span>
+                          <span className="text-sm text-amber-700">{photographer.contactPerson.role}</span>
+                        </div>
                       </div>
                     </div>
 

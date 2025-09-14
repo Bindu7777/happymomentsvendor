@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -13,42 +13,69 @@ const VendorProfile = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
-  // Sample photographer data
+  // Enhanced photographer data with modern structure
   const photographer = {
     name: "Rajesh Kumar Photography",
-    tagline: "Capturing Life's Precious Moments with Artistic Excellence",
+    tagline: "Capturing Moments That Last Forever",
+    bio: "Award-winning wedding and event photographer with 10+ years of capturing candid, creative, and timeless moments. Passionate about telling stories through the lens.",
     avatar: "/images/vendor.jpeg",
     coverImage: "/images/wedding.webp",
     rating: 4.8,
     reviewCount: 128,
     location: "Mumbai, Maharashtra",
+    category: "Photography",
+    subcategory: "Wedding & Events",
     verified: true,
     responseTime: "2 hours",
-    yearsActive: 8,
-    startingPrice: "₹25,000",
-    about: "With over 8 years of experience in wedding and event photography, I specialize in capturing candid moments and creating timeless memories. My style blends traditional and contemporary approaches to tell your unique story.",
+    yearsActive: 10,
+    priceRange: "₹30,000 - ₹1,50,000",
+    startingPrice: "₹30,000",
+    experience: "10+ Years",
+    additionalInfo: ["Drone Shots", "Photo Editing", "Same Day Delivery", "Award Winner"],
+    highlights: [
+      {
+        image: "/images/wedding.webp",
+        title: "Wedding Photography",
+        description: "Timeless moments captured beautifully"
+      },
+      {
+        image: "/images/celebrations.jpeg",
+        title: "Corporate Events",
+        description: "Professional event documentation"
+      },
+      {
+        image: "/images/corporate.jpg",
+        title: "Pre-Wedding Shoots",
+        description: "Romantic couple sessions"
+      }
+    ],
     services: [
-      { name: "Wedding Photography", price: "₹25,000", description: "Full day coverage with 500+ edited photos" },
-      { name: "Pre-Wedding Shoot", price: "₹15,000", description: "2-3 hour romantic couple session" },
-      { name: "Corporate Events", price: "₹20,000", description: "Professional event documentation" },
-      { name: "Birthday Parties", price: "₹8,000", description: "Fun and candid party photography" }
+      { name: "Wedding Photography", price: "₹30,000", description: "Full day coverage with 500+ edited photos", icon: Camera },
+      { name: "Pre-Wedding Shoot", price: "₹18,000", description: "2-3 hour romantic couple session", icon: Heart },
+      { name: "Corporate Events", price: "₹25,000", description: "Professional event documentation", icon: Building2 },
+      { name: "Birthday Parties", price: "₹12,000", description: "Fun and candid party photography", icon: Sparkles }
     ],
     packages: [
       {
-        name: "Basic Package",
-        price: "₹25,000",
-        features: ["6 hours coverage", "300+ edited photos", "Online gallery", "USB drive"]
+        name: "Essential Package",
+        price: "₹30,000",
+        features: ["6 hours coverage", "300+ edited photos", "Online gallery", "USB drive"],
+        popular: false
       },
       {
         name: "Premium Package", 
-        price: "₹45,000",
-        features: ["10 hours coverage", "600+ edited photos", "Online gallery", "USB drive", "Photo book", "Engagement shoot"]
+        price: "₹55,000",
+        features: ["10 hours coverage", "600+ edited photos", "Online gallery", "USB drive", "Photo book", "Engagement shoot"],
+        popular: true
       },
       {
         name: "Luxury Package",
-        price: "₹75,000", 
-        features: ["Full day coverage", "1000+ edited photos", "Online gallery", "USB drive", "Photo book", "Engagement shoot", "Video highlights", "Drone shots"]
+        price: "₹95,000", 
+        features: ["Full day coverage", "1000+ edited photos", "Online gallery", "USB drive", "Photo book", "Engagement shoot", "Video highlights", "Drone shots"],
+        popular: false
       }
     ],
     portfolio: [
@@ -57,32 +84,61 @@ const VendorProfile = () => {
       "/images/corporate.jpg",
       "/images/birthday-celebration.jpg",
       "/images/decor.jpg",
-      "/images/mandapas.png"
+      "/images/mandapas.png",
+      "/images/mandapas_2.png",
+      "/images/SL-113022-54210-38.jpg"
     ],
     reviews: [
       {
         name: "Priya & Arjun",
         rating: 5,
-        text: "Rajesh captured our wedding beautifully! Every moment was perfect. Highly recommended!",
+        text: "Rajesh captured our wedding beautifully! Every moment was perfect. His attention to detail and creative angles made our photos absolutely stunning.",
         date: "2 weeks ago",
-        images: ["/images/wedding.webp"]
+        images: ["/images/wedding.webp"],
+        verified: true
       },
       {
         name: "Corporate Client",
         rating: 5,
-        text: "Professional, punctual, and amazing quality. Our event photos were outstanding.",
-        date: "1 month ago"
+        text: "Professional, punctual, and amazing quality. Our event photos were outstanding and delivered on time. Highly recommended!",
+        date: "1 month ago",
+        verified: true
+      },
+      {
+        name: "Sarah & Mike",
+        rating: 5,
+        text: "The pre-wedding shoot was incredible! Rajesh made us feel comfortable and the photos came out better than we imagined.",
+        date: "3 weeks ago",
+        verified: true
       }
     ],
     contact: {
       phone: "+91 98765 43210",
       email: "rajesh@photography.com",
       instagram: "@rajeshphotography",
-      website: "www.rajeshphotography.com"
+      website: "www.rajeshphotography.com",
+      whatsapp: "+91 98765 43210"
     }
   };
 
   const portfolioImages = photographer.portfolio;
+
+  // WhatsApp integration
+  const openWhatsApp = () => {
+    const message = `Hi! I'm interested in your photography services. Can you please share more details?`;
+    const whatsappUrl = `https://wa.me/${photographer.contact.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  // Auto-play carousel
+  useEffect(() => {
+    if (isAutoPlaying) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % photographer.highlights.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [isAutoPlaying, photographer.highlights.length]);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % portfolioImages.length);
@@ -92,219 +148,497 @@ const VendorProfile = () => {
     setCurrentImageIndex((prev) => (prev - 1 + portfolioImages.length) % portfolioImages.length);
   };
 
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % photographer.highlights.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + photographer.highlights.length) % photographer.highlights.length);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Hero Section */}
-      <div className="relative h-[70vh] overflow-hidden">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${photographer.coverImage})` }}
-        >
-          <div className="absolute inset-0 bg-black/40"></div>
-        </div>
+    <>
+      <style jsx>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
         
-        <div className="relative z-10 container mx-auto px-4 h-full flex items-end pb-16">
-          <div className="flex flex-col md:flex-row items-start md:items-end gap-6 w-full">
-            {/* Avatar and Basic Info */}
-            <div className="flex flex-col md:flex-row items-start gap-4">
-              <div className="relative">
-                <img 
-                  src={photographer.avatar} 
-                  alt={photographer.name}
-                  className="w-32 h-32 rounded-full border-4 border-white shadow-2xl object-cover"
-                />
-                {photographer.verified && (
-                  <div className="absolute -bottom-2 -right-2 bg-green-500 rounded-full p-1">
-                    <CheckCircle className="w-6 h-6 text-white" />
-                  </div>
-                )}
-              </div>
-              
-              <div className="text-white">
-                <h1 className="text-4xl font-bold mb-2">{photographer.name}</h1>
-                <p className="text-xl mb-4 opacity-90">{photographer.tagline}</p>
-                
-                <div className="flex items-center gap-4 mb-4">
+        @keyframes ken-burns {
+          0% {
+            transform: scale(1) translateX(0) translateY(0);
+          }
+          50% {
+            transform: scale(1.05) translateX(-2%) translateY(-1%);
+          }
+          100% {
+            transform: scale(1.1) translateX(-4%) translateY(-2%);
+          }
+        }
+        
+        @keyframes card-slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(50px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out forwards;
+        }
+        
+        .animate-ken-burns {
+          animation: ken-burns 20s ease-in-out infinite;
+        }
+        
+        .animate-card-slide-up {
+          animation: card-slide-up 0.8s ease-out forwards;
+        }
+        
+        .animate-fade-in-up:nth-child(1) { animation-delay: 0.1s; }
+        .animate-fade-in-up:nth-child(2) { animation-delay: 0.2s; }
+        .animate-fade-in-up:nth-child(3) { animation-delay: 0.3s; }
+        .animate-fade-in-up:nth-child(4) { animation-delay: 0.4s; }
+      `}</style>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" onClick={openWhatsApp}>
+      {/* Sticky Top Bar */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img 
+                src={photographer.avatar} 
+                alt={photographer.name}
+                className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+              />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{photographer.name}</h1>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs">{photographer.category}</Badge>
+                  <Badge variant="outline" className="text-xs">{photographer.subcategory}</Badge>
                   <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`w-5 h-5 ${i < Math.floor(photographer.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                    ))}
-                    <span className="ml-2 text-lg font-semibold">{photographer.rating}</span>
-                    <span className="text-gray-300">({photographer.reviewCount} reviews)</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    <span>{photographer.location}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    <span>Responds in {photographer.responseTime}</span>
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="text-sm font-medium">{photographer.rating}</span>
+                    <span className="text-xs text-gray-500">({photographer.reviewCount})</span>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-3 ml-auto">
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                  onClick={() => setIsSaved(!isSaved)}
-                >
-                  <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : ''}`} />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  className="bg-white/20 border-white/30 text-white hover:bg-white/30"
-                >
-                  <Share2 className="w-5 h-5" />
-                </Button>
-              </div>
-              
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-3 text-lg font-semibold shadow-xl">
-                Book Now - {photographer.startingPrice}
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); setIsSaved(!isSaved); }}
+                className="hover:bg-red-50"
+              >
+                <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={(e) => e.stopPropagation()}
+                className="hover:bg-blue-50"
+              >
+                <Share2 className="w-5 h-5 text-gray-600" />
               </Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Trust Strip */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-            <div className="flex flex-col items-center">
-              <div className="text-2xl font-bold text-blue-600">{photographer.startingPrice}</div>
-              <div className="text-sm text-gray-600">Starting Price</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-2xl font-bold text-green-600">{photographer.reviewCount}</div>
-              <div className="text-sm text-gray-600">Reviews</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-2xl font-bold text-purple-600">{photographer.responseTime}</div>
-              <div className="text-sm text-gray-600">Response Time</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-2xl font-bold text-orange-600">{photographer.yearsActive}+</div>
-              <div className="text-sm text-gray-600">Years Active</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-2xl font-bold text-red-600">500+</div>
-              <div className="text-sm text-gray-600">Events Done</div>
+      {/* Hero Section - Premium Layout */}
+      <div className="relative min-h-[80vh] bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+        {/* Background Image with Enhanced Dark Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: `url(${photographer.highlights[currentSlide].image})` }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/20"></div>
+        </div>
+        
+        <div className="relative z-10 container mx-auto px-6 py-16">
+          <div className="max-w-8xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[60vh]">
+              
+              {/* Left Side - Main Content Card */}
+              <div className="flex justify-center lg:justify-start lg:col-span-8">
+                <div className="w-full max-w-[900px] animate-card-slide-up">
+                  {/* Main Info Card */}
+                  <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
+                    
+                    {/* Name and Rating Row */}
+                    <div className="flex items-center gap-6 mb-8">
+                      <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+                        {photographer.name}
+                      </h1>
+                      <div className="flex items-center gap-3 bg-gradient-to-r from-amber-100 to-yellow-100 px-6 py-3 rounded-full border border-amber-300">
+                        <Star className="w-7 h-7 text-amber-600 fill-current" />
+                        <span className="text-2xl font-bold text-amber-800">{photographer.rating}</span>
+                        <span className="text-base text-amber-700">(128 reviews)</span>
+                      </div>
+                    </div>
+
+                    {/* Category Badges Row */}
+                    <div className="flex items-center gap-4 mb-10">
+                      <Badge className="px-6 py-3 text-base font-medium bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full shadow-md">
+                        {photographer.category}
+                      </Badge>
+                      <Badge className="px-6 py-3 text-base font-medium bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full shadow-md">
+                        {photographer.subcategory}
+                      </Badge>
+                    </div>
+
+                    {/* Tagline */}
+                    <p className="text-3xl lg:text-4xl font-semibold text-gray-800 mb-6 leading-relaxed">
+                      {photographer.tagline}
+                    </p>
+                    
+                    {/* Cultural Greeting */}
+                    <p className="text-xl text-amber-700 font-medium mb-8 italic">
+                      "Namaskaram! Capturing your precious moments with South Indian wedding expertise"
+                    </p>
+
+                    {/* Bio */}
+                    <p className="text-xl text-gray-700 mb-10 leading-relaxed">
+                      Award-winning wedding photographer specializing in South Indian ceremonies. 10+ years of experience capturing Telugu, Tamil, Malayali & Kannada weddings across Hyderabad, Chennai, Bangalore & Mumbai. Expert in traditional rituals like Mangalsutra tying, Oonjal, and Muhurtham ceremonies.
+                    </p>
+
+                    {/* Details Icons Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                      <div className="flex items-center gap-4 text-gray-700">
+                        <div className="w-16 h-16 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center border-2 border-amber-300">
+                          <MapPin className="w-8 h-8 text-amber-700" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xl text-gray-800">{photographer.location}</span>
+                          <p className="text-base text-gray-600">Serving South India</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-gray-700">
+                        <div className="w-16 h-16 bg-gradient-to-r from-red-100 to-pink-100 rounded-full flex items-center justify-center border-2 border-red-300">
+                          <Trophy className="w-8 h-8 text-red-700" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xl text-gray-800">{photographer.experience}</span>
+                          <p className="text-base text-gray-600">500+ South Indian Weddings</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-gray-700">
+                        <div className="w-16 h-16 bg-gradient-to-r from-green-100 to-emerald-100 rounded-full flex items-center justify-center border-2 border-green-300">
+                          <Clock className="w-8 h-8 text-green-700" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xl text-gray-800">Responds in {photographer.responseTime}</span>
+                          <p className="text-base text-gray-600">Quick Response</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-gray-700">
+                        <div className="w-16 h-16 bg-gradient-to-r from-purple-100 to-indigo-100 rounded-full flex items-center justify-center border-2 border-purple-300">
+                          <CheckCircle className="w-8 h-8 text-purple-700" />
+                        </div>
+                        <div>
+                          <span className="font-bold text-xl text-gray-800">Award Winner</span>
+                          <p className="text-base text-gray-600">Certified Professional</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CTA Buttons */}
+                    <div className="space-y-6">
+                      <Button 
+                        size="lg" 
+                        className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-10 py-8 text-2xl font-bold shadow-xl hover:scale-105 hover:shadow-green-500/25 transition-all duration-300 rounded-2xl"
+                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                      >
+                        <MessageCircle className="w-7 h-7 mr-4" />
+                        Chat to Book Now
+                      </Button>
+                      
+                      <Button 
+                        variant="outline"
+                        size="lg" 
+                        className="w-full border-2 border-amber-500 text-amber-700 hover:bg-amber-50 px-10 py-6 text-xl font-semibold transition-all duration-300 rounded-2xl"
+                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                      >
+                        <Phone className="w-6 h-6 mr-3" />
+                        Call for Free Consultation
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side - Gallery Carousel */}
+              <div className="flex justify-center lg:justify-end lg:col-span-4">
+                <div className="w-full max-w-[500px] animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                  <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                    <img 
+                      src={photographer.highlights[currentSlide].image} 
+                      alt={photographer.highlights[currentSlide].title}
+                      className="w-full h-[600px] object-cover transition-all duration-1000 hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                    
+                    {/* Image Info Overlay */}
+                    <div className="absolute bottom-6 left-6 right-6 text-white">
+                      <h3 className="text-2xl font-bold mb-2">{photographer.highlights[currentSlide].title}</h3>
+                      <p className="text-base opacity-90">{photographer.highlights[currentSlide].description}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Image Navigation */}
+                  <div className="flex justify-center mt-6 gap-3">
+                    {photographer.highlights.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
+                        className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                          index === currentSlide ? 'bg-blue-600 scale-125 shadow-lg' : 'bg-gray-300 hover:bg-gray-400'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Section Divider */}
+      <div className="h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
+
+      {/* Quick Info Strip */}
+      <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-red-50 border-b border-amber-200">
+        <div className="container mx-auto px-6 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
+              <div className="text-3xl font-bold text-amber-700 mb-2">₹30,000+</div>
+              <div className="text-sm font-semibold text-gray-700 mb-1">Starting Price</div>
+              <div className="text-xs text-gray-500">8 hours + 300+ photos</div>
+            </div>
+            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-red-100">
+              <div className="text-3xl font-bold text-red-700 mb-2">10+</div>
+              <div className="text-sm font-semibold text-gray-700 mb-1">Years Experience</div>
+              <div className="text-xs text-gray-500">South Indian Weddings</div>
+            </div>
+            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-green-100">
+              <div className="text-3xl font-bold text-green-700 mb-2">128</div>
+              <div className="text-sm font-semibold text-gray-700 mb-1">5-Star Reviews</div>
+              <div className="text-xs text-gray-500">Happy Couples</div>
+            </div>
+            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-purple-100">
+              <div className="text-3xl font-bold text-purple-700 mb-2">500+</div>
+              <div className="text-sm font-semibold text-gray-700 mb-1">Weddings Captured</div>
+              <div className="text-xs text-gray-500">Across South India</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Divider */}
+      <div className="h-16 bg-gradient-to-b from-slate-50 to-white"></div>
+
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* About Section */}
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                  <Camera className="w-6 h-6 text-blue-600" />
-                  About
+            {/* Additional Info Badges */}
+            <div className="flex flex-wrap gap-3">
+              {photographer.additionalInfo.map((info, index) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary" 
+                  className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 hover:from-blue-200 hover:to-purple-200 transition-all"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  {info}
+                </Badge>
+              ))}
+            </div>
+
+            {/* Services Section */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
+              <CardContent className="p-8">
+                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                  <Camera className="w-8 h-8 text-amber-600" />
+                  South Indian Wedding Services
                 </h2>
-                <p className="text-gray-700 leading-relaxed">{photographer.about}</p>
+                <p className="text-gray-600 mb-8 text-lg">Specialized in traditional ceremonies and modern celebrations</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    { name: "Pre-Wedding Shoots", description: "Engagement, Haldi, Mehendi ceremonies", price: "₹15,000", icon: Camera },
+                    { name: "Wedding Day Coverage", description: "Full day from Muhurtham to reception", price: "₹45,000", icon: Camera },
+                    { name: "Reception Photography", description: "Evening celebrations and ceremonies", price: "₹25,000", icon: Camera },
+                    { name: "Traditional Rituals", description: "Mangalsutra, Oonjal, Kanyadaan", price: "₹20,000", icon: Camera },
+                    { name: "Drone Photography", description: "Aerial shots of venue and ceremonies", price: "₹10,000", icon: Camera },
+                    { name: "Photo & Video Package", description: "Complete coverage with editing", price: "₹75,000", icon: Camera }
+                  ].map((service, index) => (
+                    <div 
+                      key={index}
+                      className="group p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-amber-200"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg group-hover:from-amber-600 group-hover:to-orange-600 transition-colors">
+                            <service.icon className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-lg text-gray-800">{service.name}</h3>
+                            <p className="text-gray-600 text-sm">{service.description}</p>
+                          </div>
+                        </div>
+                        <Badge className="text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 text-white">
+                          {service.price}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
-            {/* Services & Packages */}
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                  <Award className="w-6 h-6 text-blue-600" />
-                  Services & Packages
+            {/* Packages Section */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
+              <CardContent className="p-8">
+                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                  <Award className="w-8 h-8 text-red-600" />
+                  South Indian Wedding Packages
                 </h2>
-                
-                <Tabs defaultValue="services" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="services">Services</TabsTrigger>
-                    <TabsTrigger value="packages">Packages</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="services" className="space-y-4 mt-6">
-                    {photographer.services.map((service, index) => (
-                      <Card key={index} className="hover:shadow-lg transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="font-semibold text-lg">{service.name}</h3>
-                              <p className="text-gray-600">{service.description}</p>
-                            </div>
-                            <Badge variant="secondary" className="text-lg font-bold">
-                              {service.price}
-                            </Badge>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </TabsContent>
-                  
-                  <TabsContent value="packages" className="space-y-4 mt-6">
-                    {photographer.packages.map((pkg, index) => (
-                      <Card key={index} className="hover:shadow-lg transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <h3 className="font-semibold text-lg">{pkg.name}</h3>
-                            <Badge variant="default" className="text-lg font-bold bg-blue-600">
-                              {pkg.price}
-                            </Badge>
-                          </div>
-                          <ul className="space-y-1">
-                            {pkg.features.map((feature, idx) => (
-                              <li key={idx} className="flex items-center gap-2 text-gray-600">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                {feature}
-                              </li>
-                            ))}
-                          </ul>
-                          <Button className="w-full mt-4">Select Package</Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </TabsContent>
-                </Tabs>
+                <p className="text-gray-600 mb-8 text-lg">Complete packages designed for South Indian wedding traditions</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {[
+                    { 
+                      name: "Essential", 
+                      price: "₹30,000", 
+                      popular: false,
+                      features: [
+                        "8 hours coverage",
+                        "300+ edited photos",
+                        "Pre-wedding shoot",
+                        "Wedding day photography",
+                        "Basic editing",
+                        "Online gallery"
+                      ]
+                    },
+                    { 
+                      name: "Premium", 
+                      price: "₹55,000", 
+                      popular: true,
+                      features: [
+                        "12 hours coverage",
+                        "500+ edited photos",
+                        "Pre-wedding + Haldi",
+                        "Full wedding day",
+                        "Reception coverage",
+                        "Professional editing",
+                        "Drone shots included",
+                        "Same day preview"
+                      ]
+                    },
+                    { 
+                      name: "Luxury", 
+                      price: "₹85,000", 
+                      popular: false,
+                      features: [
+                        "16 hours coverage",
+                        "800+ edited photos",
+                        "All pre-wedding events",
+                        "Complete wedding day",
+                        "Reception + after-party",
+                        "Premium editing",
+                        "Drone + video highlights",
+                        "Same day preview",
+                        "Printed album included"
+                      ]
+                    }
+                  ].map((pkg, index) => (
+                    <div 
+                      key={index}
+                      className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
+                        pkg.popular 
+                          ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-lg' 
+                          : 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50'
+                      }`}
+                    >
+                      {pkg.popular && (
+                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                          <Badge className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-2 text-sm font-bold">⭐ Most Popular</Badge>
+                        </div>
+                      )}
+                      <div className="text-center mb-6">
+                        <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
+                        <div className="text-4xl font-bold text-red-600 mb-2">{pkg.price}</div>
+                        <div className="text-sm text-gray-500">Starting price for South Indian weddings</div>
+                      </div>
+                      <ul className="space-y-3 mb-8">
+                        {pkg.features.map((feature, idx) => (
+                          <li key={idx} className="flex items-center gap-3 text-gray-700">
+                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            <span className="text-sm font-medium">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
+                          pkg.popular 
+                            ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
+                            : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                        }`}
+                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                      >
+                        Select {pkg.name} Package
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
 
             {/* Portfolio Gallery */}
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                  <Video className="w-6 h-6 text-blue-600" />
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
+              <CardContent className="p-8">
+                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                  <Video className="w-8 h-8 text-blue-600" />
                   Portfolio
                 </h2>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {photographer.portfolio.map((image, index) => (
                     <Dialog key={index}>
                       <DialogTrigger asChild>
                         <div 
-                          className="relative group cursor-pointer overflow-hidden rounded-lg"
-                          onClick={() => setSelectedImage(image)}
+                          className="relative group cursor-pointer overflow-hidden rounded-xl"
+                          onClick={(e) => { e.stopPropagation(); setSelectedImage(image); }}
                         >
                           <img 
                             src={image} 
                             alt={`Portfolio ${index + 1}`}
-                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                            className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                           />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                            <Camera className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <div className="text-white text-center">
+                              <Camera className="w-8 h-8 mx-auto mb-2" />
+                              <span className="text-sm font-medium">View Full Size</span>
+                            </div>
                           </div>
                         </div>
                       </DialogTrigger>
-                      <DialogContent className="max-w-4xl">
+                      <DialogContent className="max-w-6xl">
                         <div className="relative">
                           <img 
                             src={image} 
@@ -320,35 +654,72 @@ const VendorProfile = () => {
             </Card>
 
             {/* Reviews */}
-            <Card className="overflow-hidden">
-              <CardContent className="p-6">
-                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                  <Users className="w-6 h-6 text-blue-600" />
-                  Reviews ({photographer.reviewCount})
-                </h2>
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-100">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-3xl font-bold flex items-center gap-3">
+                    <Users className="w-8 h-8 text-green-600" />
+                    Client Reviews
+                  </h2>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold text-green-600">4.8★</div>
+                    <div className="text-sm text-gray-600">from 128 happy couples</div>
+                  </div>
+                </div>
                 
                 <div className="space-y-6">
-                  {photographer.reviews.map((review, index) => (
-                    <div key={index} className="border-b pb-4 last:border-b-0">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-semibold">{review.name}</h4>
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                            ))}
-                            <span className="text-sm text-gray-500 ml-2">{review.date}</span>
+                  {[
+                    {
+                      name: "Priya & Rajesh",
+                      rating: 5,
+                      date: "2 weeks ago",
+                      verified: true,
+                      text: "Rajesh captured our Telugu wedding beautifully! His understanding of our traditions like Mangalsutra tying and Oonjal ceremony was amazing. The photos are stunning and we got them the same day. Highly recommended for South Indian weddings!",
+                      location: "Hyderabad"
+                    },
+                    {
+                      name: "Anitha & Suresh",
+                      rating: 5,
+                      date: "1 month ago",
+                      verified: true,
+                      text: "Professional photographer who knows South Indian wedding customs perfectly. He captured every moment from Haldi to reception. The drone shots of our venue were incredible. Worth every rupee!",
+                      location: "Chennai"
+                    },
+                    {
+                      name: "Deepa & Kumar",
+                      rating: 5,
+                      date: "2 months ago",
+                      verified: true,
+                      text: "Rajesh's team was punctual and professional. They understood our Malayali wedding traditions and captured the Muhurtham ceremony beautifully. The editing quality is top-notch. We're so happy with our photos!",
+                      location: "Bangalore"
+                    }
+                  ].map((review, index) => (
+                    <div key={index} className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">
+                              {review.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg text-gray-800">{review.name}</h4>
+                            <p className="text-sm text-gray-600">{review.location}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                                ))}
+                              </div>
+                              <span className="text-sm text-gray-500">{review.date}</span>
+                              {review.verified && (
+                                <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                      <p className="text-gray-700">{review.text}</p>
-                      {review.images && (
-                        <div className="flex gap-2 mt-3">
-                          {review.images.map((img, idx) => (
-                            <img key={idx} src={img} alt="Review" className="w-16 h-16 object-cover rounded" />
-                          ))}
-                        </div>
-                      )}
+                      <p className="text-gray-700 leading-relaxed text-lg">{review.text}</p>
                     </div>
                   ))}
                 </div>
@@ -357,52 +728,72 @@ const VendorProfile = () => {
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="space-y-6">
-            {/* Booking Widget */}
-            <Card className="sticky top-4">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-4">Request Booking</h3>
+          <div className="space-y-8">
+            {/* Quick Contact Card */}
+            <Card className="sticky top-4 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 shadow-xl">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold mb-6 text-center text-gray-800">Get Your Quote</h3>
+                <div className="text-center mb-8">
+                  <div className="text-4xl font-bold text-amber-700 mb-2">₹30,000+</div>
+                  <div className="text-sm text-gray-600 font-medium">Starting price for South Indian weddings</div>
+                  <div className="text-xs text-gray-500 mt-1">8 hours + 300+ photos included</div>
+                </div>
+                
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Event Date</label>
-                    <Input type="date" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Event Type</label>
-                    <select className="w-full p-2 border rounded-md">
-                      <option>Wedding</option>
-                      <option>Pre-Wedding</option>
-                      <option>Corporate Event</option>
-                      <option>Birthday Party</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Message</label>
-                    <Textarea placeholder="Tell us about your event..." />
-                  </div>
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
-                    Send Booking Request
+                  <Button 
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-300"
+                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  >
+                    <MessageCircle className="w-6 h-6 mr-3" />
+                    Chat to Book Now
                   </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-2 border-amber-500 text-amber-700 hover:bg-amber-50 py-4 text-lg font-semibold rounded-xl transition-all duration-300"
+                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  >
+                    <Phone className="w-5 h-5 mr-2" />
+                    Call for Free Consultation
+                  </Button>
+                </div>
+                
+                <div className="mt-6 text-center space-y-2">
+                  <p className="text-sm text-gray-600">✓ Free consultation</p>
+                  <p className="text-sm text-gray-600">✓ Same day response</p>
+                  <p className="text-sm text-gray-600">✓ Flexible payment options</p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Contact Info */}
-            <Card>
+            <Card className="hover:shadow-lg transition-all duration-300 border-2 border-purple-100">
               <CardContent className="p-6">
-                <h3 className="text-xl font-bold mb-4">Contact Info</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-blue-600" />
-                    <span>{photographer.contact.phone}</span>
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
+                  <MessageCircle className="w-6 h-6 text-purple-600" />
+                  Contact Information
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg hover:from-purple-100 hover:to-indigo-100 transition-colors border border-purple-200">
+                    <Phone className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <span className="font-semibold text-gray-800">{photographer.contact.phone}</span>
+                      <p className="text-sm text-gray-600">Call for immediate response</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-blue-600" />
-                    <span>{photographer.contact.email}</span>
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg hover:from-amber-100 hover:to-orange-100 transition-colors border border-amber-200">
+                    <Mail className="w-6 h-6 text-amber-600" />
+                    <div>
+                      <span className="font-semibold text-gray-800">{photographer.contact.email}</span>
+                      <p className="text-sm text-gray-600">Email for detailed quotes</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Instagram className="w-5 h-5 text-pink-600" />
-                    <span>{photographer.contact.instagram}</span>
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg hover:from-pink-100 hover:to-rose-100 transition-colors border border-pink-200">
+                    <Instagram className="w-6 h-6 text-pink-600" />
+                    <div>
+                      <span className="font-semibold text-gray-800">{photographer.contact.instagram}</span>
+                      <p className="text-sm text-gray-600">Follow for latest work</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -410,7 +801,20 @@ const VendorProfile = () => {
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Sticky WhatsApp Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button 
+          size="lg"
+          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 animate-pulse"
+          onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+        >
+          <MessageCircle className="w-6 h-6 mr-2" />
+          Chat Now
+        </Button>
+      </div>
+      </div>
+    </>
   );
 };
 

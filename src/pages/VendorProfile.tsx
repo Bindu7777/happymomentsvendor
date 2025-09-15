@@ -35,19 +35,14 @@ const VendorProfile = () => {
     additionalInfo: ["Drone Shots", "Photo Editing", "Same Day Delivery", "Award Winner"],
     highlights: [
       {
-        image: "/images/wedding.webp",
+        image: "/images/image1.jpeg",
         title: "Wedding Photography",
         description: "Timeless moments captured beautifully"
       },
       {
-        image: "/images/celebrations.jpeg",
+        image: "/images/image2.jpeg",
         title: "Corporate Events",
         description: "Professional event documentation"
-      },
-      {
-        image: "/images/corporate.jpg",
-        title: "Pre-Wedding Shoots",
-        description: "Romantic couple sessions"
       }
     ],
     services: [
@@ -74,14 +69,8 @@ const VendorProfile = () => {
       }
     ],
     portfolio: [
-      "/images/wedding.webp",
-      "/images/celebrations.jpeg", 
-      "/images/corporate.jpg",
-      "/images/birthday-celebration.jpg",
-      "/images/decor.jpg",
-      "/images/mandapas.png",
-      "/images/mandapas_2.png",
-      "/images/SL-113022-54210-38.jpg"
+      "/images/image1.jpeg",
+      "/images/image2.jpeg"
     ],
     reviews: [
       {
@@ -238,49 +227,56 @@ Thanks!`;
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Button 
                 onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+                className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-green-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
               >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                WhatsApp
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">WhatsApp</span>
               </Button>
               <Button 
                 onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-blue-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
               >
-                Chat Now
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">Chat</span>
               </Button>
               <Button 
                 onClick={(e) => { e.stopPropagation(); }}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+                className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-orange-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
               >
-                <Phone className="w-4 h-4 mr-2" />
-                Call Now
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <Phone className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">Call</span>
               </Button>
               <Button 
                 onClick={(e) => { e.stopPropagation(); }}
-                className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+                className="bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-purple-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
               >
-                <Calendar className="w-4 h-4 mr-2" />
-                Request Visit
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <Calendar className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">Visit</span>
               </Button>
               <Button 
                 variant="outline" 
                 size="icon"
                 onClick={(e) => { e.stopPropagation(); setIsSaved(!isSaved); }}
-                className="hover:bg-red-50"
+                className="hover:bg-red-50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 relative overflow-hidden group"
               >
-                <Heart className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+                <div className="absolute inset-0 bg-red-100 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg"></div>
+                <Heart className={`w-5 h-5 relative z-10 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
               </Button>
               <Button 
                 variant="outline" 
                 size="icon"
                 onClick={(e) => e.stopPropagation()}
-                className="hover:bg-blue-50"
+                className="hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 relative overflow-hidden group"
               >
-                <Share2 className="w-5 h-5 text-gray-600" />
+                <div className="absolute inset-0 bg-blue-100 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg"></div>
+                <Share2 className="w-5 h-5 text-gray-600 relative z-10" />
               </Button>
             </div>
           </div>
@@ -288,96 +284,105 @@ Thanks!`;
       </div>
 
       {/* Hero Section - Clean Layout */}
-      <div className="relative min-h-[80vh] bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+      <div className="relative min-h-[80vh] bg-gradient-to-br from-slate-50 via-amber-50/30 to-orange-50/30">
         
         <div className="relative z-10 container mx-auto px-6 py-16">
           <div className="max-w-8xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch min-h-[60vh]">
               
               {/* Left Side - Main Content Card */}
-              <div className="flex justify-center lg:justify-start lg:col-span-7">
+              <div className="flex justify-center lg:justify-start lg:col-span-7 relative">
+                {/* Subtle divider line */}
+                <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent"></div>
                 <div className="w-full max-w-[800px] animate-card-slide-up">
                   {/* Main Info Card */}
                   <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
                     
                     {/* Name and Profile Row */}
-                    <div className="flex items-start mb-0">
-                      <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
+                    <div className="flex items-start mb-8">
+                      <h1 className="text-6xl lg:text-7xl font-black text-gray-900 leading-tight tracking-tight">
                         {photographer.name}
                       </h1>
                       <div className="flex flex-col items-center -ml-6">
-                        <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-blue-500 flex-shrink-0">
+                        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-blue-500 flex-shrink-0 shadow-lg">
                           <img 
                             src={photographer.avatar} 
                             alt={photographer.name}
                             className="w-full h-full object-cover rounded-full"
                           />
                         </div>
-                        <div className="text-center mt-2">
+                        <div className="text-center mt-3 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl shadow-md border border-gray-200">
                           <div className="text-lg font-bold text-gray-800">Rajesh</div>
-                          <div className="text-base font-bold text-gray-500">Contact Person</div>
+                          <div className="text-sm font-semibold text-blue-600 flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            Contact Person
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Category Badges Row */}
-                    <div className="flex items-center gap-4 mb-8 -mt-6">
-                      <Badge className="px-6 py-3 text-base font-medium bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full shadow-md">
+                    <div className="flex items-center gap-4 mb-10 -mt-6">
+                      <Badge className="px-6 py-3 text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
+                        <Camera className="w-4 h-4" />
                         {photographer.category}
                       </Badge>
-                      <Badge className="px-6 py-3 text-base font-medium bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full shadow-md">
+                      <Badge className="px-6 py-3 text-base font-semibold bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
                         {photographer.subcategory}
                       </Badge>
                     </div>
 
                     {/* Tagline */}
-                    <p className="text-3xl lg:text-4xl font-semibold text-gray-800 mb-6 leading-relaxed">
-                      {photographer.tagline}
+                    <p className="text-4xl lg:text-5xl font-bold text-gray-800 mb-8 leading-relaxed relative">
+                      <span className="relative z-10">{photographer.tagline}</span>
+                      <div className="absolute -bottom-2 left-0 w-24 h-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"></div>
                     </p>
                     
                     {/* Cultural Greeting */}
-                    <p className="text-xl text-amber-700 font-medium mb-8 italic">
+                    <p className="text-xl text-amber-700 font-medium mb-10 italic">
                       "Namaskaram! Capturing your precious moments with South Indian wedding expertise"
                     </p>
 
                     {/* Bio */}
-                    <p className="text-xl text-gray-700 mb-10 leading-relaxed">
+                    <p className="text-xl text-gray-700 mb-12 leading-relaxed">
                       Award-winning wedding photographer specializing in South Indian ceremonies. 10+ years of experience capturing Telugu, Tamil, Malayali & Kannada weddings across Hyderabad, Chennai, Bangalore & Mumbai. Expert in traditional rituals like Mangalsutra tying, Oonjal, and Muhurtham ceremonies.
                     </p>
 
                     {/* Details Icons Row */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                      <div className="flex items-center gap-4 text-gray-700">
-                        <div className="w-16 h-16 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center border-2 border-amber-300">
-                          <MapPin className="w-8 h-8 text-amber-700" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                      <div className="flex items-center gap-6 text-gray-700 p-8 bg-gradient-to-r from-amber-50/70 to-orange-50/70 rounded-3xl border-2 border-amber-200/60 shadow-xl hover:shadow-2xl transition-all duration-300">
+                        <div className="w-20 h-20 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center border-2 border-amber-300 shadow-lg">
+                          <MapPin className="w-10 h-10 text-amber-700" />
                         </div>
                         <div>
-                          <span className="font-bold text-xl text-gray-800">{photographer.location}</span>
-                          <p className="text-base text-gray-600">Serving South India</p>
+                          <span className="font-bold text-2xl text-gray-800">{photographer.location}</span>
+                          <p className="text-lg text-gray-600">Serving South India</p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-4 text-gray-700">
-                        <div className="w-16 h-16 bg-gradient-to-r from-red-100 to-pink-100 rounded-full flex items-center justify-center border-2 border-red-300">
-                          <Trophy className="w-8 h-8 text-red-700" />
+                      <div className="flex items-center gap-6 text-gray-700 p-8 bg-gradient-to-r from-red-50/70 to-pink-50/70 rounded-3xl border-2 border-red-200/60 shadow-xl hover:shadow-2xl transition-all duration-300">
+                        <div className="w-20 h-20 bg-gradient-to-r from-red-100 to-pink-100 rounded-full flex items-center justify-center border-2 border-red-300 shadow-lg">
+                          <Trophy className="w-10 h-10 text-red-700" />
                         </div>
                         <div>
-                          <span className="font-bold text-xl text-gray-800">{photographer.experience}</span>
-                          <p className="text-base text-gray-600">500+ South Indian Weddings</p>
+                          <span className="font-bold text-2xl text-gray-800">{photographer.experience}</span>
+                          <p className="text-lg text-gray-600">500+ South Indian Weddings</p>
                         </div>
                       </div>
                       
                     </div>
 
                     {/* CTA Button */}
-                    <div>
+                    <div className="mt-8">
                       <Button 
                         size="lg" 
-                        className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-10 py-8 text-2xl font-bold shadow-xl hover:scale-105 hover:shadow-green-500/25 transition-all duration-300 rounded-2xl"
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white px-12 py-10 text-3xl font-black shadow-2xl hover:scale-105 hover:shadow-green-500/50 active:scale-95 transition-all duration-300 rounded-3xl border-2 border-green-400/30 hover:border-green-300/50 relative overflow-hidden group"
                         onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                       >
-                        <MessageCircle className="w-7 h-7 mr-4" />
-                        Chat to Book Now
+                        <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-3xl"></div>
+                        <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
+                        <span className="relative z-10">Chat to Book Now</span>
                       </Button>
                     </div>
                   </div>
@@ -392,13 +397,16 @@ Thanks!`;
                       src={photographer.highlights[currentSlide].image} 
                       alt={photographer.highlights[currentSlide].title}
                       className="w-full h-full object-cover transition-all duration-1000 hover:scale-105"
+                      style={{ imageRendering: 'high-quality', imageRendering: 'crisp-edges' }}
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                     
                     {/* Image Info Overlay */}
                     <div className="absolute bottom-6 left-6 right-6 text-white">
-                      <h3 className="text-2xl font-bold mb-2">{photographer.highlights[currentSlide].title}</h3>
-                      <p className="text-base opacity-90">{photographer.highlights[currentSlide].description}</p>
+                      <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                        <h3 className="text-2xl font-bold mb-2 text-white drop-shadow-lg">{photographer.highlights[currentSlide].title}</h3>
+                        <p className="text-base text-white/95 font-medium drop-shadow-md">{photographer.highlights[currentSlide].description}</p>
+                      </div>
                     </div>
                   </div>
                   
@@ -425,7 +433,7 @@ Thanks!`;
       <div className="h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
 
       {/* Quick Info Strip */}
-      <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-red-50 border-b border-amber-200">
+      <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-orange-50/40 border-b border-amber-200/50">
         <div className="container mx-auto px-6 py-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-amber-100">

@@ -22,6 +22,7 @@ const VendorProfile = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCoupon, setShowCoupon] = useState(false);
   const [recentClaims, setRecentClaims] = useState(47);
+  const [showRatingTooltip, setShowRatingTooltip] = useState(false);
 
   // Enhanced photographer data with modern structure
   const photographer = {
@@ -266,12 +267,77 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
               />
               <div>
-                <div className="flex items-center gap-3 mb-1">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-1">
                 <h1 className="text-xl font-bold text-gray-900">{photographer.name}</h1>
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full shadow-sm">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
-                    <span className="text-sm font-bold text-amber-700">{photographer.rating}</span>
+                  
+                  {/* Premium Animated Rating Widget */}
+                  <div 
+                    className="relative group cursor-pointer"
+                    onMouseEnter={() => setShowRatingTooltip(true)}
+                    onMouseLeave={() => setShowRatingTooltip(false)}
+                  >
+                    <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-amber-50/80 to-orange-50/80 border border-amber-200/60 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 backdrop-blur-sm">
+                      {/* Animated Stars with Shimmer */}
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => {
+                          const starValue = i + 1;
+                          const isFilled = starValue <= Math.floor(photographer.rating);
+                          const isHalfFilled = starValue === Math.ceil(photographer.rating) && photographer.rating % 1 !== 0;
+                          
+                          return (
+                            <div key={i} className="relative group/star">
+                              <Star 
+                                className={`w-5 h-5 transition-all duration-700 ${
+                                  isFilled 
+                                    ? 'text-amber-500 fill-current group-hover:animate-pulse' 
+                                    : isHalfFilled 
+                                    ? 'text-amber-500 fill-current' 
+                                    : 'text-gray-300'
+                                }`}
+                                style={{
+                                  animationDelay: `${i * 0.15}s`,
+                                  filter: isFilled ? 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))' : 'none'
+                                }}
+                              />
+                              {isFilled && (
+                                <div className="absolute inset-0 animate-pulse">
+                                  <Star className="w-5 h-5 text-amber-300 fill-current opacity-50" />
+                </div>
+                              )}
+                              {isHalfFilled && (
+                                <div className="absolute inset-0 overflow-hidden w-1/2">
+                                  <Star className="w-5 h-5 text-amber-500 fill-current" />
+              </div>
+                              )}
+            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Fused Rating Pill */}
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-200 rounded-full shadow-sm">
+                        <span className="text-sm font-bold text-amber-800">
+                          {photographer.rating}
+                        </span>
+                        <div className="w-1 h-1 bg-amber-400 rounded-full"></div>
+                        <span className="text-xs font-semibold text-amber-700">
+                          Top Rated
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Enhanced Tooltip with Animation */}
+                    {showRatingTooltip && (
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-3 bg-gray-900/95 backdrop-blur-sm text-white text-sm rounded-xl px-4 py-3 shadow-2xl z-50 whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-200">
+                        <div className="text-center">
+                          <div className="font-semibold text-white">Rated by {photographer.reviewCount} verified couples</div>
+                          <div className="text-gray-300 mt-1 text-xs">Click to see reviews</div>
+                        </div>
+                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-900/95 rotate-45"></div>
+                      </div>
+                    )}
                   </div>
+                  
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">{photographer.category}</Badge>
@@ -824,7 +890,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 {/* Headline Hook */}
                 <div className="text-center mb-4">
                   <h3 className="text-lg font-bold text-gray-800">Best South Indian Wedding Photographer – Limited Spot!</h3>
-                </div>
+                  </div>
 
                 {/* Social Proof Badge */}
                 <div className="mb-4 text-center">
@@ -910,7 +976,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                     <span className="relative z-10">💬 WhatsApp Quick Chat</span>
                     <div className="absolute top-0 right-0 text-3xl animate-bounce">🚀</div>
                   </Button>
-
+                  
                   {/* Unlock Secret Offer Button */}
                   <Button 
                     className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:from-purple-800 active:to-pink-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group"
@@ -945,7 +1011,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                     <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <span className="text-sm font-semibold text-gray-700">Same day response</span>
-                    </div>
+                  </div>
                     <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <span className="text-sm font-semibold text-gray-700">Flexible payment options</span>
@@ -1002,6 +1068,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
           Chat Now
         </Button>
       </div>
+
       </div>
     </>
   );

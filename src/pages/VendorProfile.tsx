@@ -434,27 +434,39 @@ Thanks!`;
 
       {/* Quick Info Strip */}
       <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-orange-50/40 border-b border-amber-200/50">
-        <div className="container mx-auto px-6 py-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
-              <div className="text-3xl font-bold text-amber-700 mb-2">8+</div>
-              <div className="text-sm font-semibold text-gray-700 mb-1">Hours Coverage</div>
-              <div className="text-xs text-gray-500">300+ photos included</div>
+        <div className="container mx-auto px-6 py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-amber-50 to-orange-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-amber-200 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-amber-500/25 transition-all duration-300">
+                <Clock className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-4xl font-black text-amber-800 mb-2">8+</div>
+              <div className="text-lg font-bold text-gray-800 mb-1">Hours Coverage</div>
+              <div className="text-sm text-amber-700 font-medium">300+ photos included</div>
             </div>
-            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-red-100">
-              <div className="text-3xl font-bold text-red-700 mb-2">10+</div>
-              <div className="text-sm font-semibold text-gray-700 mb-1">Years Experience</div>
-              <div className="text-xs text-gray-500">South Indian Weddings</div>
+            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-red-50 to-pink-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-red-200 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-red-500/25 transition-all duration-300">
+                <Trophy className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-4xl font-black text-red-800 mb-2">10+</div>
+              <div className="text-lg font-bold text-gray-800 mb-1">Years Experience</div>
+              <div className="text-sm text-red-700 font-medium">South Indian Weddings</div>
             </div>
-            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-green-100">
-              <div className="text-3xl font-bold text-green-700 mb-2">128</div>
-              <div className="text-sm font-semibold text-gray-700 mb-1">5-Star Reviews</div>
-              <div className="text-xs text-gray-500">Happy Couples</div>
+            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-green-200 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-green-500/25 transition-all duration-300">
+                <Star className="w-8 h-8 text-white fill-current" />
+              </div>
+              <div className="text-4xl font-black text-green-800 mb-2">128</div>
+              <div className="text-lg font-bold text-gray-800 mb-1">5-Star Reviews</div>
+              <div className="text-sm text-green-700 font-medium">Happy Couples</div>
             </div>
-            <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-purple-100">
-              <div className="text-3xl font-bold text-purple-700 mb-2">500+</div>
-              <div className="text-sm font-semibold text-gray-700 mb-1">Weddings Captured</div>
-              <div className="text-xs text-gray-500">Across South India</div>
+            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-purple-50 to-indigo-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-purple-200 hover:scale-105">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
+                <Users className="w-8 h-8 text-white" />
+              </div>
+              <div className="text-4xl font-black text-purple-800 mb-2">500+</div>
+              <div className="text-lg font-bold text-gray-800 mb-1">Weddings Captured</div>
+              <div className="text-sm text-purple-700 font-medium">Across South India</div>
             </div>
           </div>
         </div>
@@ -469,16 +481,24 @@ Thanks!`;
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-8">
             {/* Additional Info Badges */}
-            <div className="flex flex-wrap gap-3">
-              {photographer.additionalInfo.map((info, index) => (
-                <Badge 
+            <div className="flex flex-wrap gap-4 mb-8">
+              {[
+                { text: "Drone Shots", icon: Camera, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50", textColor: "text-blue-800" },
+                { text: "Photo Editing", icon: Video, color: "from-purple-500 to-pink-500", bg: "from-purple-50 to-pink-50", textColor: "text-purple-800" },
+                { text: "Same Day Delivery", icon: Clock, color: "from-green-500 to-emerald-500", bg: "from-green-50 to-emerald-50", textColor: "text-green-800" },
+                { text: "Award Winner", icon: Award, color: "from-amber-500 to-orange-500", bg: "from-amber-50 to-orange-50", textColor: "text-amber-800" }
+              ].map((item, index) => (
+                <div 
                   key={index} 
-                  variant="secondary" 
-                  className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 hover:from-blue-200 hover:to-purple-200 transition-all"
+                  className={`px-6 py-3 rounded-full text-sm font-bold bg-gradient-to-r ${item.bg} border-2 border-transparent hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group cursor-pointer`}
                 >
-                  <Zap className="w-4 h-4 mr-2" />
-                  {info}
-                </Badge>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                      <item.icon className="w-3 h-3 text-white" />
+                    </div>
+                    <span className={item.textColor}>{item.text}</span>
+                  </div>
+                </div>
               ))}
             </div>
 
@@ -490,26 +510,26 @@ Thanks!`;
                   Our Services
                 </h2>
                 <p className="text-gray-600 mb-8 text-lg">Specialized in traditional ceremonies and modern celebrations</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {[
-                    { name: "Pre-Wedding Shoots", description: "Engagement, Haldi, Mehendi ceremonies", icon: Camera },
-                    { name: "Wedding Day Coverage", description: "Full day from Muhurtham to reception", icon: Camera },
-                    { name: "Reception Photography", description: "Evening celebrations and ceremonies", icon: Camera },
-                    { name: "Traditional Rituals", description: "Mangalsutra, Oonjal, Kanyadaan", icon: Camera },
-                    { name: "Drone Photography", description: "Aerial shots of venue and ceremonies", icon: Camera },
-                    { name: "Photo & Video Package", description: "Complete coverage with editing", icon: Camera }
+                    { name: "Pre-Wedding Shoots", description: "Engagement, Haldi, Mehendi ceremonies", icon: Heart, color: "from-pink-500 to-rose-500", bg: "from-pink-50 to-rose-50" },
+                    { name: "Wedding Day Coverage", description: "Full day from Muhurtham to reception", icon: Camera, color: "from-amber-500 to-orange-500", bg: "from-amber-50 to-orange-50" },
+                    { name: "Reception Photography", description: "Evening celebrations and ceremonies", icon: Sparkles, color: "from-purple-500 to-indigo-500", bg: "from-purple-50 to-indigo-50" },
+                    { name: "Traditional Rituals", description: "Mangalsutra, Oonjal, Kanyadaan", icon: Award, color: "from-red-500 to-pink-500", bg: "from-red-50 to-pink-50" },
+                    { name: "Drone Photography", description: "Aerial shots of venue and ceremonies", icon: Zap, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50" },
+                    { name: "Photo & Video Package", description: "Complete coverage with editing", icon: Video, color: "from-green-500 to-emerald-500", bg: "from-green-50 to-emerald-50" }
                   ].map((service, index) => (
                     <div 
                       key={index}
-                      className="group p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-amber-200"
+                      className={`group p-8 bg-gradient-to-br ${service.bg} rounded-2xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 border-transparent hover:border-white/50 shadow-lg`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg group-hover:from-amber-600 group-hover:to-orange-600 transition-colors">
-                          <service.icon className="w-6 h-6 text-white" />
+                      <div className="flex items-start gap-4">
+                        <div className={`p-4 bg-gradient-to-r ${service.color} rounded-2xl group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+                          <service.icon className="w-8 h-8 text-white" />
                         </div>
-                        <div>
-                          <h3 className="font-bold text-lg text-gray-800">{service.name}</h3>
-                          <p className="text-gray-600 text-sm">{service.description}</p>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">{service.name}</h3>
+                          <p className="text-gray-600 text-base leading-relaxed">{service.description}</p>
                         </div>
                       </div>
                     </div>
@@ -732,38 +752,66 @@ Thanks!`;
           {/* Right Column - Sidebar */}
           <div className="space-y-8">
             {/* Quick Contact Card */}
-            <Card className="sticky top-4 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 shadow-xl">
+            <Card className="sticky top-4 bg-white/80 backdrop-blur-md border-2 border-white/20 shadow-2xl">
               <CardContent className="p-8">
-                <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-gray-800">Contact Now</h3>
+                <div className="text-center mb-8">
+                  <h3 className="text-3xl font-black text-gray-800 mb-2">Contact Now</h3>
+                  <div className="w-16 h-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full mx-auto"></div>
                 </div>
 
+                {/* Testimonials */}
+                <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">P&A</span>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-800">Priya & Arjun</h4>
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star key={i} className="w-4 h-4 text-yellow-400 fill-current" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-700 italic">"Rajesh captured our wedding beautifully! Every moment was perfect."</p>
+                </div>
                 
                 <div className="space-y-4">
                   <Button 
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-300"
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-6 text-xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group"
                     onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                   >
-                    <MessageCircle className="w-6 h-6 mr-3" />
-                    Book Now
+                    <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
+                    <MessageCircle className="w-7 h-7 mr-3 relative z-10" />
+                    <span className="relative z-10">Book Now</span>
                   </Button>
                   
                   <Button 
                     variant="outline" 
-                    className="w-full border-2 border-purple-500 text-purple-700 hover:bg-purple-50 py-4 text-lg font-semibold rounded-xl transition-all duration-300"
+                    className="w-full border-3 border-purple-500 text-purple-700 hover:bg-purple-50 hover:border-purple-600 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
                     onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                   >
-                    <Phone className="w-5 h-5 mr-2" />
-                    Call for Free Consultation
+                    <Phone className="w-6 h-6 mr-3" />
+                    Free Consultation
                   </Button>
                 </div>
                 
                 {/* Benefits */}
-                <div className="mt-6 space-y-3">
-                  <div className="text-center space-y-1 pt-2">
-                    <p className="text-sm text-gray-600">✓ Free consultation</p>
-                    <p className="text-sm text-gray-600">✓ Same day response</p>
-                    <p className="text-sm text-gray-600">✓ Flexible payment options</p>
+                <div className="mt-8 space-y-4">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-semibold text-gray-700">Free consultation</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-semibold text-gray-700">Same day response</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-semibold text-gray-700">Flexible payment options</span>
+                    </div>
                   </div>
                 </div>
               </CardContent>

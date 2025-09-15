@@ -15,6 +15,11 @@ const VendorProfile = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [timeLeft, setTimeLeft] = useState({
+    minutes: 60,
+    seconds: 0
+  });
+  const [showConfetti, setShowConfetti] = useState(false);
 
   // Enhanced photographer data with modern structure
   const photographer = {
@@ -107,20 +112,45 @@ const VendorProfile = () => {
 
   const portfolioImages = photographer.portfolio;
 
-  // WhatsApp integration
+  // WhatsApp integration with curiosity-driven message
   const openWhatsApp = () => {
-    const message = `Hi! I'm interested in your photography services.
+    const message = `🔥 URGENT: I want to claim my EXCLUSIVE 10% OFF!
 
-Please share more details about:
-- Available dates
-- Package details
+Hi Rajesh! I just saw your amazing work and I'm ready to book my wedding photography!
+
+🎁 I want my HAPPYMOMENTS10 coupon code
+💌 I need the FREE Pre-Wedding Consultation
+⏰ I want to lock my date before the offer expires
+
+Please send me:
+- My exclusive coupon code
+- Available dates this month
+- Package details with the discount
 - How to confirm my booking
 
-Thanks!`;
+I'm ready to book NOW! 🚀`;
     const whatsappUrl = `https://wa.me/${photographer.contact.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
 
+
+  // Countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prevTime => {
+        if (prevTime.seconds > 0) {
+          return { ...prevTime, seconds: prevTime.seconds - 1 };
+        } else if (prevTime.minutes > 0) {
+          return { minutes: prevTime.minutes - 1, seconds: 59 };
+        } else {
+          // Timer expired, reset to 60 minutes
+          return { minutes: 60, seconds: 0 };
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Auto-play carousel
   useEffect(() => {
@@ -131,6 +161,13 @@ Thanks!`;
       return () => clearInterval(interval);
     }
   }, [isAutoPlaying, photographer.highlights.length]);
+
+  // Confetti effect
+  const triggerConfetti = () => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3000);
+  };
+
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % portfolioImages.length);
@@ -215,7 +252,7 @@ Thanks!`;
               />
               <div>
                 <div className="flex items-center gap-3 mb-1">
-                  <h1 className="text-xl font-bold text-gray-900">{photographer.name}</h1>
+                <h1 className="text-xl font-bold text-gray-900">{photographer.name}</h1>
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full shadow-sm">
                     <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
                     <span className="text-sm font-bold text-amber-700">{photographer.rating}</span>
@@ -224,9 +261,9 @@ Thanks!`;
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">{photographer.category}</Badge>
                   <Badge variant="outline" className="text-xs">{photographer.subcategory}</Badge>
+                  </div>
                 </div>
               </div>
-            </div>
             <div className="flex items-center gap-2">
               <Button 
                 onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
@@ -439,7 +476,7 @@ Thanks!`;
             <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-amber-50 to-orange-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-amber-200 hover:scale-105">
               <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-amber-500/25 transition-all duration-300">
                 <Clock className="w-8 h-8 text-white" />
-              </div>
+            </div>
               <div className="text-4xl font-black text-amber-800 mb-2">8+</div>
               <div className="text-lg font-bold text-gray-800 mb-1">Hours Coverage</div>
               <div className="text-sm text-amber-700 font-medium">300+ photos included</div>
@@ -447,7 +484,7 @@ Thanks!`;
             <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-red-50 to-pink-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-red-200 hover:scale-105">
               <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-red-500/25 transition-all duration-300">
                 <Trophy className="w-8 h-8 text-white" />
-              </div>
+            </div>
               <div className="text-4xl font-black text-red-800 mb-2">10+</div>
               <div className="text-lg font-bold text-gray-800 mb-1">Years Experience</div>
               <div className="text-sm text-red-700 font-medium">South Indian Weddings</div>
@@ -455,7 +492,7 @@ Thanks!`;
             <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-green-200 hover:scale-105">
               <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-green-500/25 transition-all duration-300">
                 <Star className="w-8 h-8 text-white fill-current" />
-              </div>
+          </div>
               <div className="text-4xl font-black text-green-800 mb-2">128</div>
               <div className="text-lg font-bold text-gray-800 mb-1">5-Star Reviews</div>
               <div className="text-sm text-green-700 font-medium">Happy Couples</div>
@@ -526,11 +563,11 @@ Thanks!`;
                       <div className="flex items-start gap-4">
                         <div className={`p-4 bg-gradient-to-r ${service.color} rounded-2xl group-hover:scale-110 transition-all duration-300 shadow-lg`}>
                           <service.icon className="w-8 h-8 text-white" />
-                        </div>
+                          </div>
                         <div className="flex-1">
                           <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">{service.name}</h3>
                           <p className="text-gray-600 text-base leading-relaxed">{service.description}</p>
-                        </div>
+                          </div>
                       </div>
                     </div>
                   ))}
@@ -752,15 +789,50 @@ Thanks!`;
           {/* Right Column - Sidebar */}
           <div className="space-y-8">
             {/* Quick Contact Card */}
-            <Card className="sticky top-4 bg-white/80 backdrop-blur-md border-2 border-white/20 shadow-2xl">
-              <CardContent className="p-8">
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-black text-gray-800 mb-2">Contact Now</h3>
-                  <div className="w-16 h-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full mx-auto"></div>
+            <Card className="sticky top-4 bg-white/95 backdrop-blur-md border-2 border-white/30 shadow-2xl relative overflow-hidden">
+              {/* Confetti Effect */}
+              {showConfetti && (
+                <div className="absolute inset-0 pointer-events-none z-50">
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 animate-bounce">
+                    <div className="text-6xl">🎉</div>
+                  </div>
+                  <div className="absolute top-4 left-1/4 animate-bounce" style={{ animationDelay: '0.2s' }}>
+                    <div className="text-4xl">✨</div>
+                </div>
+                  <div className="absolute top-6 right-1/4 animate-bounce" style={{ animationDelay: '0.4s' }}>
+                    <div className="text-4xl">🎊</div>
+                  </div>
+                </div>
+              )}
+              
+              <CardContent className="p-8 relative z-10">
+                {/* Urgency Banner */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 rounded-2xl shadow-lg border-2 border-green-400/30">
+                  <div className="flex items-center justify-center gap-3 text-white">
+                    <Clock className="w-6 h-6 animate-pulse" />
+                    <span className="text-lg font-bold">Contact Now in next 60 minutes & get 10% OFF!</span>
+                    <span className="text-2xl">🎯</span>
+                  </div>
                 </div>
 
+                {/* Countdown Timer */}
+                <div className="mb-6 p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border-2 border-red-200 text-center">
+                  <div className="text-sm font-semibold text-red-700 mb-2">⏰ Limited Time Offer Ends In:</div>
+                  <div className="text-4xl font-black text-red-800 flex items-center justify-center gap-2">
+                    <span className="bg-red-100 px-3 py-2 rounded-lg">
+                      {timeLeft.minutes.toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-red-500">:</span>
+                    <span className="bg-red-100 px-3 py-2 rounded-lg">
+                      {timeLeft.seconds.toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="text-xs text-red-600 mt-2">Minutes : Seconds</div>
+                </div>
+
+
                 {/* Testimonials */}
-                <div className="mb-8 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
+                <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                       <span className="text-white font-bold text-lg">P&A</span>
@@ -777,14 +849,16 @@ Thanks!`;
                   <p className="text-sm text-gray-700 italic">"Rajesh captured our wedding beautifully! Every moment was perfect."</p>
                 </div>
                 
+                {/* CTA Buttons */}
                 <div className="space-y-4">
                   <Button 
                     className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-6 text-xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group"
-                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); triggerConfetti(); }}
                   >
                     <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
                     <MessageCircle className="w-7 h-7 mr-3 relative z-10" />
-                    <span className="relative z-10">Book Now</span>
+                    <span className="relative z-10">🔓 Unlock My Secret Offer</span>
+                    <div className="absolute top-0 right-0 text-2xl animate-bounce">🎁</div>
                   </Button>
                   
                   <Button 
@@ -793,22 +867,22 @@ Thanks!`;
                     onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                   >
                     <Phone className="w-6 h-6 mr-3" />
-                    Free Consultation
+                    Request Callback
                   </Button>
                 </div>
                 
                 {/* Benefits */}
-                <div className="mt-8 space-y-4">
+                <div className="mt-6 space-y-3">
                   <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
+                    <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <span className="text-sm font-semibold text-gray-700">Free consultation</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
+                    <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <span className="text-sm font-semibold text-gray-700">Same day response</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-white/60 rounded-xl">
+                  </div>
+                    <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <span className="text-sm font-semibold text-gray-700">Flexible payment options</span>
                     </div>

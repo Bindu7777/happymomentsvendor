@@ -20,6 +20,8 @@ const VendorProfile = () => {
     seconds: 0
   });
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showCoupon, setShowCoupon] = useState(false);
+  const [recentClaims, setRecentClaims] = useState(47);
 
   // Enhanced photographer data with modern structure
   const photographer = {
@@ -102,33 +104,32 @@ const VendorProfile = () => {
       }
     ],
     contact: {
-      phone: "+91 98765 43210",
+      phone: "+91 95507 93699",
       email: "rajesh@photography.com",
       instagram: "@rajeshphotography",
       website: "www.rajeshphotography.com",
-      whatsapp: "+91 98765 43210"
+      whatsapp: "+91 95507 93699"
     }
   };
 
   const portfolioImages = photographer.portfolio;
 
-  // WhatsApp integration with curiosity-driven message
+  // WhatsApp integration with friendly message
   const openWhatsApp = () => {
-    const message = `🔥 URGENT: I want to claim my EXCLUSIVE 10% OFF!
+    const message = `Hi [Name] I just saw your amazing work and I'm super interested in your wedding photography 📸
 
-Hi Rajesh! I just saw your amazing work and I'm ready to book my wedding photography!
+💬 I'd love to talk with you and understand more before booking.
+👉 Please send me:
 
-🎁 I want my HAPPYMOMENTS10 coupon code
-💌 I need the FREE Pre-Wedding Consultation
-⏰ I want to lock my date before the offer expires
+My HAPPYMOMENTS10 coupon code
 
-Please send me:
-- My exclusive coupon code
-- Available dates this month
-- Package details with the discount
-- How to confirm my booking
+Available slots for a quick call / chat this week
 
-I'm ready to book NOW! 🚀`;
+Package details with the discount
+
+How I can move forward after our discussion
+
+I'm really excited to connect and explore working with you soon! ✨`;
     const whatsappUrl = `https://wa.me/${photographer.contact.whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -166,6 +167,20 @@ I'm ready to book NOW! 🚀`;
   const triggerConfetti = () => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
+  };
+
+  // Coupon reveal with animation
+  const revealCoupon = () => {
+    setShowCoupon(true);
+    triggerConfetti();
+    // Increment recent claims
+    setRecentClaims(prev => prev + 1);
+  };
+
+  // Copy coupon code
+  const copyCouponCode = () => {
+    navigator.clipboard.writeText('HAPPYMOMENTS10');
+    // You could add a toast notification here
   };
 
 
@@ -788,7 +803,7 @@ I'm ready to book NOW! 🚀`;
 
           {/* Right Column - Sidebar */}
           <div className="space-y-8">
-            {/* Quick Contact Card */}
+            {/* Quick Contact Card - Enhanced for Maximum Conversions */}
             <Card className="sticky top-4 bg-white/95 backdrop-blur-md border-2 border-white/30 shadow-2xl relative overflow-hidden">
               {/* Confetti Effect */}
               {showConfetti && (
@@ -798,16 +813,29 @@ I'm ready to book NOW! 🚀`;
                   </div>
                   <div className="absolute top-4 left-1/4 animate-bounce" style={{ animationDelay: '0.2s' }}>
                     <div className="text-4xl">✨</div>
-                </div>
+                  </div>
                   <div className="absolute top-6 right-1/4 animate-bounce" style={{ animationDelay: '0.4s' }}>
                     <div className="text-4xl">🎊</div>
                   </div>
                 </div>
               )}
               
-              <CardContent className="p-8 relative z-10">
+              <CardContent className="p-6 relative z-10">
+                {/* Headline Hook */}
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">Best South Indian Wedding Photographer – Limited Spot!</h3>
+                </div>
+
+                {/* Social Proof Badge */}
+                <div className="mb-4 text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-100 to-red-100 rounded-full border border-orange-200">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-bold text-red-700">{recentClaims} people claimed this offer today!</span>
+                  </div>
+                </div>
+
                 {/* Urgency Banner */}
-                <div className="mb-6 p-4 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 rounded-2xl shadow-lg border-2 border-green-400/30">
+                <div className="mb-4 p-4 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 rounded-2xl shadow-lg border-2 border-green-400/30">
                   <div className="flex items-center justify-center gap-3 text-white">
                     <Clock className="w-6 h-6 animate-pulse" />
                     <span className="text-lg font-bold">Contact Now in next 60 minutes & get 10% OFF!</span>
@@ -815,10 +843,10 @@ I'm ready to book NOW! 🚀`;
                   </div>
                 </div>
 
-                {/* Countdown Timer */}
-                <div className="mb-6 p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border-2 border-red-200 text-center">
+                {/* Animated Countdown Timer */}
+                <div className="mb-6 p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-200 text-center">
                   <div className="text-sm font-semibold text-red-700 mb-2">⏰ Limited Time Offer Ends In:</div>
-                  <div className="text-4xl font-black text-red-800 flex items-center justify-center gap-2">
+                  <div className={`text-4xl font-black text-red-800 flex items-center justify-center gap-2 ${timeLeft.minutes < 5 ? 'animate-pulse' : ''}`}>
                     <span className="bg-red-100 px-3 py-2 rounded-lg">
                       {timeLeft.minutes.toString().padStart(2, '0')}
                     </span>
@@ -829,7 +857,6 @@ I'm ready to book NOW! 🚀`;
                   </div>
                   <div className="text-xs text-red-600 mt-2">Minutes : Seconds</div>
                 </div>
-
 
                 {/* Testimonials */}
                 <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200">
@@ -848,19 +875,56 @@ I'm ready to book NOW! 🚀`;
                   </div>
                   <p className="text-sm text-gray-700 italic">"Rajesh captured our wedding beautifully! Every moment was perfect."</p>
                 </div>
+
+                {/* Coupon Reveal Section */}
+                {showCoupon && (
+                  <div className="mb-6 p-6 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl border-2 border-yellow-300 animate-bounce">
+                    <div className="text-center">
+                      <h4 className="text-lg font-bold text-yellow-800 mb-3">🎉 Your Secret Coupon Code!</h4>
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="bg-yellow-200 px-4 py-2 rounded-lg border-2 border-yellow-400">
+                          <span className="text-2xl font-black text-yellow-800">HAPPYMOMENTS10</span>
+                        </div>
+                        <Button 
+                          size="sm"
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold"
+                          onClick={copyCouponCode}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      <p className="text-sm text-yellow-700 mt-2">Use this code when you contact us!</p>
+                    </div>
+                  </div>
+                )}
                 
-                {/* CTA Buttons */}
+                {/* Enhanced CTA Buttons */}
                 <div className="space-y-4">
+                  {/* WhatsApp Quick Chat Button */}
                   <Button 
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-6 text-xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group"
-                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); triggerConfetti(); }}
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group animate-pulse"
+                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                   >
                     <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
-                    <MessageCircle className="w-7 h-7 mr-3 relative z-10" />
-                    <span className="relative z-10">🔓 Unlock My Secret Offer</span>
-                    <div className="absolute top-0 right-0 text-2xl animate-bounce">🎁</div>
+                    <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
+                    <span className="relative z-10">💬 WhatsApp Quick Chat</span>
+                    <div className="absolute top-0 right-0 text-3xl animate-bounce">🚀</div>
+                  </Button>
+
+                  {/* Unlock Secret Offer Button */}
+                  <Button 
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:from-purple-800 active:to-pink-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group"
+                    onClick={(e) => { e.stopPropagation(); revealCoupon(); }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
+                    <div className="flex items-center justify-center gap-3 relative z-10">
+                      <span>🔓</span>
+                      <span>Unlock My Secret Offer</span>
+                      <span>🎁</span>
+                    </div>
                   </Button>
                   
+                  {/* Request Callback Button */}
                   <Button 
                     variant="outline" 
                     className="w-full border-3 border-purple-500 text-purple-700 hover:bg-purple-50 hover:border-purple-600 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
@@ -881,7 +945,7 @@ I'm ready to book NOW! 🚀`;
                     <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <span className="text-sm font-semibold text-gray-700">Same day response</span>
-                  </div>
+                    </div>
                     <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
                       <CheckCircle className="w-5 h-5 text-green-500" />
                       <span className="text-sm font-semibold text-gray-700">Flexible payment options</span>

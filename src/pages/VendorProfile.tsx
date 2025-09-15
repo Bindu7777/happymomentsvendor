@@ -915,6 +915,22 @@ I'm really excited to connect and explore working with you soon! ✨`;
                   </div>
                 </div>
 
+                {/* Starting Price Highlight */}
+                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-md">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">₹</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-black text-blue-800">Starting ₹35,000</div>
+                      <div className="text-sm text-blue-600 font-semibold">Premium Wedding Photography</div>
+                    </div>
+                    <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">✓</span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Animated Countdown Timer */}
                 <div className="mb-6 p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-200 text-center">
                   <div className="text-sm font-semibold text-red-700 mb-2">⏰ Limited Time Offer Ends In:</div>
@@ -1056,6 +1072,67 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       <p className="text-sm text-gray-600">Follow for latest work</p>
                     </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Policies Section */}
+            <Card className="hover:shadow-lg transition-all duration-300 border-2 border-blue-100">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
+                  <Award className="w-6 h-6 text-blue-600" />
+                  Booking Policies
+                </h3>
+                <div className="space-y-6">
+                  
+                  {/* Advance Payment Policy */}
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-sm font-bold">₹</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-green-800 mb-2">Advance Payment Policy</h4>
+                        <p className="text-sm text-green-700 leading-relaxed">
+                          50% of the total booking amount must be paid upfront to confirm the booking. 
+                          The remaining 50% should be settled at least 3 days before the event.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cancellation & Refund Policy */}
+                  <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-sm font-bold">↩</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-orange-800 mb-2">Cancellation & Refund Policy</h4>
+                        <p className="text-sm text-orange-700 leading-relaxed">
+                          Cancellations made 7 days before the event will receive a 50% refund of the advance. 
+                          Cancellations within 7 days are non-refundable.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Service Commitment Policy */}
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-sm font-bold">✓</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-blue-800 mb-2">Service Commitment Policy</h4>
+                        <p className="text-sm text-blue-700 leading-relaxed">
+                          Vendors must arrive on time and provide all services as agreed. Any deviation should be 
+                          communicated at least 24 hours prior, failing which a compensation or rescheduling clause may apply.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </CardContent>
             </Card>

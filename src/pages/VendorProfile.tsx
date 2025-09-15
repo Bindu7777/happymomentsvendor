@@ -15,11 +15,6 @@ const VendorProfile = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 1,
-    minutes: 0,
-    seconds: 0
-  });
 
   // Enhanced photographer data with modern structure
   const photographer = {
@@ -30,21 +25,14 @@ const VendorProfile = () => {
     coverImage: "/images/wedding.webp",
     rating: 4.8,
     reviewCount: 128,
-    location: "Mumbai, Maharashtra",
+    location: "AP and Telangana",
     category: "Photography",
-    subcategory: "Wedding & Events",
+    subcategory: "All Events",
     verified: true,
     responseTime: "2 hours",
     yearsActive: 10,
-    priceRange: "₹30,000 - ₹1,50,000",
-    startingPrice: "₹30,000",
     experience: "10+ Years",
     additionalInfo: ["Drone Shots", "Photo Editing", "Same Day Delivery", "Award Winner"],
-    contactPerson: {
-      name: "Rajesh",
-      profilePicture: "/images/vendor.jpeg",
-      role: "Contact Person"
-    },
     highlights: [
       {
         image: "/images/wedding.webp",
@@ -63,27 +51,24 @@ const VendorProfile = () => {
       }
     ],
     services: [
-      { name: "Wedding Photography", price: "₹30,000", description: "Full day coverage with 500+ edited photos", icon: Camera },
-      { name: "Pre-Wedding Shoot", price: "₹18,000", description: "2-3 hour romantic couple session", icon: Heart },
-      { name: "Corporate Events", price: "₹25,000", description: "Professional event documentation", icon: Building2 },
-      { name: "Birthday Parties", price: "₹12,000", description: "Fun and candid party photography", icon: Sparkles }
+      { name: "Wedding Photography", description: "Full day coverage with 500+ edited photos", icon: Camera },
+      { name: "Pre-Wedding Shoot", description: "2-3 hour romantic couple session", icon: Heart },
+      { name: "Corporate Events", description: "Professional event documentation", icon: Building2 },
+      { name: "Birthday Parties", description: "Fun and candid party photography", icon: Sparkles }
     ],
     packages: [
       {
         name: "Essential Package",
-        price: "₹30,000",
         features: ["6 hours coverage", "300+ edited photos", "Online gallery", "USB drive"],
         popular: false
       },
       {
         name: "Premium Package", 
-        price: "₹55,000",
         features: ["10 hours coverage", "600+ edited photos", "Online gallery", "USB drive", "Photo book", "Engagement shoot"],
         popular: true
       },
       {
         name: "Luxury Package",
-        price: "₹95,000", 
         features: ["Full day coverage", "1000+ edited photos", "Online gallery", "USB drive", "Photo book", "Engagement shoot", "Video highlights", "Drone shots"],
         popular: false
       }
@@ -133,19 +118,13 @@ const VendorProfile = () => {
 
   const portfolioImages = photographer.portfolio;
 
-  // WhatsApp integration with urgency message
+  // WhatsApp integration
   const openWhatsApp = () => {
-    const message = `🔥 URGENT BOOKING REQUEST 🔥
-
-Hi! I'm interested in your photography services and want to claim the 10% OFF flash deal!
-
-🎁 I want to claim my Happy Moments Coupon
-💌 I need the Free Pre-Wedding Shoot Consultation
-⏳ I want to lock my date before slots run out
+    const message = `Hi! I'm interested in your photography services.
 
 Please share more details about:
-- Available dates this week
-- Package details with the discount
+- Available dates
+- Package details
 - How to confirm my booking
 
 Thanks!`;
@@ -153,25 +132,6 @@ Thanks!`;
     window.open(whatsappUrl, '_blank');
   };
 
-  // Countdown timer
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prevTime => {
-        if (prevTime.seconds > 0) {
-          return { ...prevTime, seconds: prevTime.seconds - 1 };
-        } else if (prevTime.minutes > 0) {
-          return { hours: prevTime.hours, minutes: prevTime.minutes - 1, seconds: 59 };
-        } else if (prevTime.hours > 0) {
-          return { hours: prevTime.hours - 1, minutes: 59, seconds: 59 };
-        } else {
-          // Timer expired, reset to 1 hour
-          return { hours: 1, minutes: 0, seconds: 0 };
-        }
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   // Auto-play carousel
   useEffect(() => {
@@ -265,19 +225,16 @@ Thanks!`;
                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
               />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{photographer.name}</h1>
+                <div className="flex items-center gap-3 mb-1">
+                  <h1 className="text-xl font-bold text-gray-900">{photographer.name}</h1>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-full shadow-sm">
+                    <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
+                    <span className="text-sm font-bold text-amber-700">{photographer.rating}</span>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="text-xs">{photographer.category}</Badge>
                   <Badge variant="outline" className="text-xs">{photographer.subcategory}</Badge>
-                  <div className="flex items-center gap-2">
-                    <img 
-                      src={photographer.contactPerson.profilePicture} 
-                      alt={photographer.contactPerson.name}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
-                    <span className="text-sm font-medium">{photographer.contactPerson.name}</span>
-                    <span className="text-xs text-gray-500">({photographer.contactPerson.role})</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -344,26 +301,27 @@ Thanks!`;
                   <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
                     
                     {/* Name and Profile Row */}
-                    <div className="flex items-start mb-1">
+                    <div className="flex items-start mb-0">
                       <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 leading-tight">
                         {photographer.name}
                       </h1>
                       <div className="flex flex-col items-center -ml-6">
                         <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-blue-500 flex-shrink-0">
                           <img 
-                            src={photographer.contactPerson.profilePicture} 
-                            alt={photographer.contactPerson.name}
+                            src={photographer.avatar} 
+                            alt={photographer.name}
                             className="w-full h-full object-cover rounded-full"
                           />
                         </div>
-                        <div className="text-center mt-1">
-                          <div className="text-lg font-bold text-gray-800">{photographer.contactPerson.name}</div>
+                        <div className="text-center mt-2">
+                          <div className="text-lg font-bold text-gray-800">Rajesh</div>
+                          <div className="text-base font-bold text-gray-500">Contact Person</div>
                         </div>
                       </div>
                     </div>
 
                     {/* Category Badges Row */}
-                    <div className="flex items-center gap-4 mb-8">
+                    <div className="flex items-center gap-4 mb-8 -mt-6">
                       <Badge className="px-6 py-3 text-base font-medium bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full shadow-md">
                         {photographer.category}
                       </Badge>
@@ -471,9 +429,9 @@ Thanks!`;
         <div className="container mx-auto px-6 py-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
-              <div className="text-3xl font-bold text-amber-700 mb-2">₹30,000+</div>
-              <div className="text-sm font-semibold text-gray-700 mb-1">Starting Price</div>
-              <div className="text-xs text-gray-500">8 hours + 300+ photos</div>
+              <div className="text-3xl font-bold text-amber-700 mb-2">8+</div>
+              <div className="text-sm font-semibold text-gray-700 mb-1">Hours Coverage</div>
+              <div className="text-xs text-gray-500">300+ photos included</div>
             </div>
             <div className="flex flex-col items-center p-6 bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-red-100">
               <div className="text-3xl font-bold text-red-700 mb-2">10+</div>
@@ -526,30 +484,25 @@ Thanks!`;
                 <p className="text-gray-600 mb-8 text-lg">Specialized in traditional ceremonies and modern celebrations</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[
-                    { name: "Pre-Wedding Shoots", description: "Engagement, Haldi, Mehendi ceremonies", price: "₹15,000", icon: Camera },
-                    { name: "Wedding Day Coverage", description: "Full day from Muhurtham to reception", price: "₹45,000", icon: Camera },
-                    { name: "Reception Photography", description: "Evening celebrations and ceremonies", price: "₹25,000", icon: Camera },
-                    { name: "Traditional Rituals", description: "Mangalsutra, Oonjal, Kanyadaan", price: "₹20,000", icon: Camera },
-                    { name: "Drone Photography", description: "Aerial shots of venue and ceremonies", price: "₹10,000", icon: Camera },
-                    { name: "Photo & Video Package", description: "Complete coverage with editing", price: "₹75,000", icon: Camera }
+                    { name: "Pre-Wedding Shoots", description: "Engagement, Haldi, Mehendi ceremonies", icon: Camera },
+                    { name: "Wedding Day Coverage", description: "Full day from Muhurtham to reception", icon: Camera },
+                    { name: "Reception Photography", description: "Evening celebrations and ceremonies", icon: Camera },
+                    { name: "Traditional Rituals", description: "Mangalsutra, Oonjal, Kanyadaan", icon: Camera },
+                    { name: "Drone Photography", description: "Aerial shots of venue and ceremonies", icon: Camera },
+                    { name: "Photo & Video Package", description: "Complete coverage with editing", icon: Camera }
                   ].map((service, index) => (
                     <div 
                       key={index}
                       className="group p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-amber-200"
                     >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg group-hover:from-amber-600 group-hover:to-orange-600 transition-colors">
-                            <service.icon className="w-6 h-6 text-white" />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-lg text-gray-800">{service.name}</h3>
-                            <p className="text-gray-600 text-sm">{service.description}</p>
-                          </div>
+                      <div className="flex items-center gap-3">
+                        <div className="p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg group-hover:from-amber-600 group-hover:to-orange-600 transition-colors">
+                          <service.icon className="w-6 h-6 text-white" />
                         </div>
-                        <Badge className="text-lg font-bold bg-gradient-to-r from-amber-600 to-orange-600 text-white">
-                          {service.price}
-                        </Badge>
+                        <div>
+                          <h3 className="font-bold text-lg text-gray-800">{service.name}</h3>
+                          <p className="text-gray-600 text-sm">{service.description}</p>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -569,7 +522,6 @@ Thanks!`;
                   {[
                     { 
                       name: "Essential", 
-                      price: "₹30,000", 
                       popular: false,
                       features: [
                         "8 hours coverage",
@@ -582,7 +534,6 @@ Thanks!`;
                     },
                     { 
                       name: "Premium", 
-                      price: "₹55,000", 
                       popular: true,
                       features: [
                         "12 hours coverage",
@@ -597,7 +548,6 @@ Thanks!`;
                     },
                     { 
                       name: "Luxury", 
-                      price: "₹85,000", 
                       popular: false,
                       features: [
                         "16 hours coverage",
@@ -627,8 +577,7 @@ Thanks!`;
                       )}
                       <div className="text-center mb-6">
                         <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
-                        <div className="text-4xl font-bold text-red-600 mb-2">{pkg.price}</div>
-                        <div className="text-sm text-gray-500">Starting price for South Indian weddings</div>
+                        <div className="text-sm text-gray-500">Complete package for South Indian weddings</div>
                       </div>
                       <ul className="space-y-3 mb-8">
                         {pkg.features.map((feature, idx) => (
@@ -777,30 +726,18 @@ Thanks!`;
             {/* Quick Contact Card */}
             <Card className="sticky top-4 bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 shadow-xl">
               <CardContent className="p-8">
-                {/* Urgency Header */}
-                <div className="text-center mb-4">
-                  <div className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full text-sm font-bold mb-3 animate-pulse">
-                    🔥 URGENCY
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800">Get Your Quote</h3>
-                </div>
-
-                {/* Flash Deal Banner */}
-                <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white p-4 rounded-xl mb-6 text-center shadow-lg">
-                  <div className="text-lg font-bold mb-1">⚡ FLASH DEAL</div>
-                  <div className="text-sm">Book on WhatsApp in the next hour & get 10% OFF instantly!</div>
-                  <div className="text-xs mt-1 opacity-90">⏳ Offer ends in 1 hour!</div>
+                <div className="text-center mb-6">
+                  <h3 className="text-2xl font-bold text-gray-800">Contact Now</h3>
                 </div>
 
                 
                 <div className="space-y-4">
                   <Button 
-                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-300 relative overflow-hidden"
+                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-4 text-lg font-bold rounded-xl shadow-lg hover:scale-105 transition-all duration-300"
                     onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                   >
-                    <div className="absolute top-0 left-0 w-full h-1 bg-yellow-400 animate-pulse"></div>
                     <MessageCircle className="w-6 h-6 mr-3" />
-                    🔥 Book Now & Save 10%
+                    Book Now
                   </Button>
                   
                   <Button 
@@ -813,36 +750,8 @@ Thanks!`;
                   </Button>
                 </div>
                 
-                {/* Enhanced Benefits with Urgency */}
+                {/* Benefits */}
                 <div className="mt-6 space-y-3">
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-2 text-green-700">
-                      <span className="text-lg">🎁</span>
-                      <span className="text-sm font-bold">Claim your Happy Moments Coupon – only for WhatsApp bookings today!</span>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2 text-blue-700">
-                      <span className="text-lg">💌</span>
-                      <span className="text-sm font-bold">Chat now & receive a Free Pre-Wedding Shoot Consultation!</span>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-orange-50 to-red-50 p-3 rounded-lg border border-orange-200">
-                    <div className="flex items-center justify-center gap-2 text-orange-700">
-                      <span className="text-lg">⏳</span>
-                      <div className="flex flex-col items-center">
-                        <span className="text-sm font-bold">Flash Deal Ends In:</span>
-                        <div className="text-lg font-bold" id="countdown-timer">
-                          <span id="hours">{timeLeft.hours.toString().padStart(2, '0')}</span>:
-                          <span id="minutes">{timeLeft.minutes.toString().padStart(2, '0')}</span>:
-                          <span id="seconds">{timeLeft.seconds.toString().padStart(2, '0')}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
                   <div className="text-center space-y-1 pt-2">
                     <p className="text-sm text-gray-600">✓ Free consultation</p>
                     <p className="text-sm text-gray-600">✓ Same day response</p>

@@ -267,12 +267,12 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
               />
               <div>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-1">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-1">
                 <h1 className="text-xl font-bold text-gray-900">{photographer.name}</h1>
                   
                   {/* Premium Animated Rating Widget */}
                   <div 
-                    className="relative group cursor-pointer"
+                    className="relative group cursor-pointer self-end"
                     onMouseEnter={() => setShowRatingTooltip(true)}
                     onMouseLeave={() => setShowRatingTooltip(false)}
                   >
@@ -281,38 +281,44 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       <div className="flex items-center gap-1">
                         {[...Array(5)].map((_, i) => {
                           const starValue = i + 1;
-                          const isFilled = starValue <= Math.floor(photographer.rating);
-                          const isHalfFilled = starValue === Math.ceil(photographer.rating) && photographer.rating % 1 !== 0;
+                          const rating = photographer.rating; // 4.8
+                          const isFilled = starValue <= Math.floor(rating); // 1,2,3,4
+                          const isHalfFilled = starValue === Math.ceil(rating) && rating % 1 !== 0; // 5th star half filled
                           
                           return (
                             <div key={i} className="relative group/star">
-                              <Star 
-                                className={`w-5 h-5 transition-all duration-700 ${
-                                  isFilled 
-                                    ? 'text-amber-500 fill-current group-hover:animate-pulse' 
-                                    : isHalfFilled 
-                                    ? 'text-amber-500 fill-current' 
-                                    : 'text-gray-300'
-                                }`}
-                                style={{
-                                  animationDelay: `${i * 0.15}s`,
-                                  filter: isFilled ? 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))' : 'none'
-                                }}
-                              />
+                              {/* Background star (always gray) */}
+                              <Star className="w-5 h-5 text-gray-300" />
+                              
+                              {/* Filled portion */}
                               {isFilled && (
-                                <div className="absolute inset-0 animate-pulse">
-                                  <Star className="w-5 h-5 text-amber-300 fill-current opacity-50" />
-                </div>
+                                <div className="absolute inset-0">
+                                  <Star 
+                                    className="w-5 h-5 text-amber-500 fill-current group-hover:animate-pulse transition-all duration-700"
+                                    style={{
+                                      animationDelay: `${i * 0.15}s`,
+                                      filter: 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))'
+                                    }}
+                                  />
+                  </div>
                               )}
+                              
+                              {/* Half filled portion */}
                               {isHalfFilled && (
                                 <div className="absolute inset-0 overflow-hidden w-1/2">
-                                  <Star className="w-5 h-5 text-amber-500 fill-current" />
-              </div>
+                                  <Star 
+                                    className="w-5 h-5 text-amber-500 fill-current group-hover:animate-pulse transition-all duration-700"
+                                    style={{
+                                      animationDelay: `${i * 0.15}s`,
+                                      filter: 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))'
+                                    }}
+                                  />
+                </div>
                               )}
-            </div>
+              </div>
                           );
                         })}
-                      </div>
+            </div>
                       
                       {/* Fused Rating Pill */}
                       <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-200 rounded-full shadow-sm">
@@ -339,7 +345,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                   </div>
                   
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 -mt-4">
                   <Badge variant="secondary" className="text-xs">{photographer.category}</Badge>
                   <Badge variant="outline" className="text-xs">{photographer.subcategory}</Badge>
                   </div>

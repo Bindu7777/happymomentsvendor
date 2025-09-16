@@ -156,7 +156,7 @@ export default function AddVendor() {
     const sampleData: VendorFormInputs = {
       brand_name: "Royal Photography Studio",
       spoc_name: "Rajesh Kumar",
-      category: "Photography",
+      category: "Photographers",
       subcategory: "Wedding Photography",
       phone_number: "+91 98765 43210",
       whatsapp_number: "+91 98765 43210",
@@ -426,13 +426,17 @@ export default function AddVendor() {
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select Category</option>
-                  <option value="Photography">Photography</option>
-                  <option value="Decoration">Decoration</option>
-                  <option value="Catering">Catering</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="Venue">Venue</option>
-                  <option value="Beauty">Beauty</option>
-                  <option value="Transport">Transport</option>
+                  <option value="Event Planners">Event Planners</option>
+                  <option value="Venues">Venues</option>
+                  <option value="Photographers">Photographers</option>
+                  <option value="Decorators">Decorators</option>
+                  <option value="Caterers">Caterers</option>
+                  <option value="Makeup Artists">Makeup Artists</option>
+                  <option value="DJs, Lighting, and Entertainment">DJs, Lighting, and Entertainment</option>
+                  <option value="Anchors">Anchors</option>
+                  <option value="Transportation Services">Transportation Services</option>
+                  <option value="Fashion/Costume Designers">Fashion/Costume Designers</option>
+                  <option value="Tent & Equipment Rentals">Tent & Equipment Rentals</option>
                 </select>
                 {errors.category && (
                   <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>

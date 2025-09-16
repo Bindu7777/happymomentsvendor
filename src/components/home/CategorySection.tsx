@@ -1,15 +1,15 @@
 
 import { Link } from 'react-router-dom';
-import { Camera, Building2, Utensils, Flower2, ShoppingBag, Music, Users, Sparkles } from 'lucide-react';
+import { Camera, Building2, Utensils, Flower2, ShoppingBag, Music, Users, Sparkles, Mic, Car, Tent } from 'lucide-react';
 
 const categories = [
   {
     id: 1,
-    title: 'Photography',
-    icon: Camera,
+    title: 'Event Planners',
+    icon: Users,
     color: 'bg-wedding-orange-light',
     iconColor: 'text-wedding-orange',
-    count: 842
+    count: 488
   },
   {
     id: 2,
@@ -17,55 +17,79 @@ const categories = [
     icon: Building2,
     color: 'bg-wedding-orange-light',
     iconColor: 'text-wedding-orange',
-    count: 517
+    count: 174
   },
   {
     id: 3,
-    title: 'Catering',
-    icon: Utensils,
+    title: 'Photographers',
+    icon: Camera,
     color: 'bg-wedding-orange-light',
     iconColor: 'text-wedding-orange',
-    count: 635
+    count: 138
   },
   {
     id: 4,
-    title: 'Decor & Design',
+    title: 'Decorators',
     icon: Flower2,
     color: 'bg-wedding-orange-light',
     iconColor: 'text-wedding-orange',
-    count: 428
+    count: 142
   },
   {
     id: 5,
-    title: 'Attire & Accessories',
-    icon: ShoppingBag,
+    title: 'Caterers',
+    icon: Utensils,
     color: 'bg-wedding-orange-light',
     iconColor: 'text-wedding-orange',
-    count: 372
+    count: 519
   },
   {
     id: 6,
-    title: 'Music & Entertainment',
-    icon: Music,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 295
-  },
-  {
-    id: 7,
-    title: 'Planning & Coordination',
-    icon: Users,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 184
-  },
-  {
-    id: 8,
-    title: 'Makeup Artists & Beauticians',
+    title: 'Makeup Artists',
     icon: Sparkles,
     color: 'bg-wedding-orange-light',
     iconColor: 'text-wedding-orange',
-    count: 246
+    count: 145
+  },
+  {
+    id: 7,
+    title: 'DJs, Lighting, and Entertainment',
+    icon: Music,
+    color: 'bg-wedding-orange-light',
+    iconColor: 'text-wedding-orange',
+    count: 472
+  },
+  {
+    id: 8,
+    title: 'Anchors',
+    icon: Mic,
+    color: 'bg-wedding-orange-light',
+    iconColor: 'text-wedding-orange',
+    count: 102
+  },
+  {
+    id: 9,
+    title: 'Transportation Services',
+    icon: Car,
+    color: 'bg-wedding-orange-light',
+    iconColor: 'text-wedding-orange',
+    count: 192
+  },
+  {
+    id: 10,
+    title: 'Fashion/Costume Designers',
+    icon: ShoppingBag,
+    color: 'bg-wedding-orange-light',
+    iconColor: 'text-wedding-orange',
+    count: 222
+  },
+  {
+    id: 11,
+    title: 'Tent & Equipment Rentals',
+    icon: Tent,
+    color: 'bg-wedding-orange-light',
+    iconColor: 'text-wedding-orange',
+    count: 427
   }
 ];
 
@@ -96,11 +120,11 @@ const CategorySection = () => {
             <Link 
               key={category.id}
               to={
-                category.title === 'Photography' 
+                category.title === 'Photographers' 
                   ? '/photography-vendors' 
-                  : category.title === 'Decor & Design'
+                  : category.title === 'Decorators'
                   ? '/decor-profile'
-                  : `/category/${category.title.toLowerCase().replace(/\s+/g, '-')}`
+                  : `/category/${category.title.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`
               }
               className="group rounded-2xl border border-wedding-orange/10 bg-white p-6 text-center transition-all hover:shadow-card overflow-hidden relative animate-fade-up"
               style={{ animationDelay: `${index * 50}ms` }}

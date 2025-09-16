@@ -9,6 +9,9 @@ import VendorDetails from "./pages/vendor";
 import { PrimeReactProvider } from "primereact/api";
 import Login from "./pages/login";
 import AddVendor from "./pages/addVendor";
+import AdminLogin from "./pages/AdminLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminVendorEdit from "./pages/AdminVendorEdit";
 import { AdminRoute } from "./pages/adminRoute";
 import { useUserStore } from "./store/userStore";
 import { User } from "@supabase/supabase-js";
@@ -33,6 +36,13 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/vendor/new" element={<AddVendor />} />
+              <Route path="/admin/vendor/:vendorId/edit" element={<AdminVendorEdit />} />
+              
               {/* Redirect category pages to home for now */}
               <Route
                 path="/category/:categoryName"

@@ -132,6 +132,12 @@ const Header = () => {
             >
               Guests Tracker
             </Link>
+            <Link
+              to="/login"
+              className="text-white hover:text-wedding-orange transition-custom"
+            >
+              Login
+            </Link>
           </nav>
         </div>
 
@@ -146,6 +152,15 @@ const Header = () => {
               className="text-white hover:text-wedding-orange hover:bg-wedding-navy-hover"
             >
               Log in
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                navigate("/admin/login");
+              }}
+              className="text-white hover:text-blue-400 hover:bg-blue-900"
+            >
+              Admin
             </Button>
             <Button className="bg-wedding-orange hover:bg-wedding-orange-hover text-white">
               Sign up
@@ -236,6 +251,15 @@ const Header = () => {
                 className="text-white hover:text-wedding-orange hover:bg-wedding-navy-hover"
               >
                 Log in
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  navigate("/admin/login");
+                }}
+                className="text-white hover:text-blue-400 hover:bg-blue-900"
+              >
+                Admin Login
               </Button>
 
               <Button className="justify-start bg-wedding-orange hover:bg-wedding-orange-hover text-white">

@@ -149,11 +149,17 @@ const VendorSection = () => {
           )}
         </div>
 
-        <div className="text-center mt-12">
+        <div className="text-center mt-12 space-x-4">
           <Button className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-10 py-6 font-medium shadow-md">
             <Link to="/" className="text-white">
               View All Vendors
             </Link>
+          </Button>
+          <Button 
+            onClick={() => navigate("/login")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-6 font-medium shadow-md"
+          >
+            Login
           </Button>
         </div>
       </div>

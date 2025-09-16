@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Camera, Building2, MapPin, Users } from 'lucide-react';
+import { Camera, Building2, MapPin, Users, LogIn, Shield } from 'lucide-react';
 import {
   Carousel,
   CarouselContent,

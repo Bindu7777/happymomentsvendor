@@ -2,6 +2,26 @@
 import { supabase, Vendor, VendorMedia } from "../lib/supabase";
 import { PostgrestError } from "@supabase/supabase-js";
 
+// Test Supabase connection
+export const testConnection = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('vendors')
+      .select('count', { count: 'exact' });
+    
+    if (error) {
+      console.error("Supabase connection test failed:", error);
+      return false;
+    }
+    
+    console.log("Supabase connection successful. Vendor count:", data);
+    return true;
+  } catch (error) {
+    console.error("Supabase connection test error:", error);
+    return false;
+  }
+};
+
 export const getVendorByFieldId = async (
   vendorId: string
 ): Promise<Vendor | null> => {
@@ -26,6 +46,8 @@ export const getVendorByFieldId = async (
 
 export const addVendor = async (vendorData: Omit<Vendor, 'created_at' | 'updated_at'>) => {
   try {
+    console.log("Attempting to add vendor with data:", vendorData);
+    
     const { data, error } = await supabase
       .from('vendors')
       .insert([vendorData])
@@ -33,11 +55,17 @@ export const addVendor = async (vendorData: Omit<Vendor, 'created_at' | 'updated
       .single();
 
     if (error) {
-      console.error("Error adding vendor:", error);
-      throw error;
+      console.error("Supabase error adding vendor:", error);
+      console.error("Error details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      throw new Error(`Failed to add vendor: ${error.message}`);
     }
 
-    console.log("Vendor added with ID:", data.vendor_id);
+    console.log("Vendor added successfully with ID:", data.vendor_id);
     return data.vendor_id;
   } catch (error) {
     console.error("Error adding vendor:", error);

@@ -95,7 +95,13 @@ const CategorySection = () => {
           {categories.map((category, index) => (
             <Link 
               key={category.id}
-              to={category.title === 'Photography' ? '/vendor-profile' : `/category/${category.title.toLowerCase().replace(/\s+/g, '-')}`}
+              to={
+                category.title === 'Photography' 
+                  ? '/vendor-profile' 
+                  : category.title === 'Decor & Design'
+                  ? '/decor-profile'
+                  : `/category/${category.title.toLowerCase().replace(/\s+/g, '-')}`
+              }
               className="group rounded-2xl border border-wedding-orange/10 bg-white p-6 text-center transition-all hover:shadow-card overflow-hidden relative animate-fade-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >

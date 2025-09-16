@@ -1072,6 +1072,20 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       <p className="text-sm text-gray-600">Follow for latest work</p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg hover:from-emerald-100 hover:to-teal-100 transition-colors border border-emerald-200">
+                    <MapPin className="w-6 h-6 text-emerald-600" />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-800 mb-1">Venue Address</div>
+                      <p className="text-sm text-gray-600 mb-2">123 Celebration Street, Hyderabad, Telangana 500001</p>
+                      <button 
+                        onClick={() => window.open('https://maps.google.com/?q=123+Celebration+Street+Hyderabad+Telangana+500001', '_blank')}
+                        className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors duration-200 flex items-center gap-1"
+                      >
+                        <MapPin className="w-4 h-4" />
+                        View on Google Maps
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

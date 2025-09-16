@@ -2,8 +2,7 @@ import React from "react";
 import { InputText } from "primereact/inputtext";
 import { useForm } from "react-hook-form";
 import { Divider } from "primereact/divider";
-import { auth } from "@/firebase/firebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { supabase } from "@/lib/supabase";
 import { useUserStore } from "@/store/userStore";
 import { useNavigate } from "react-router-dom";
 
@@ -21,13 +20,17 @@ function Login() {
  const navigate = useNavigate();
   const onSubmit = async ({ username, password }) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        username,
-        password
-      );
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: username,
+        password: password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
       console.log("✅ Login successful");
-      setUser(userCredential.user);
+      setUser(data.user);
       console.log(user);
       navigate("/");
     } catch (err) {

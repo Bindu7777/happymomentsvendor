@@ -11,7 +11,7 @@ import Login from "./pages/login";
 import AddVendor from "./pages/addVendor";
 import { AdminRoute } from "./pages/adminRoute";
 import { useUserStore } from "./store/userStore";
-import { User } from "firebase/auth";
+import { User } from "@supabase/supabase-js";
 import Mandapas from "./pages/mandapas";
 import GuestTracker from "./pages/guest";
 import InstaEditPackages from "./pages/instaEdit";

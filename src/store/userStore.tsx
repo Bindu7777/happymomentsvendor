@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User } from 'firebase/auth';
+import { User } from '@supabase/supabase-js';
 
 interface UserState {
   user: User | null;
@@ -14,7 +14,7 @@ export const useUserStore = create<UserState>()(
       user: null,
       setUser: (user) => set((state) => {
         // Only update if the user is different
-        if (state.user?.uid !== user?.uid) {
+        if (state.user?.id !== user?.id) {
           return { user };
         }
         return state; // No update if user is the same

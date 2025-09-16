@@ -1,24 +1,29 @@
-interface Vendor {
-    id:string;
-    vendorId?:string;
-    name:string;
-    category: Array<string>;
-    subcategory?:string;
-    location:string;
-    rating:number;
-    reviews:number;
-    image:string;
-    featured:boolean;
-    price?:PricingCategory;
-    videos?:Array<string>;
-    description?:string;
-    phone?:string;
-    folderId?:string;
+// This file is deprecated - vendor types are now defined in /lib/supabase.ts
+// Keeping for backward compatibility during migration
+
+export interface Vendor {
+    id: string;
+    name: string;
+    category: string;
+    location: string;
+    phone: string;
+    email?: string;
+    description: string;
+    pricing_min?: number;
+    pricing_max?: number;
+    rating?: number;
+    image_url?: string;
+    gallery_images?: string[];
+    services?: string[];
+    availability?: boolean;
+    created_at?: string;
+    updated_at?: string;
 }
 
-
 export enum PricingCategory {
-    basic= "Basic" , standard ="Standard", premium = "Premium"
+    basic = "Basic",
+    standard = "Standard", 
+    premium = "Premium"
 }
 
 export default Vendor;

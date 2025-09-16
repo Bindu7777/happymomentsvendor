@@ -1,31 +1,22 @@
 // src/hooks/useVendorDetails.ts
 import { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase/firebaseConfig.js"; 
+import { Vendor } from "@/lib/supabase";
+import { getVendorByFieldId } from "@/services/supabaseService";
 
-interface Vendor {
-  name: string;
-  description: string;
-  Price: string;
-  experts: string[];
-  rating: number;
-}
-
-export const useVendorDetails = () => {
+export const useVendorDetails = (vendorId?: string) => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchVendor = async () => {
-      try {
-        const docRef = doc(db, "vendors", "details");
-        const docSnap = await getDoc(docRef);
+      if (!vendorId) {
+        setLoading(false);
+        return;
+      }
 
-        if (docSnap.exists()) {
-          setVendor(docSnap.data() as Vendor);
-        } else {
-          console.log("No such document!");
-        }
+      try {
+        const vendorData = await getVendorByFieldId(vendorId);
+        setVendor(vendorData);
       } catch (error) {
         console.error("Error fetching vendor:", error);
       } finally {
@@ -34,7 +25,7 @@ export const useVendorDetails = () => {
     };
 
     fetchVendor();
-  }, []);
+  }, [vendorId]);
 
   return { vendor, loading };
 };

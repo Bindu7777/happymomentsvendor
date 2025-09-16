@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { User } from 'firebase/auth';
+import { User } from '@supabase/supabase-js';
 
 
 // Assume you get user info from context, Redux, or props

@@ -3,7 +3,7 @@ import { useParams, Navigate } from "react-router-dom";
 import Vendor from "@/models/vendor";
 import CustomCarousel from "@/components/CustomCaorousal";
 import DynamicIcon from "@/components/dynamic-icons";
-import { getVendorByFieldId } from "../services/firestoreService";
+import { getVendorByFieldId } from "../services/supabaseService";
 import { AppConstants } from "@/AppConstants";
 import Header from "@/components/layout/Header";
 import Tabview from "@/components/ui/tabview";

@@ -1,371 +1,328 @@
-import React, { useEffect, useState, useRef } from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { InputSwitch } from "primereact/inputswitch";
-
+import React, { useState, useRef } from "react";
+import { useForm } from "react-hook-form";
 import { Toast } from "primereact/toast";
-
-import { InputTextarea } from "primereact/inputtextarea";
-
-import DynamicIcon from "@/components/dynamic-icons";
-
-import { addVendor, checkPhoneUnique } from "@/services/firestoreService";
-import Vendor, { PricingCategory } from "@/models/vendor";
-import "primereact/resources/themes/lara-light-indigo/theme.css"; // Or any other theme
+import { addVendor, checkPhoneUnique } from "@/services/supabaseService";
+import "primereact/resources/themes/lara-light-indigo/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
-import { extractDriveFileId } from "@/services/customs";
 import { useNavigate } from "react-router-dom";
 
 type VendorFormInputs = {
-  name: string;
-  email: string;
-  phone: string;
-  services: { value: string }[];
-  videoLinks: { value: string }[]; // ✅ Add this
-  description: string;
-  image: string;
-  location: string;
-  price: PricingCategory;
-  rating: number;
-  featured: boolean;
+  vendor_id: string;
+  slug: string;
+  brand_name: string;
+  spoc_name: string;
+  category: string;
+  subcategory?: string;
+  phone_number: string;
+  whatsapp_number?: string;
+  email?: string;
+  instagram?: string;
+  address?: string;
+  description?: string;
+  experience?: string;
+  avatar_url?: string;
+  cover_image_url?: string;
 };
 
 export default function AddVendor() {
-
   const toast = useRef<Toast>(null);
+  const navigate = useNavigate();
+  const [phoneUnique, setPhoneUnique] = useState<boolean | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const {
     register,
     handleSubmit,
-    control,
-    setValue,
-    watch,
     formState: { errors },
-  } = useForm<VendorFormInputs>({
-    defaultValues: {
-      services: [],
-      featured: false,
-    },
-  });
+    watch,
+  } = useForm<VendorFormInputs>();
 
-  const {
-    fields: serviceFields,
-    append: serviceAppend,
-    remove: serviceRemove,
-  } = useFieldArray({
-    control,
-    name: "services",
-  });
+  const checkPhoneUniqueness = async (phone: string) => {
+    try {
+      const isUnique = await checkPhoneUnique(phone);
+      setPhoneUnique(isUnique);
+    } catch (error) {
+      console.error("Error checking phone uniqueness:", error);
+      setPhoneUnique(false);
+    }
+  };
 
-  const {
-    fields: videoLinkFields,
-    append: videoLinkAppend,
-    remove: videoLinkRemove,
-  } = useFieldArray({
-    control,
-    name: "videoLinks",
-  });
-  
-  const navigate = useNavigate();
+  // Generate slug from brand name
+  const generateSlug = (brandName: string) => {
+    return brandName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+  };
+
+  // Generate vendor ID from brand name and category
+  const generateVendorId = (brandName: string, category: string) => {
+    const slug = generateSlug(brandName);
+    const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
+    return `${slug}-${categorySlug}`;
+  };
+
   const onSubmit = async (data: VendorFormInputs) => {
     if (phoneUnique === false) {
-      alert("Phone number already exists. Please use a different one.");
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Phone number already exists. Please use a different one.",
+        life: 3000,
+      });
       return;
     }
+
+    setIsSubmitting(true);
+
     try {
-      const vendorId = await addVendor({
-        id: crypto.randomUUID(), // Generate a unique ID
-        name: data.name,
-        category: data.services.map((service) => service.value),
-        location: "Hyderabad, Telangana",
-        rating: Number(data.rating),
-        reviews: 0,
-        image: data.image,
-        featured: data.featured,
-        price: data.price,
-        videos: data.videoLinks?.map((link) => link.value),
-        description: data.description,
-        phone: data.phone,
-      });
+      // Generate IDs
+      const slug = generateSlug(data.brand_name);
+      const vendorId = generateVendorId(data.brand_name, data.category);
 
-      console.log("Vendor successfully added:", vendorId);
+      const vendorData = {
+        ...data,
+        vendor_id: vendorId,
+        slug: slug,
+        verified: false,
+        currently_available: true,
+        total_events: 0,
+        rating: 0,
+        review_count: 0,
+      };
 
-      toast.current.show({
+      const result = await addVendor(vendorData);
+
+      toast.current?.show({
         severity: "success",
         summary: "Success",
         detail: "Vendor added successfully",
         life: 3000,
-        content: (
-          <div className="flex flex-col">
-            <p>Vendor added successfully!</p>
-            <button onClick={() => navigate(`/vendor/${vendorId}`)} className="p-button p-button-link">
-              View Vendor
-            </button>
-          </div>
-        ),
       });
+
+      // Navigate to vendor page after 2 seconds
+      setTimeout(() => {
+        navigate(`/vendor/${result}`);
+      }, 2000);
+
     } catch (error) {
       console.error("Failed to add vendor:", error);
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Failed to add vendor. Please try again.",
+        life: 3000,
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const [phoneChecked, setPhoneChecked] = useState(false);
-  const [phoneUnique, setPhoneUnique] = useState(false);
-
   return (
-    <div className="bg-[#E6E6FA] h-100vh flex items-center justify-center p-4">
-       <Toast ref={toast} /> 
-      <div className="max-w-5xl min-h-screen mx-auto p-6 bg-white shadow-lg rounded-xl ">
-        <h2 className="text-3xl font-bold mb-6">Add Vendor Details</h2>
+    <div className="bg-[#E6E6FA] min-h-screen flex items-center justify-center p-4">
+      <Toast ref={toast} />
+      <div className="max-w-4xl w-full mx-auto p-8 bg-white shadow-lg rounded-xl">
+        <h2 className="text-3xl font-bold mb-8 text-center">Add New Vendor</h2>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Basic Info */}
-          <section className="p-4">
-            <h3 className="text-xl font-semibold mb-4">Basic Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Basic Information */}
+          <section className="space-y-4">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Basic Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block font-medium mb-1">Vendor Name</label>
+                <label className="block font-medium mb-2 text-gray-700">Brand Name *</label>
                 <input
-                  {...register("name", { required: "Name is required" })}
-                  className="w-full border p-2 rounded"
-                  placeholder="Vendor name"
+                  {...register("brand_name", { required: "Brand name is required" })}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter brand name"
                 />
-                {errors.name && (
-                  <p className="text-red-500">{errors.name.message}</p>
+                {errors.brand_name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.brand_name.message}</p>
                 )}
               </div>
 
               <div>
-                <label className="block font-medium mb-1">Email</label>
+                <label className="block font-medium mb-2 text-gray-700">Contact Person Name *</label>
+                <input
+                  {...register("spoc_name", { required: "Contact person name is required" })}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter contact person name"
+                />
+                {errors.spoc_name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.spoc_name.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Category *</label>
+                <select
+                  {...register("category", { required: "Category is required" })}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select Category</option>
+                  <option value="Photography">Photography</option>
+                  <option value="Decoration">Decoration</option>
+                  <option value="Catering">Catering</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Venue">Venue</option>
+                  <option value="Beauty">Beauty</option>
+                  <option value="Transport">Transport</option>
+                </select>
+                {errors.category && (
+                  <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Subcategory</label>
+                <input
+                  {...register("subcategory")}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter subcategory (optional)"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Contact Information */}
+          <section className="space-y-4">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Contact Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Phone Number *</label>
+                <input
+                  {...register("phone_number", { 
+                    required: "Phone number is required",
+                    pattern: {
+                      value: /^[+]?[0-9]{10,15}$/,
+                      message: "Please enter a valid phone number"
+                    }
+                  })}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter phone number"
+                  onBlur={(e) => {
+                    if (e.target.value) {
+                      checkPhoneUniqueness(e.target.value);
+                    }
+                  }}
+                />
+                {errors.phone_number && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phone_number.message}</p>
+                )}
+                {phoneUnique === false && (
+                  <p className="text-red-500 text-sm mt-1">This phone number is already registered</p>
+                )}
+                {phoneUnique === true && (
+                  <p className="text-green-500 text-sm mt-1">Phone number is available</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">WhatsApp Number</label>
+                <input
+                  {...register("whatsapp_number")}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter WhatsApp number (optional)"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Email</label>
                 <input
                   {...register("email", {
-                    required: "Email is required",
                     pattern: {
                       value: /^\S+@\S+$/i,
-                      message: "Invalid email address",
-                    },
+                      message: "Please enter a valid email address"
+                    }
                   })}
-                  className="w-full border p-2 rounded"
-                  placeholder="Vendor email"
+                  type="email"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter email address (optional)"
                 />
                 {errors.email && (
-                  <p className="text-red-500">{errors.email.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-              <div>
-                <label className="block font-medium mb-1">Phone</label>
-                <div className="flex items-center">
-                  <input
-                    {...register("phone", {
-                      required: "Phone is required",
-                      pattern: {
-                        value: /^[0-9]{10}$/,
-                        message: "Invalid phone number",
-                      },
-                    })}
-                    className="w-full border p-2 rounded"
-                    placeholder="10-digit phone number"
-                    onBlur={async (e) => {
-                      const value = e.target.value;
-                      if (value.match(/^[0-9]{10}$/)) {
-                        setPhoneChecked(false);
-                        const unique = await checkPhoneUnique(value);
-                        setPhoneUnique(unique);
-                        setPhoneChecked(true);
-                      }
-                    }}
-                  />
-                  {phoneChecked && phoneUnique && (
-                    <DynamicIcon name="tick" color="green" size="2x" />
-                  )}
-                  {phoneChecked && !phoneUnique && (
-                    <DynamicIcon name="cross" color="red" size="2x" />
-                  )}
-                </div>
-                {errors.phone && (
-                  <p className="text-red-500">{errors.phone.message}</p>
+                  <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
                 )}
               </div>
 
-              {/* Location */}
               <div>
-                <label className="block font-medium mb-1">Location</label>
+                <label className="block font-medium mb-2 text-gray-700">Instagram Handle</label>
                 <input
-                  type="text" // Should be "text" to handle the URL
-                  {...register("location", {
-                    required: "Location is required",
-                  })}
-                  className="w-full border p-2 rounded"
+                  {...register("instagram")}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="@username (optional)"
                 />
               </div>
             </div>
-          </section>
 
-          {/* Service + Price + Rating */}
-          <section className="p-4">
-            <h3 className="text-xl font-semibold mb-4">Services & Pricing</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block font-medium mb-1">Price</label>
-                <select
-                  {...register("price", { required: "Price is required" })}
-                  className="w-full border p-2 rounded bg-white"
-                >
-                  <option disabled>Select price category</option>
-                  <option value="Basic">Basic</option>
-                  <option value="Standard">Standard</option>
-                  <option value="Premium">Premium</option>
-                </select>
-                {errors.price && (
-                  <p className="text-red-500">{errors.price.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block font-medium mb-1">Rating</label>
-                <select
-                  {...register("rating", { required: "Rating is required" })}
-                  className="w-full border p-2 rounded bg-white"
-                >
-                  <option value="">Select rating</option>
-                  {[1, 2, 3, 4, 5].map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-                {errors.rating && (
-                  <p className="text-red-500">{errors.rating.message}</p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-4 pt-6">
-                <label className="font-medium">Featured</label>
-                <Controller
-                  name="featured"
-                  control={control}
-                  render={({ field }) => (
-                    <InputSwitch
-                      checked={field.value}
-                      onChange={(e) => field.onChange(e.value)}
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            {/* Images */}
-            <div className="pt-4">
-              <label className="block font-medium">Profile Image</label>
-              <input
-                type="text" // Should be "text" to handle the URL
-                {...register("image", {
-                  required: "Image link is required",
-                })}
-                className="w-2/3 border p-2 rounded"
+            <div>
+              <label className="block font-medium mb-2 text-gray-700">Address</label>
+              <textarea
+                {...register("address")}
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter full address (optional)"
+                rows={3}
               />
-              <div className="flex flex-wrap gap-2 mt-2">
-                {watch("image") != null && watch("image") != "" && (
-                  <img
-                    className="w-40 h-40 object-cover rounded-md"
-                    src={`https://drive.google.com/thumbnail?id=${extractDriveFileId(
-                      watch("image")
-                    )}&sz=w1000`}
-                    alt="Google Drive"
-                  />
-                )}
-              </div>
             </div>
           </section>
 
-          {/* Description */}
-          <div className="px-4">
-            <label className="block font-medium mb-1">Description</label>
-            <InputTextarea
-              {...register("description", {
-                required: "Description is required",
-              })}
-              rows={4}
-              className="w-full border rounded p-2"
-              placeholder="Short vendor description"
-            />
-            {errors.description && (
-              <p className="text-red-500">{errors.description.message}</p>
-            )}
-          </div>
+          {/* Business Details */}
+          <section className="space-y-4">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Business Details</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Experience</label>
+                <input
+                  {...register("experience")}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 5+ Years (optional)"
+                />
+              </div>
 
-          <div className="flex flex-row  gap-32 p-4">
-            {" "}
-            {/* Services Offered */}
-            <div className="w-full">
-              <label className="block font-medium mb-1">Services Offered</label>
-              {serviceFields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2 mb-2">
-                  <input
-                    {...register(`services.${index}.value` as const, {
-                      required: "Service name required",
-                    })}
-                    className="w-full border p-2 rounded"
-                    placeholder={`Service #${index + 1}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => serviceRemove(index)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <DynamicIcon name="trash" size="1x" color="orange" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => serviceAppend({ value: "" })}
-                className="flex items-center text-blue-600 mt-2 hover:underline"
-              >
-                <DynamicIcon name="plus" size="1x" color="orange" /> Add Another
-                Service
-              </button>
-            </div>{" "}
-            {/* Video Links */}
-            <div className="w-full">
-              <label className="block font-medium mb-1">Video Links</label>
-              {videoLinkFields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2 mb-2 ">
-                  <input
-                    {...register(`videoLinks.${index}.value` as const, {
-                      required: "Video link is required",
-                    })}
-                    className=" w-full  border p-2 rounded"
-                    placeholder={`Video Link #${index + 1}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => videoLinkRemove(index)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <DynamicIcon name="trash" size="1x" color="orange" />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => videoLinkAppend({ value: "" })}
-                className="flex items-center text-blue-600 mt-2 hover:underline"
-              >
-                <DynamicIcon name="plus" size="1x" color="orange" /> Add Another
-                Video Link
-              </button>
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Avatar URL</label>
+                <input
+                  {...register("avatar_url")}
+                  type="url"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://example.com/avatar.jpg (optional)"
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Submit */}
-          <div className="p-4">
+            <div>
+              <label className="block font-medium mb-2 text-gray-700">Cover Image URL</label>
+              <input
+                {...register("cover_image_url")}
+                type="url"
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="https://example.com/cover.jpg (optional)"
+              />
+            </div>
+
+            <div>
+              <label className="block font-medium mb-2 text-gray-700">Description</label>
+              <textarea
+                {...register("description")}
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Describe your services and experience (optional)"
+                rows={4}
+              />
+            </div>
+          </section>
+
+          {/* Submit Button */}
+          <div className="flex justify-center pt-6">
             <button
               type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition"
+              disabled={isSubmitting || phoneUnique === false}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-3 px-8 rounded-lg transition duration-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
-              Submit Vendor
+              {isSubmitting ? "Adding Vendor..." : "Add Vendor"}
             </button>
           </div>
         </form>

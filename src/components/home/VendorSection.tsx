@@ -1,61 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, MapPin, Heart } from "lucide-react";
-import Vendor from "@/models/vendor";
-
-// Mock vendor data with Indian names and locations
-const vendors: Array<Vendor> = [
-  {
-    id: "1",
-    name: "Rajesh Kumar Photography",
-    category: ["Photography"],
-    location: "Mumbai, Maharashtra",
-    rating: 4.8,
-    reviews: 128,
-    image: "images/vendor.jpeg",
-    featured: true,
-    subcategory: "",
-    vendorId: "rajesh-photography",
-  },
-  {
-    id: "2",
-    name: "JJ Events",
-    category: ["Events"],
-    location: "Hyderabad, Telangana",
-    rating: 4.8,
-    reviews: 94,
-    image: "images/celebrations.jpeg ",
-    featured: false,
-  },
-  {
-    id: "4",
-    name: "Myra",
-    category: ["Entertainment"],
-    location: "Sarronagar, Telangana",
-    rating: 4.9,
-    reviews: 112,
-    image:
-      "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-    featured: false,
-  },
-  {
-    id: "4",
-    name: "Myra",
-    category: ["Entertainment"],
-    location: "Sarronagar, Telangana",
-    rating: 4.9,
-    reviews: 112,
-    image:
-      "https://images.unsplash.com/photo-1523438885200-e635ba2c371e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80",
-    featured: false,
-  },
-];
+import { Vendor } from "@/lib/supabase";
+import { getAllVendors } from "@/services/supabaseService";
 
 const VendorSection = () => {
-
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchVendors = async () => {
+      try {
+        const vendorData = await getAllVendors();
+        setVendors(vendorData.slice(0, 4)); // Show only first 4 vendors
+      } catch (error) {
+        console.error('Error fetching vendors:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVendors();
+  }, []);
 
   const [favorites, setFavorites] = useState<number[]>([]);
 
@@ -80,41 +49,55 @@ const VendorSection = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {vendors.map((vendor, index) => (
+          {loading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-subtle overflow-hidden animate-pulse">
+                <div className="h-56 bg-gray-200"></div>
+                <div className="p-5">
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))
+          ) : vendors.length === 0 ? (
+            <div className="col-span-full text-center py-8">
+              <p className="text-wedding-gray">No vendors available at the moment.</p>
+            </div>
+          ) : (
+            vendors.map((vendor, index) => (
             <div
-              key={vendor.id}
+              key={vendor.vendor_id}
               className="bg-white rounded-xl shadow-subtle overflow-hidden transition-all duration-300 hover:shadow-card group animate-fade-up border border-wedding-orange/10"
               style={{ animationDelay: `${index * 100}ms` }}
             >
               <div className="relative h-56 overflow-hidden">
                 <img
-                  src={vendor.image}
-                  alt={vendor.name}
+                  src={vendor.avatar_url || "/images/vendor-placeholder.jpg"}
+                  alt={vendor.brand_name}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <button
-                  onClick={() => toggleFavorite(Number(vendor.id))}
+                  onClick={() => toggleFavorite(Number(vendor.vendor_id))}
                   className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white"
                 >
                   <Heart
                     className={`h-5 w-5 ${
-                      favorites.includes(Number(vendor.id))
+                      favorites.includes(Number(vendor.vendor_id))
                         ? "fill-wedding-orange text-wedding-orange"
                         : "text-wedding-gray"
                     }`}
                   />
                 </button>
-                {vendor.featured && (
-                  <Badge className="absolute top-3 left-3 bg-wedding-orange text-white border-0">
-                    Featured
-                  </Badge>
-                )}
                 <div className="absolute bottom-3 right-3">
                   <Badge
                     variant="outline"
                     className="bg-white/90 backdrop-blur-xs border-0 text-wedding-navy"
                   >
-                    {vendor.price}
+                    {vendor.packages && Array.isArray(vendor.packages) && vendor.packages.length > 0
+                      ? `From ${vendor.packages[0].price || 'Contact for pricing'}`
+                      : 'Contact for pricing'}
                   </Badge>
                 </div>
               </div>
@@ -123,38 +106,32 @@ const VendorSection = () => {
                 <div className="flex justify-between items-start mb-2">
                   <div>
                     <h3 className="font-semibold text-lg text-wedding-navy group-hover:text-wedding-orange transition-custom">
-                      {vendor.category}
+                      {vendor.brand_name}
                     </h3>
-                    {/* <Badge variant="secondary" className="mt-1 bg-wedding-orange-light text-wedding-orange border-0">
+                    <Badge variant="secondary" className="mt-1 bg-wedding-orange-light text-wedding-orange border-0">
                       {vendor.category}
-                    </Badge> */}
+                    </Badge>
                   </div>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 text-wedding-orange fill-wedding-orange mr-1" />
                     <span className="text-sm font-medium text-wedding-navy">
-                      {vendor.rating}
+                      {vendor.rating || 4.5}
                     </span>
                     <span className="text-xs text-wedding-gray ml-1">
-                      ({vendor.reviews})
+                      ({vendor.review_count || 0})
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center mb-4 text-wedding-gray text-sm">
                   <MapPin className="h-4 w-4 mr-1" />
-                  {vendor.location}
+                  {vendor.address}
                 </div>
 
                 <div className="flex items-stretch">
                   {" "}
                   <Button 
-                    onClick={() => {
-                      if (vendor.vendorId === "rajesh-photography") {
-                        navigate("/vendor-profile");
-                      } else {
-                        navigate(`/vendor/${vendor.vendorId??""}`);
-                      }
-                    }} 
+                    onClick={() => navigate(`/vendor/${vendor.vendor_id}`)}
                     className="w-full bg-wedding-orange text-white hover:bg-wedding-orange-hover transition-custom"
                   >
                     More details
@@ -168,7 +145,8 @@ const VendorSection = () => {
                 </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
 
         <div className="text-center mt-12">

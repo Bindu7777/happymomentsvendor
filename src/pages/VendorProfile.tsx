@@ -256,8 +256,64 @@ I'm really excited to connect and explore working with you soon! ✨`;
         .animate-fade-in-up:nth-child(4) { animation-delay: 0.4s; }
       `}</style>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" onClick={openWhatsApp}>
-      {/* Sticky Top Bar */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
+      {/* Mobile Header - Compact */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm lg:hidden">
+        <div className="container mx-auto px-3 py-2">
+          <div className="flex items-center justify-between">
+            {/* Left side - Company info */}
+            <div className="flex items-center gap-2">
+              <img 
+                src={photographer.avatar} 
+                alt={photographer.name}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-blue-500"
+              />
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-base font-bold text-gray-900 truncate">{photographer.name}</h1>
+                <div className="flex items-center gap-1 -mt-1">
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">{photographer.category}</Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5">{photographer.subcategory}</Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Right side - Rating and actions */}
+            <div className="flex items-center gap-2">
+              {/* Compact Rating */}
+              <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg border border-amber-200">
+                <Star className="w-3 h-3 text-amber-500 fill-current" />
+                <span className="text-xs font-bold text-amber-700">{photographer.rating}</span>
+              </div>
+
+              {/* Action Buttons - Mobile Optimized */}
+              <div className="flex items-center gap-1">
+                <Button 
+                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                >
+                  <MessageCircle className="w-3 h-3 mr-1" />
+                  <span className="hidden xs:inline">WA</span>
+                </Button>
+                <Button 
+                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                >
+                  <MessageCircle className="w-3 h-3 mr-1" />
+                  <span className="hidden xs:inline">Chat</span>
+                </Button>
+                <Button 
+                  onClick={(e) => { e.stopPropagation(); }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                >
+                  <Phone className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Header - Original Rich Version */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm hidden lg:block">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -407,9 +463,90 @@ I'm really excited to connect and explore working with you soon! ✨`;
         </div>
       </div>
 
-      {/* Hero Section - Clean Layout */}
-      <div className="relative min-h-[80vh] bg-gradient-to-br from-slate-50 via-amber-50/30 to-orange-50/30">
+      {/* Hero Section - Mobile Optimized */}
+      <div className="relative bg-gradient-to-br from-slate-50 via-amber-50/30 to-orange-50/30">
         
+        {/* Mobile-First Simple Layout */}
+        <div className="block lg:hidden">
+          <div className="container mx-auto px-4 py-6">
+            {/* Mobile Hero Card - Clean and Simple */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-amber-200/50 mb-6">
+              {/* Company Name */}
+              <div className="text-center mb-4">
+                <h1 className="text-2xl font-black text-gray-900 mb-2">{photographer.name}</h1>
+                <p className="text-amber-600 font-medium">{photographer.tagline}</p>
+              </div>
+
+              {/* Owner Info */}
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
+                  <img 
+                    src={photographer.avatar} 
+                    alt={photographer.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <div className="font-bold text-gray-800">Rajesh</div>
+                  <div className="text-sm text-blue-600 flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    Contact Person
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Badges */}
+              <div className="flex justify-center gap-2 mb-4">
+                <Badge className="px-3 py-1 text-xs bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full">
+                  <Camera className="w-3 h-3 mr-1" />
+                  {photographer.category}
+                </Badge>
+                <Badge className="px-3 py-1 text-xs bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  {photographer.subcategory}
+                </Badge>
+              </div>
+
+              {/* Key Info */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="text-center p-3 bg-amber-50 rounded-lg">
+                  <div className="font-bold text-amber-600">{photographer.location}</div>
+                  <div className="text-xs text-gray-600">Location</div>
+                </div>
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="font-bold text-blue-600">{photographer.experience}</div>
+                  <div className="text-xs text-gray-600">Experience</div>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <Button 
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 text-lg font-bold rounded-xl shadow-lg"
+                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+              >
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Chat to Book Now
+              </Button>
+            </div>
+
+            {/* Mobile Gallery */}
+            <div className="relative rounded-2xl overflow-hidden shadow-lg h-64 mb-6">
+              <img 
+                src={photographer.highlights[currentSlide].image} 
+                alt={photographer.highlights[currentSlide].title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <div className="absolute bottom-4 left-4 right-4 text-white">
+                <h3 className="font-bold mb-1">{photographer.highlights[currentSlide].title}</h3>
+                <p className="text-sm opacity-90">{photographer.highlights[currentSlide].description}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout (unchanged) */}
+        <div className="hidden lg:block min-h-[80vh]">
         <div className="relative z-10 container mx-auto px-6 py-16">
           <div className="max-w-8xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch min-h-[60vh]">
@@ -521,7 +658,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       src={photographer.highlights[currentSlide].image} 
                       alt={photographer.highlights[currentSlide].title}
                       className="w-full h-full object-cover transition-all duration-1000 hover:scale-105"
-                      style={{ imageRendering: 'high-quality', imageRendering: 'crisp-edges' }}
+                        style={{ imageRendering: 'crisp-edges' }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                     
@@ -551,46 +688,47 @@ I'm really excited to connect and explore working with you soon! ✨`;
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       {/* Section Divider */}
       <div className="h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
 
-      {/* Quick Info Strip */}
+      {/* Quick Info Strip - Mobile Optimized */}
       <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-orange-50/40 border-b border-amber-200/50">
-        <div className="container mx-auto px-6 py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-amber-50 to-orange-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-amber-200 hover:scale-105">
-              <div className="w-16 h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-amber-500/25 transition-all duration-300">
-                <Clock className="w-8 h-8 text-white" />
+        <div className="container mx-auto px-3 sm:px-6 py-6 sm:py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8 text-center">
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-amber-50 to-orange-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-amber-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-amber-500/25 transition-all duration-300">
+                <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
             </div>
-              <div className="text-4xl font-black text-amber-800 mb-2">8+</div>
-              <div className="text-lg font-bold text-gray-800 mb-1">Hours Coverage</div>
-              <div className="text-sm text-amber-700 font-medium">300+ photos included</div>
+              <div className="text-2xl sm:text-4xl font-black text-amber-800 mb-1 sm:mb-2">8+</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Hours Coverage</div>
+              <div className="text-xs sm:text-sm text-amber-700 font-medium">300+ photos included</div>
             </div>
-            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-red-50 to-pink-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-red-200 hover:scale-105">
-              <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-red-500/25 transition-all duration-300">
-                <Trophy className="w-8 h-8 text-white" />
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-red-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-red-500/25 transition-all duration-300">
+                <Trophy className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
             </div>
-              <div className="text-4xl font-black text-red-800 mb-2">10+</div>
-              <div className="text-lg font-bold text-gray-800 mb-1">Years Experience</div>
-              <div className="text-sm text-red-700 font-medium">South Indian Weddings</div>
+              <div className="text-2xl sm:text-4xl font-black text-red-800 mb-1 sm:mb-2">10+</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Years Experience</div>
+              <div className="text-xs sm:text-sm text-red-700 font-medium">South Indian Weddings</div>
             </div>
-            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-green-200 hover:scale-105">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-green-500/25 transition-all duration-300">
-                <Star className="w-8 h-8 text-white fill-current" />
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-green-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-green-500/25 transition-all duration-300">
+                <Star className="w-5 h-5 sm:w-8 sm:h-8 text-white fill-current" />
           </div>
-              <div className="text-4xl font-black text-green-800 mb-2">128</div>
-              <div className="text-lg font-bold text-gray-800 mb-1">5-Star Reviews</div>
-              <div className="text-sm text-green-700 font-medium">Happy Couples</div>
+              <div className="text-2xl sm:text-4xl font-black text-green-800 mb-1 sm:mb-2">128</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">5-Star Reviews</div>
+              <div className="text-xs sm:text-sm text-green-700 font-medium">Happy Couples</div>
             </div>
-            <div className="group flex flex-col items-center p-8 bg-gradient-to-br from-purple-50 to-indigo-100 rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-purple-200 hover:scale-105">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mb-4 shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
-                <Users className="w-8 h-8 text-white" />
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-purple-50 to-indigo-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-purple-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
+                <Users className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
               </div>
-              <div className="text-4xl font-black text-purple-800 mb-2">500+</div>
-              <div className="text-lg font-bold text-gray-800 mb-1">Weddings Captured</div>
-              <div className="text-sm text-purple-700 font-medium">Across South India</div>
+              <div className="text-2xl sm:text-4xl font-black text-purple-800 mb-1 sm:mb-2">500+</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Weddings Captured</div>
+              <div className="text-xs sm:text-sm text-purple-700 font-medium">Across South India</div>
             </div>
           </div>
         </div>
@@ -600,12 +738,12 @@ I'm really excited to connect and explore working with you soon! ✨`;
       <div className="h-16 bg-gradient-to-b from-slate-50 to-white"></div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+      <div className="container mx-auto px-3 sm:px-6 py-8 sm:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-12">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-8">
             {/* Additional Info Badges */}
-            <div className="flex flex-wrap gap-4 mb-8">
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-8">
               {[
                 { text: "Drone Shots", icon: Camera, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50", textColor: "text-blue-800" },
                 { text: "Photo Editing", icon: Video, color: "from-purple-500 to-pink-500", bg: "from-purple-50 to-pink-50", textColor: "text-purple-800" },
@@ -614,11 +752,11 @@ I'm really excited to connect and explore working with you soon! ✨`;
               ].map((item, index) => (
                 <div 
                   key={index} 
-                  className={`px-6 py-3 rounded-full text-sm font-bold bg-gradient-to-r ${item.bg} border-2 border-transparent hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group cursor-pointer`}
+                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r ${item.bg} border-2 border-transparent hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group cursor-pointer`}
                 >
-                  <div className="flex items-center gap-2">
-                    <div className={`w-6 h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                      <item.icon className="w-3 h-3 text-white" />
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                      <item.icon className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
                     </div>
                     <span className={item.textColor}>{item.text}</span>
                   </div>

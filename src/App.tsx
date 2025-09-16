@@ -18,6 +18,7 @@ import InstaEditPackages from "./pages/instaEdit";
 import BeautyVendor from "./pages/beautyVendor";
 import VendorProfile from "./pages/VendorProfile";
 import DecorProfile from "./pages/DecorProfile";
+import PhotographyVendors from "./pages/PhotographyVendors";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -56,6 +57,8 @@ const App = () => {
               <Route path="/vendor" element={<VendorDetails />} />
               <Route path="/vendor-profile" element={<VendorProfile />} />
               <Route path="/decor-profile" element={<DecorProfile />} />
+              <Route path="/photography-vendors" element={<PhotographyVendors />} />
+              <Route path="/photography-profile/:vendorId" element={<VendorProfile />} />
               <Route path="/mandapas" element={<Mandapas />} />
               <Route path="/guestTracker" element={<GuestTracker />} />
               <Route

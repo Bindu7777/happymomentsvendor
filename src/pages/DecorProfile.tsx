@@ -664,7 +664,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                         src={decorator.highlights[currentSlide].image} 
                         alt={decorator.highlights[currentSlide].title}
                         className="w-full h-full object-cover transition-all duration-1000 hover:scale-105"
-                        style={{ imageRendering: 'high-quality', imageRendering: 'crisp-edges' }}
+                        style={{ imageRendering: 'crisp-edges' }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                       

@@ -97,7 +97,7 @@ const CategorySection = () => {
               key={category.id}
               to={
                 category.title === 'Photography' 
-                  ? '/vendor-profile' 
+                  ? '/photography-vendors' 
                   : category.title === 'Decor & Design'
                   ? '/decor-profile'
                   : `/category/${category.title.toLowerCase().replace(/\s+/g, '-')}`

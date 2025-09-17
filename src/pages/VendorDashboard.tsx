@@ -32,16 +32,19 @@ import {
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead } from '../services/supabaseService';
+import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats } from '../services/supabaseService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
 import DealPriceModal from '../components/DealPriceModal';
+import VendorCalendar from '../components/VendorCalendar';
 
 const VendorDashboard: React.FC = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState('leads');
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
@@ -51,6 +54,8 @@ const VendorDashboard: React.FC = () => {
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [showDealPriceModal, setShowDealPriceModal] = useState(false);
   const [confirmingLead, setConfirmingLead] = useState<any>(null);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [calendarStats, setCalendarStats] = useState<any>({});
   const [analytics] = useState({
     profileViews: 1250,
     whatsappClicks: 89,
@@ -58,6 +63,23 @@ const VendorDashboard: React.FC = () => {
     emailClicks: 34,
   });
   const navigate = useNavigate();
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showNotifications) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.notification-dropdown')) {
+          setShowNotifications(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
 
   useEffect(() => {
     console.log('VendorDashboard useEffect triggered');
@@ -72,10 +94,12 @@ const VendorDashboard: React.FC = () => {
         return;
       }
       
-      setVendor(loggedInVendor);
-      loadPendingChanges(loggedInVendor.vendor_id);
-      loadLeadsData(loggedInVendor.vendor_id);
-      setLoading(false);
+    setVendor(loggedInVendor);
+    loadPendingChanges(loggedInVendor.vendor_id);
+    loadNotifications(loggedInVendor.vendor_id);
+    loadLeadsData(loggedInVendor.vendor_id);
+    loadCalendarData(loggedInVendor.vendor_id);
+    setLoading(false);
     } catch (err) {
       console.error('Error in VendorDashboard useEffect:', err);
       setError('Error loading dashboard. Please try again.');
@@ -88,6 +112,15 @@ const VendorDashboard: React.FC = () => {
     setPendingChanges(pending);
   };
 
+  const loadNotifications = async (vendorId: number) => {
+    try {
+      const notifications = await getVendorNotifications(vendorId);
+      setNotifications(notifications);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    }
+  };
+
   const loadLeadsData = async (vendorId: number) => {
     try {
       const [leadsData, statsData] = await Promise.all([
@@ -98,6 +131,19 @@ const VendorDashboard: React.FC = () => {
       setLeadStats(statsData);
     } catch (error) {
       console.error('Error loading leads data:', error);
+    }
+  };
+
+  const loadCalendarData = async (vendorId: number) => {
+    try {
+      const [eventsData, calendarStatsData] = await Promise.all([
+        getVendorEvents(vendorId),
+        getVendorCalendarStats(vendorId)
+      ]);
+      setCalendarEvents(eventsData);
+      setCalendarStats(calendarStatsData || {});
+    } catch (error) {
+      console.error('Error loading calendar data:', error);
     }
   };
 
@@ -181,6 +227,46 @@ const VendorDashboard: React.FC = () => {
       const message = `Hi ${lead.customer_name}, this is regarding your ${lead.event_type || 'event'} inquiry. How can I help you?`;
       const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
+    }
+  };
+
+  // Calendar event handlers
+  const handleEventCreate = async (eventData: any) => {
+    const result = await createVendorEvent(eventData);
+    if (result.success) {
+      if (vendor) {
+        await loadCalendarData(vendor.vendor_id);
+      }
+    } else {
+      alert(result.error || 'Failed to create event');
+    }
+  };
+
+  const handleEventUpdate = async (eventId: number, eventData: any) => {
+    const result = await updateVendorEvent(eventId, eventData);
+    if (result.success) {
+      if (vendor) {
+        await loadCalendarData(vendor.vendor_id);
+      }
+    } else {
+      alert(result.error || 'Failed to update event');
+    }
+  };
+
+  const handleEventDelete = async (eventId: number) => {
+    const result = await deleteVendorEvent(eventId);
+    if (result.success) {
+      if (vendor) {
+        await loadCalendarData(vendor.vendor_id);
+      }
+    } else {
+      alert(result.error || 'Failed to delete event');
+    }
+  };
+
+  const handleCalendarRefresh = async () => {
+    if (vendor) {
+      await loadCalendarData(vendor.vendor_id);
     }
   };
 
@@ -291,10 +377,78 @@ const VendorDashboard: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm">
-                <Bell className="w-4 h-4 mr-2" />
-                Notifications
-              </Button>
+              <div className="relative">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative"
+                >
+                  <Bell className="w-4 h-4 mr-2" />
+                  Notifications
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {notifications.length}
+                    </span>
+                  )}
+                </Button>
+                
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="notification-dropdown absolute right-0 top-full mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                    <div className="p-4 border-b border-gray-200">
+                      <h3 className="font-semibold text-gray-900">Profile Change Notifications</h3>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <div key={notification.id} className="p-4 border-b border-gray-100 hover:bg-gray-50">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  {notification.status === 'approved' ? (
+                                    <CheckCircle className="w-5 h-5 text-green-600" />
+                                  ) : (
+                                    <AlertCircle className="w-5 h-5 text-red-600" />
+                                  )}
+                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                    notification.status === 'approved' 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {notification.status === 'approved' ? 'APPROVED' : 'REJECTED'}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-900 font-medium">
+                                  Profile Update {notification.status === 'approved' ? 'Approved' : 'Rejected'}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  Submitted: {new Date(notification.submitted_at).toLocaleDateString()}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  Reviewed: {new Date(notification.reviewed_at).toLocaleDateString()}
+                                </p>
+                                {notification.admin_comments && (
+                                  <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                                    <span className="font-medium text-gray-700">Admin Comments:</span>
+                                    <p className="text-gray-600 mt-1">{notification.admin_comments}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">
+                          <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p>No notifications yet</p>
+                          <p className="text-sm">Profile change updates will appear here</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               <Button 
                 onClick={handleLogout}
                 variant="outline"
@@ -526,6 +680,18 @@ const VendorDashboard: React.FC = () => {
                           )}
                         </div>
                         <div className="flex gap-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewCustomerDetails(lead);
+                            }}
+                            title="View/Edit Customer Details"
+                            className="text-blue-600 hover:text-blue-700"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
                           {lead.customer_phone && (
                             <Button 
                               size="sm" 
@@ -584,22 +750,43 @@ const VendorDashboard: React.FC = () => {
         {/* Calendar Tab */}
         {activeTab === 'calendar' && (
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  Event Calendar
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Calendar Integration</h3>
-                  <p className="text-gray-600 mb-4">View your bookings, follow-ups, and important dates</p>
-                  <Button variant="outline">Coming Soon</Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Calendar Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-600">{calendarStats.total_events || 0}</p>
+                  <p className="text-sm text-gray-600">Total Events</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-green-600">{calendarStats.confirmed_bookings || 0}</p>
+                  <p className="text-sm text-gray-600">Confirmed</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-yellow-600">{calendarStats.tentative_bookings || 0}</p>
+                  <p className="text-sm text-gray-600">Tentative</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-red-600">{calendarStats.blocked_days || 0}</p>
+                  <p className="text-sm text-gray-600">Blocked Days</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Calendar Component */}
+            <VendorCalendar
+              vendorId={vendor.vendor_id}
+              events={calendarEvents}
+              onEventCreate={handleEventCreate}
+              onEventUpdate={handleEventUpdate}
+              onEventDelete={handleEventDelete}
+              onEventsRefresh={handleCalendarRefresh}
+            />
           </div>
         )}
 

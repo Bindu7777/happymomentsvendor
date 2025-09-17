@@ -249,6 +249,69 @@ export const addVendorMedia = async (mediaData: Omit<VendorMedia, 'id' | 'upload
   }
 };
 
+// Delete vendor media
+export const deleteVendorMedia = async (mediaId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('vendor_media')
+      .delete()
+      .eq('id', mediaId);
+
+    if (error) {
+      console.error('Error deleting vendor media:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting vendor media:', error);
+    return false;
+  }
+};
+
+// Update vendor catalog images
+export const updateVendorCatalogImages = async (vendorId: string, imageUrls: string[]): Promise<boolean> => {
+  try {
+    // First, delete existing catalog images
+    const { error: deleteError } = await supabase
+      .from('vendor_media')
+      .delete()
+      .eq('vendor_id', vendorId)
+      .eq('category', 'catalog');
+
+    if (deleteError) {
+      console.error('Error deleting existing catalog images:', deleteError);
+      return false;
+    }
+
+    // Then, add new catalog images
+    if (imageUrls.length > 0) {
+      const mediaData = imageUrls.map((url, index) => ({
+        vendor_id: vendorId,
+        media_url: url,
+        media_type: 'image' as const,
+        category: 'catalog' as const,
+        order_index: index,
+        public: true
+      }));
+
+      const { error: insertError } = await supabase
+        .from('vendor_media')
+        .insert(mediaData);
+
+      if (insertError) {
+        console.error('Error adding new catalog images:', insertError);
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error updating vendor catalog images:', error);
+    return false;
+  }
+};
+
 // Vendor Authentication Functions
 export const vendorLogin = async (username: string, password: string): Promise<{success: boolean, vendor?: Vendor, message?: string}> => {
   try {
@@ -367,6 +430,49 @@ export const getVendorPendingChanges = async (vendorId: number): Promise<any[]> 
   }
 };
 
+// Get vendor notifications (approved/rejected changes)
+export const getVendorNotifications = async (vendorId: number): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('vendor_profile_changes')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .in('status', ['approved', 'rejected'])
+      .order('reviewed_at', { ascending: false })
+      .limit(20); // Get latest 20 notifications
+
+    if (error) {
+      console.error('Error fetching notifications:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+};
+
+// Mark notification as read (optional - for future use)
+export const markNotificationAsRead = async (changeId: number): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('vendor_profile_changes')
+      .update({ notification_read: true })
+      .eq('id', changeId);
+
+    if (error) {
+      console.error('Error marking notification as read:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    return false;
+  }
+};
+
 // Get all pending changes for admin review
 export const getAllPendingChanges = async (): Promise<any[]> => {
   try {
@@ -432,18 +538,53 @@ export const reviewVendorProfileChange = async (
     if (status === 'approved') {
       const proposedChanges = changeRecord.proposed_changes;
       
+      console.log('Applying changes to vendor:', changeRecord.vendor_id);
+      console.log('Proposed changes:', proposedChanges);
+      
+      // First check if vendor exists and get current data
+      const { data: existingVendor, error: fetchVendorError } = await supabase
+        .from('vendors')
+        .select('*')
+        .eq('vendor_id', changeRecord.vendor_id)
+        .single();
+
+      if (fetchVendorError || !existingVendor) {
+        console.error('Vendor not found:', fetchVendorError);
+        return { success: false, message: 'Vendor not found for update' };
+      }
+
+      console.log('Existing vendor found:', existingVendor.brand_name);
+
+      // Clean and validate the proposed changes
+      const cleanedChanges = { ...proposedChanges };
+      
+      // Remove any fields that shouldn't be updated or don't exist
+      delete cleanedChanges.id;
+      delete cleanedChanges.vendor_id;
+      delete cleanedChanges.created_at;
+      
+      // Convert arrays to proper format if needed
+      if (cleanedChanges.deliverables && Array.isArray(cleanedChanges.deliverables)) {
+        cleanedChanges.deliverables = cleanedChanges.deliverables.filter(item => item && item.trim() !== '');
+      }
+
+      console.log('Cleaned changes to apply:', cleanedChanges);
+
       const { error: vendorUpdateError } = await supabase
         .from('vendors')
         .update({
-          ...proposedChanges,
+          ...cleanedChanges,
           updated_at: new Date().toISOString()
         })
-        .eq('vendor_id', changeRecord.vendor_id);
+        .eq('vendor_id', changeRecord.vendor_id); // Use 'vendor_id' as the primary key
 
       if (vendorUpdateError) {
         console.error('Error applying approved changes:', vendorUpdateError);
-        return { success: false, message: 'Failed to apply approved changes' };
+        console.error('Update payload:', { ...proposedChanges, updated_at: new Date().toISOString() });
+        return { success: false, message: `Failed to apply approved changes: ${vendorUpdateError.message}` };
       }
+
+      console.log('Vendor profile updated successfully');
     }
 
     return { 
@@ -694,5 +835,220 @@ export const deleteVendorLead = async (leadId: number): Promise<{success: boolea
   } catch (error) {
     console.error('Error deleting lead:', error);
     return { success: false, message: 'Failed to delete lead' };
+  }
+};
+
+// ===== VENDOR CALENDAR FUNCTIONS =====
+
+// Get vendor events for a date range
+export const getVendorEvents = async (vendorId: number, startDate?: string, endDate?: string) => {
+  try {
+    let query = supabase
+      .from('vendor_events')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .order('start_datetime', { ascending: true });
+
+    if (startDate && endDate) {
+      query = query
+        .gte('start_datetime', startDate)
+        .lte('start_datetime', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching vendor events:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in getVendorEvents:', error);
+    return [];
+  }
+};
+
+// Create new vendor event
+export const createVendorEvent = async (eventData: any): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    // Check for conflicts first
+    const conflicts = await checkEventConflicts(
+      eventData.vendor_id,
+      eventData.start_datetime,
+      eventData.end_datetime
+    );
+
+    if (conflicts.length > 0) {
+      return { 
+        success: false, 
+        error: `Conflict detected with existing event: "${conflicts[0].title}"` 
+      };
+    }
+
+    const { data, error } = await supabase
+      .from('vendor_events')
+      .insert([{
+        ...eventData,
+        created_by: 'vendor'
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating vendor event:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in createVendorEvent:', error);
+    return { success: false, error: 'Failed to create event' };
+  }
+};
+
+// Update vendor event
+export const updateVendorEvent = async (eventId: number, eventData: any): Promise<{ success: boolean; data?: any; error?: string }> => {
+  try {
+    // Check for conflicts (excluding current event)
+    if (eventData.start_datetime && eventData.end_datetime && eventData.vendor_id) {
+      const conflicts = await checkEventConflicts(
+        eventData.vendor_id,
+        eventData.start_datetime,
+        eventData.end_datetime,
+        eventId
+      );
+
+      if (conflicts.length > 0) {
+        return { 
+          success: false, 
+          error: `Conflict detected with existing event: "${conflicts[0].title}"` 
+        };
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('vendor_events')
+      .update(eventData)
+      .eq('id', eventId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating vendor event:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in updateVendorEvent:', error);
+    return { success: false, error: 'Failed to update event' };
+  }
+};
+
+// Delete vendor event
+export const deleteVendorEvent = async (eventId: number): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const { error } = await supabase
+      .from('vendor_events')
+      .delete()
+      .eq('id', eventId);
+
+    if (error) {
+      console.error('Error deleting vendor event:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in deleteVendorEvent:', error);
+    return { success: false, error: 'Failed to delete event' };
+  }
+};
+
+// Check for event conflicts
+export const checkEventConflicts = async (
+  vendorId: number,
+  startDateTime: string,
+  endDateTime: string,
+  excludeEventId?: number
+): Promise<any[]> => {
+  try {
+    let query = supabase
+      .from('vendor_events')
+      .select('id, title, start_datetime, end_datetime')
+      .eq('vendor_id', vendorId)
+      .not('status', 'in', '(cancelled,completed)')
+      .or(`and(start_datetime.lte.${startDateTime},end_datetime.gt.${startDateTime}),and(start_datetime.lt.${endDateTime},end_datetime.gte.${endDateTime}),and(start_datetime.gte.${startDateTime},end_datetime.lte.${endDateTime})`);
+
+    if (excludeEventId) {
+      query = query.neq('id', excludeEventId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error checking event conflicts:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error in checkEventConflicts:', error);
+    return [];
+  }
+};
+
+// Get vendor availability for a specific date
+export const getVendorAvailability = async (vendorId: number, date: string) => {
+  try {
+    const { data, error } = await supabase
+      .rpc('get_vendor_availability', {
+        p_vendor_id: vendorId,
+        p_date: date
+      });
+
+    if (error) {
+      console.error('Error getting vendor availability:', error);
+      return null;
+    }
+
+    return data?.[0] || null;
+  } catch (error) {
+    console.error('Error in getVendorAvailability:', error);
+    return null;
+  }
+};
+
+// Get calendar statistics for vendor
+export const getVendorCalendarStats = async (vendorId: number) => {
+  try {
+    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const nextMonth = new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 7);
+
+    const { data, error } = await supabase
+      .from('vendor_events')
+      .select('event_type, status')
+      .eq('vendor_id', vendorId)
+      .gte('start_datetime', `${currentMonth}-01`)
+      .lt('start_datetime', `${nextMonth}-01`);
+
+    if (error) {
+      console.error('Error getting calendar stats:', error);
+      return null;
+    }
+
+    const stats = {
+      total_events: data.length,
+      confirmed_bookings: data.filter(e => e.status === 'confirmed' && e.event_type !== 'blocked').length,
+      tentative_bookings: data.filter(e => e.status === 'tentative' && e.event_type !== 'blocked').length,
+      blocked_days: data.filter(e => e.event_type === 'blocked').length,
+      completed_events: data.filter(e => e.status === 'completed').length,
+    };
+
+    return stats;
+  } catch (error) {
+    console.error('Error in getVendorCalendarStats:', error);
+    return null;
   }
 };

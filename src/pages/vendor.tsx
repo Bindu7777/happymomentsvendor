@@ -257,20 +257,20 @@ const VendorProfile = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" onClick={openWhatsApp}>
       {/* Mobile Header - Compact */}
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm lg:hidden">
-        <div className="container mx-auto px-3 py-2">
+        <div className="container mx-auto px-3 py-3">
           <div className="flex items-center justify-between">
             {/* Left side - Company info */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
               <img 
                 src={vendor.avatar_url || "/images/vendor.jpeg"} 
                 alt={vendor.brand_name}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-blue-500"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-blue-500 flex-shrink-0"
               />
-              <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-bold text-gray-900 truncate">{vendor.brand_name}</h1>
-                <div className="flex items-center gap-1 -mt-1">
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">{vendor.category}</Badge>
-                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5">All Events</Badge>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-sm sm:text-base font-bold text-gray-900 truncate leading-tight">{vendor.brand_name}</h1>
+                <div className="flex items-center gap-1 mt-1">
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5 whitespace-nowrap">{vendor.category}</Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5 whitespace-nowrap">All Events</Badge>
                 </div>
               </div>
             </div>
@@ -322,7 +322,7 @@ const VendorProfile = () => {
 
       {/* Desktop Header - Original Rich Version */}
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm hidden lg:block">
-        <div className="container mx-auto px-4 py-3">
+        <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
@@ -330,18 +330,14 @@ const VendorProfile = () => {
                 alt={vendor.brand_name}
                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
               />
-              <div>
-                <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-1">
-                <h1 className="text-xl font-bold text-gray-900">{vendor.brand_name}</h1>
-                  
-                  
-                </div>
-                <div className="flex items-center gap-2 -mt-4">
-                  <Badge variant="secondary" className="text-xs">{vendor.category}</Badge>
-                  <Badge variant="outline" className="text-xs">All Events</Badge>
-                  </div>
+              <div className="flex flex-col gap-2">
+                <h1 className="text-xl font-bold text-gray-900 leading-tight">{vendor.brand_name}</h1>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="secondary" className="text-xs whitespace-nowrap">{vendor.category}</Badge>
+                  <Badge variant="outline" className="text-xs whitespace-nowrap">All Events</Badge>
                 </div>
               </div>
+            </div>
             <div className="flex items-center gap-2">
               <Button 
                 onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}

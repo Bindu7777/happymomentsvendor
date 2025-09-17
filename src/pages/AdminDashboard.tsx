@@ -184,6 +184,60 @@ const AdminDashboard = () => {
     navigate("/admin/login");
   };
 
+  const handleApproveChange = async (changeId: number, vendorId: number, proposedChanges: any) => {
+    setReviewingChange(changeId);
+    try {
+      // Approve the change and update vendor profile
+      const result = await reviewVendorProfileChange(
+        changeId, 
+        'approved', 
+        'admin', // adminUsername
+        'Changes approved by admin' // adminComments
+      );
+      
+      if (result.success) {
+        // Refresh both vendors and pending changes
+        await fetchVendors();
+        await fetchPendingChanges();
+        
+        alert('Changes approved and vendor profile updated successfully!');
+      } else {
+        alert('Failed to approve changes: ' + (result.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error approving change:', error);
+      alert('Error approving changes. Please try again.');
+    } finally {
+      setReviewingChange(null);
+    }
+  };
+
+  const handleRejectChange = async (changeId: number) => {
+    const reason = prompt('Please provide a reason for rejection (optional):');
+    
+    setReviewingChange(changeId);
+    try {
+      const result = await reviewVendorProfileChange(
+        changeId, 
+        'rejected', 
+        'admin', // adminUsername
+        reason || 'Changes rejected by admin' // adminComments
+      );
+      
+      if (result.success) {
+        await fetchPendingChanges();
+        alert('Changes rejected successfully.');
+      } else {
+        alert('Failed to reject changes: ' + (result.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error rejecting change:', error);
+      alert('Error rejecting changes. Please try again.');
+    } finally {
+      setReviewingChange(null);
+    }
+  };
+
   const stats: DashboardStats = {
     totalVendors: vendors.length,
     verifiedVendors: vendors.filter(v => v.verified).length,
@@ -298,15 +352,15 @@ const AdminDashboard = () => {
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <Star className="h-6 w-6 text-yellow-400" />
+                  <AlertTriangle className="h-6 w-6 text-yellow-400" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
-                      Featured
+                      Pending Approvals
                     </dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {stats.featuredVendors}
+                      {pendingChanges.length}
                     </dd>
                   </dl>
                 </div>
@@ -315,7 +369,39 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="bg-white shadow rounded-lg mb-6">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6">
+              <button
+                onClick={() => setActiveTab("vendors")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "vendors"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <Users className="w-4 h-4 inline-block mr-2" />
+                Vendors ({vendors.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("approvals")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === "approvals"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <AlertTriangle className="w-4 h-4 inline-block mr-2" />
+                Pending Approvals ({pendingChanges.length})
+              </button>
+            </nav>
+          </div>
+        </div>
+
         {/* Search and Filters */}
+        {activeTab === "vendors" && (
+        <>
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
@@ -557,6 +643,201 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+        </>
+        )}
+
+        {/* Approvals Tab */}
+        {activeTab === "approvals" && (
+          <div className="bg-white shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-gray-900">
+                  Pending Vendor Profile Changes
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                    {pendingChanges.length} Pending
+                  </span>
+                  <button
+                    onClick={fetchPendingChanges}
+                    className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                  >
+                    Refresh
+                  </button>
+                </div>
+              </div>
+              
+              {/* Color Legend */}
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <h4 className="text-xs font-medium text-gray-700 mb-2">Legend:</h4>
+                <div className="flex flex-wrap gap-4 text-xs">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
+                    <span>Proposed Changes</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
+                    <span>New Fields</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
+                    <span>Modified Fields</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
+                    <span>Current Data</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {pendingChanges.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckCircle className="mx-auto h-12 w-12 text-green-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No pending approvals</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  All vendor profile changes have been reviewed.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {pendingChanges.map((change) => (
+                  <div key={change.id} className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900">
+                              {change.vendor_brand_name || `Vendor ID: ${change.vendor_id}`}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              {change.change_type === 'profile_update' ? 'Profile Update' : change.change_type} • 
+                              Submitted {new Date(change.submitted_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Changes Preview */}
+                        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                          <h5 className="text-sm font-medium text-green-800 mb-2 flex items-center">
+                            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                            Proposed Changes:
+                          </h5>
+                          <div className="space-y-2 text-sm">
+                            {Object.entries(change.proposed_changes).map(([key, value]) => {
+                              const currentValue = change.current_data?.[key];
+                              const isChanged = currentValue !== undefined && currentValue !== value;
+                              const isNew = currentValue === undefined;
+                              
+                              return (
+                                <div key={key} className={`flex p-2 rounded ${
+                                  isNew ? 'bg-blue-100 border-l-4 border-blue-500' :
+                                  isChanged ? 'bg-yellow-100 border-l-4 border-yellow-500' :
+                                  'bg-gray-50'
+                                }`}>
+                                  <span className="font-medium text-gray-700 w-32 capitalize">
+                                    {key.replace(/_/g, ' ')}:
+                                  </span>
+                                  <span className={`font-medium ${
+                                    isNew ? 'text-blue-800' :
+                                    isChanged ? 'text-yellow-800' :
+                                    'text-gray-900'
+                                  }`}>
+                                    {Array.isArray(value) ? value.join(', ') : String(value)}
+                                  </span>
+                                  {isNew && (
+                                    <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">NEW</span>
+                                  )}
+                                  {isChanged && (
+                                    <span className="ml-2 px-2 py-0.5 bg-yellow-500 text-white text-xs rounded-full">CHANGED</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Current Data Preview (if available) */}
+                        {change.current_data && (
+                          <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h5 className="text-sm font-medium text-red-800 mb-2 flex items-center">
+                              <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                              Current Data (Before Changes):
+                            </h5>
+                            <div className="space-y-2 text-sm">
+                              {Object.entries(change.current_data).map(([key, value]) => {
+                                const proposedValue = change.proposed_changes[key];
+                                const willBeChanged = proposedValue !== undefined && proposedValue !== value;
+                                
+                                return (
+                                  <div key={key} className={`flex p-2 rounded ${
+                                    willBeChanged ? 'bg-red-100 border-l-4 border-red-500' : 'bg-gray-50'
+                                  }`}>
+                                    <span className="font-medium text-gray-700 w-32 capitalize">
+                                      {key.replace(/_/g, ' ')}:
+                                    </span>
+                                    <span className={`${willBeChanged ? 'line-through text-red-700' : 'text-gray-900'}`}>
+                                      {Array.isArray(value) ? value.join(', ') : String(value)}
+                                    </span>
+                                    {willBeChanged && (
+                                      <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">WILL CHANGE</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {change.admin_comments && (
+                          <div className="mt-3 bg-red-50 rounded-lg p-4">
+                            <h5 className="text-sm font-medium text-red-700 mb-1">Admin Comments:</h5>
+                            <p className="text-sm text-red-600">{change.admin_comments}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex-shrink-0 ml-6">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => handleApproveChange(change.id, change.vendor_id, change.proposed_changes)}
+                            disabled={reviewingChange === change.id}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            {reviewingChange === change.id ? 'Approving...' : 'Approve'}
+                          </button>
+                          <button
+                            onClick={() => handleRejectChange(change.id)}
+                            disabled={reviewingChange === change.id}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Reject
+                          </button>
+                        </div>
+                        <div className="mt-2 text-right">
+                          <button
+                            onClick={() => window.open(`/vendor/${change.vendor_id}`, '_blank')}
+                            className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            View Profile
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

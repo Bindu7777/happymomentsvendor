@@ -456,15 +456,22 @@ export const getVendorPendingChanges = async (vendorId: number): Promise<any[]> 
 };
 
 // Get vendor notifications (approved/rejected changes)
-export const getVendorNotifications = async (vendorId: number): Promise<any[]> => {
+export const getVendorNotifications = async (vendorId: number, unreadOnly: boolean = false): Promise<any[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('vendor_profile_changes')
       .select('*')
       .eq('vendor_id', vendorId)
       .in('status', ['approved', 'rejected'])
       .order('reviewed_at', { ascending: false })
       .limit(20); // Get latest 20 notifications
+
+    // If we only want unread notifications (for count)
+    if (unreadOnly) {
+      query = query.eq('notification_read', false);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching notifications:', error);
@@ -494,6 +501,28 @@ export const markNotificationAsRead = async (changeId: number): Promise<boolean>
     return true;
   } catch (error) {
     console.error('Error marking notification as read:', error);
+    return false;
+  }
+};
+
+// Mark all notifications as read for a vendor
+export const markAllNotificationsAsRead = async (vendorId: number): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('vendor_profile_changes')
+      .update({ notification_read: true })
+      .eq('vendor_id', vendorId)
+      .in('status', ['approved', 'rejected'])
+      .eq('notification_read', false);
+
+    if (error) {
+      console.error('Error marking all notifications as read:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error marking all notifications as read:', error);
     return false;
   }
 };

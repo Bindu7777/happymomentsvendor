@@ -32,7 +32,7 @@ import {
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession } from '../services/supabaseService';
+import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
@@ -44,6 +44,7 @@ const VendorDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState('leads');
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
@@ -122,10 +123,33 @@ const VendorDashboard: React.FC = () => {
 
   const loadNotifications = async (vendorId: number) => {
     try {
-      const notifications = await getVendorNotifications(vendorId);
-      setNotifications(notifications);
+      // Load all notifications for display
+      const allNotifications = await getVendorNotifications(vendorId, false);
+      setNotifications(allNotifications);
+      
+      // Load unread notifications for count
+      const unreadNotifications = await getVendorNotifications(vendorId, true);
+      setUnreadNotificationCount(unreadNotifications.length);
     } catch (error) {
       console.error('Error loading notifications:', error);
+    }
+  };
+
+  const handleNotificationClick = async () => {
+    const newShowState = !showNotifications;
+    setShowNotifications(newShowState);
+    
+    // If opening the dropdown and there are unread notifications, mark them as read
+    if (newShowState && unreadNotificationCount > 0 && vendor) {
+      try {
+        const success = await markAllNotificationsAsRead(parseInt(vendor.vendor_id));
+        if (success) {
+          console.log('All notifications marked as read');
+          setUnreadNotificationCount(0); // Reset the count immediately
+        }
+      } catch (error) {
+        console.error('Error marking notifications as read:', error);
+      }
     }
   };
 
@@ -389,14 +413,14 @@ const VendorDashboard: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => setShowNotifications(!showNotifications)}
+                  onClick={handleNotificationClick}
                   className="relative"
                 >
                   <Bell className="w-4 h-4 mr-2" />
                   Notifications
-                  {notifications.length > 0 && (
+                  {unreadNotificationCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {notifications.length}
+                      {unreadNotificationCount}
                     </span>
                   )}
                 </Button>

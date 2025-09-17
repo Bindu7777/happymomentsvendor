@@ -1,244 +1,58 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useParams, Navigate } from "react-router-dom";
-import Vendor from "@/models/vendor";
-import CustomCarousel from "@/components/CustomCaorousal";
-import DynamicIcon from "@/components/dynamic-icons";
-import { getVendorByFieldId } from "../services/supabaseService";
-import { AppConstants } from "@/AppConstants";
-import Header from "@/components/layout/Header";
-import Tabview from "@/components/ui/tabview";
+import React, { useState, useEffect } from 'react';
+import { useParams, Navigate } from 'react-router-dom';
+import { Vendor } from '@/lib/supabase';
+import { getVendorByFieldId, getVendorMedia } from '../services/supabaseService';
+import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2 } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
+import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
 
-// Enhanced types for better type safety
-interface MediaFile {
-  id: string;
-  name: string;
-  mimeType: string;
-  url?: string; // Pre-built URL for faster access
-  cachedAt?: number; // Timestamp for cache expiration
-}
-
-interface MediaCache {
-  images: MediaFile[];
-  videos: MediaFile[];
-  timestamp: number;
-  vendorId: string;
-}
-
-interface CacheManager {
-  get: (key: string) => MediaCache | null;
-  set: (key: string, data: MediaCache) => void;
-  clear: (key?: string) => void;
-  isExpired: (data: MediaCache, maxAge?: number) => boolean;
-}
-
-// Global cache manager
-declare global {
-  interface Window {
-    _vendorMediaCache?: { [key: string]: MediaCache };
-  }
-}
-
-// Cache configuration
-const CACHE_CONFIG = {
-  MAX_AGE: 30 * 60 * 1000, // 30 minutes
-  STORAGE_KEY_PREFIX: 'vendorMedia_',
-  MAX_MEMORY_CACHE_SIZE: 50, // Maximum number of vendors to cache in memory
-};
-
-export default function VendorDetails() {
+const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
-  const apiKey = AppConstants.DRIVE_API_KEY;
-
-  // State management
-  const [vendor, setVendor] = useState<Vendor>();
+  const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [images, setImages] = useState<MediaFile[]>([]);
-  const [videos, setVideos] = useState<MediaFile[]>([]);
-  const [mediaLoadingState, setMediaLoadingState] = useState<{
-    images: boolean;
-    videos: boolean;
-  }>({ images: false, videos: false });
   const [error, setError] = useState<string | null>(null);
+  const [highlightImages, setHighlightImages] = useState<any[]>([]);
+  const [catalogImages, setCatalogImages] = useState<any[]>([]);
+  const [isSaved, setIsSaved] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [timeLeft, setTimeLeft] = useState({
+    minutes: 60,
+    seconds: 0
+  });
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showCoupon, setShowCoupon] = useState(false);
+  const [recentClaims, setRecentClaims] = useState(47);
+  const [showRatingTooltip, setShowRatingTooltip] = useState(false);
 
-  // Initialize cache manager
-  const cacheManager: CacheManager = useMemo(() => ({
-    get: (key: string) => {
-      // Try in-memory first
-      const memoryCache = window._vendorMediaCache?.[key];
-      if (memoryCache && !cacheManager.isExpired(memoryCache)) {
-        return memoryCache;
-      }
-
-      // Try localStorage
-      const storageCache = localStorage.getItem(CACHE_CONFIG.STORAGE_KEY_PREFIX + key);
-      if (storageCache) {
-        try {
-          const parsed: MediaCache = JSON.parse(storageCache);
-          if (!cacheManager.isExpired(parsed)) {
-            // Store in memory for faster access
-            window._vendorMediaCache = {
-              ...(window._vendorMediaCache || {}),
-              [key]: parsed,
-            };
-            return parsed;
-          } else {
-            // Remove expired cache
-            localStorage.removeItem(CACHE_CONFIG.STORAGE_KEY_PREFIX + key);
-          }
-        } catch (e) {
-          console.warn('Failed to parse cache:', e);
-          localStorage.removeItem(CACHE_CONFIG.STORAGE_KEY_PREFIX + key);
-        }
-      }
-
-      return null;
-    },
-
-    set: (key: string, data: MediaCache) => {
-      // Store in memory
-      if (!window._vendorMediaCache) {
-        window._vendorMediaCache = {};
-      }
-
-      // Limit memory cache size
-      const cacheKeys = Object.keys(window._vendorMediaCache);
-      if (cacheKeys.length >= CACHE_CONFIG.MAX_MEMORY_CACHE_SIZE) {
-        // Remove oldest entries
-        const sortedKeys = cacheKeys.sort((a, b) => 
-          (window._vendorMediaCache![a]?.timestamp || 0) - 
-          (window._vendorMediaCache![b]?.timestamp || 0)
-        );
-        
-        for (let i = 0; i < 10; i++) { // Remove 10 oldest entries
-          delete window._vendorMediaCache[sortedKeys[i]];
-        }
-      }
-
-      window._vendorMediaCache[key] = data;
-
-      // Store in localStorage
-      try {
-        localStorage.setItem(
-          CACHE_CONFIG.STORAGE_KEY_PREFIX + key, 
-          JSON.stringify(data)
-        );
-      } catch (e) {
-        console.warn('Failed to store in localStorage:', e);
-        // If localStorage is full, clear old entries
-        cacheManager.clear();
-        try {
-          localStorage.setItem(
-            CACHE_CONFIG.STORAGE_KEY_PREFIX + key, 
-            JSON.stringify(data)
-          );
-        } catch (e2) {
-          console.error('Failed to store in localStorage after clearing:', e2);
-        }
-      }
-    },
-
-    clear: (key?: string) => {
-      if (key) {
-        delete window._vendorMediaCache?.[key];
-        localStorage.removeItem(CACHE_CONFIG.STORAGE_KEY_PREFIX + key);
-      } else {
-        // Clear all cache
-        window._vendorMediaCache = {};
-        Object.keys(localStorage).forEach(k => {
-          if (k.startsWith(CACHE_CONFIG.STORAGE_KEY_PREFIX)) {
-            localStorage.removeItem(k);
-          }
-        });
-      }
-    },
-
-    isExpired: (data: MediaCache, maxAge = CACHE_CONFIG.MAX_AGE) => {
-      return Date.now() - data.timestamp > maxAge;
-    }
-  }), []);
-
-  // Optimized media fetching with better error handling
-  const fetchDriveMedia = useCallback(async (
-    vendorData: Vendor, 
-    forceRefresh = false
-  ): Promise<{ images: MediaFile[]; videos: MediaFile[] }> => {
-    if (!vendorData?.folderId) {
-      return { images: [], videos: [] };
-    }
-
-    const cacheKey = vendorData.folderId;
-
-    // Check cache first
-    if (!forceRefresh) {
-      const cached = cacheManager.get(cacheKey);
-      if (cached) {
-        console.log('📦 Using cached media for vendor:', vendorData.name);
-        return { images: cached.images, videos: cached.videos };
-      }
-    }
-
-    console.log('🔄 Fetching fresh media for vendor:', vendorData.name);
-    setMediaLoadingState({ images: true, videos: true });
-
-    try {
-      const response = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q='${vendorData.folderId}'+in+parents+and+(mimeType contains 'image/' or mimeType contains 'video/')&key=${apiKey}&fields=files(id,name,mimeType,size,modifiedTime)&pageSize=1000`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Drive API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      if (!data.files || !Array.isArray(data.files)) {
-        throw new Error("Invalid response format from Drive API");
-      }
-
-      // Process files and pre-build URLs
-      const processedFiles: MediaFile[] = data.files.map((file) => ({
-        id: file.id,
-        name: file.name,
-        mimeType: file.mimeType,
-        url: `https://www.googleapis.com/drive/v3/files/${file.id}?alt=media&key=${apiKey}`,
-        cachedAt: Date.now()
-      }));
-
-      const images = processedFiles.filter(f => f.mimeType.startsWith("image/"));
-      const videos = processedFiles.filter(f => f.mimeType.startsWith("video/"));
-
-      const mediaCache: MediaCache = {
-        images,
-        videos,
-        timestamp: Date.now(),
-        vendorId: vendorData.id || vendorId!
-      };
-
-      // Cache the results
-      cacheManager.set(cacheKey, mediaCache);
-
-      console.log(`✅ Fetched ${images.length} images and ${videos.length} videos`);
-      return { images, videos };
-
-    } catch (error) {
-      console.error("Drive media fetch failed:", error);
-      setError(`Failed to load media: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return { images: [], videos: [] };
-    } finally {
-      setMediaLoadingState({ images: false, videos: false });
-    }
-  }, [apiKey, vendorId, cacheManager]);
-
-  // Main effect for loading vendor data
+  // Load vendor data and media
   useEffect(() => {
+    const loadVendorData = async () => {
     if (!vendorId) return;
 
-    const loadVendorData = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        const vendorData = await getVendorByFieldId(vendorId);
+        console.log('Loading vendor with ID:', vendorId);
+        
+        // Convert string vendorId to number
+        const vendorIdNum = parseInt(vendorId);
+        if (isNaN(vendorIdNum)) {
+          throw new Error('Invalid vendor ID');
+        }
+
+        // Fetch vendor data
+        const vendorData = await getVendorByFieldId(vendorIdNum.toString());
+        console.log('Fetched vendor data:', vendorData);
         
         if (!vendorData) {
           throw new Error("Vendor not found");
@@ -246,10 +60,16 @@ export default function VendorDetails() {
 
         setVendor(vendorData);
 
-        // Load media
-        const media = await fetchDriveMedia(vendorData);
-        setImages(media.images);
-        setVideos(media.videos);
+        // Fetch vendor media
+        const mediaData = await getVendorMedia(vendorIdNum.toString());
+        console.log('Fetched vendor media:', mediaData);
+
+        // Categorize media
+        const highlights = mediaData.filter(m => m.category === 'highlights');
+        const catalog = mediaData.filter(m => m.category === 'catalog');
+        
+        setHighlightImages(highlights);
+        setCatalogImages(catalog);
 
       } catch (err) {
         console.error("Failed to fetch vendor details:", err);
@@ -260,29 +80,69 @@ export default function VendorDetails() {
     };
 
     loadVendorData();
-  }, [vendorId, fetchDriveMedia]);
+  }, [vendorId]);
 
-  // Refresh media function
-  const refreshMedia = useCallback(async () => {
-    if (vendor) {
-      const media = await fetchDriveMedia(vendor, true);
-      setImages(media.images);
-      setVideos(media.videos);
-    }
-  }, [vendor, fetchDriveMedia]);
+  // Countdown timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prevTime => {
+        if (prevTime.seconds > 0) {
+          return { ...prevTime, seconds: prevTime.seconds - 1 };
+        } else if (prevTime.minutes > 0) {
+          return { minutes: prevTime.minutes - 1, seconds: 59 };
+        } else {
+          // Timer expired, reset to 60 minutes
+          return { minutes: 60, seconds: 0 };
+        }
+      });
+    }, 1000);
 
-  // Clear cache function
-  const clearCache = useCallback(() => {
-    if (vendor?.folderId) {
-      cacheManager.clear(vendor.folderId);
-      console.log('🗑️ Cache cleared for vendor:', vendor.name);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Auto-play carousel
+  useEffect(() => {
+    if (isAutoPlaying && highlightImages.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % highlightImages.length);
+      }, 4000);
+      return () => clearInterval(interval);
     }
-  }, [vendor, cacheManager]);
+  }, [isAutoPlaying, highlightImages.length]);
+
+  // WhatsApp integration
+  const openWhatsApp = () => {
+    if (!vendor) return;
+    const message = `Hi ${vendor.spoc_name}! I found your ${vendor.category} services and I'm interested in learning more about your packages. Could you please share your availability and pricing details?`;
+    const phoneNumber = vendor.whatsapp_number || vendor.phone_number;
+    const whatsappUrl = `https://wa.me/${phoneNumber?.replace(/[^\d]/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  // Confetti effect
+  const triggerConfetti = () => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3000);
+  };
+
+  // Coupon reveal with animation
+  const revealCoupon = () => {
+    setShowCoupon(true);
+    triggerConfetti();
+    // Increment recent claims
+    setRecentClaims(prev => prev + 1);
+  };
+
+  // Copy coupon code
+  const copyCouponCode = () => {
+    navigator.clipboard.writeText('HAPPYMOMENTS10');
+    // You could add a toast notification here
+  };
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500 mb-4"></div>
           <p className="text-lg text-gray-600">Loading vendor details...</p>
@@ -294,7 +154,7 @@ export default function VendorDetails() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center max-w-md">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Something went wrong</h2>
@@ -315,153 +175,1135 @@ export default function VendorDetails() {
     return <Navigate to="/" />;
   }
 
-  const experts = vendor?.category || ["SFX", "Fireworks", "Lighting"];
-  const rating = vendor?.rating ?? 4;
+  const rating = vendor.rating || 4.5;
+  const specialties = vendor.specialties && Array.isArray(vendor.specialties) 
+    ? vendor.specialties 
+    : [vendor.category || "General"];
+
+  // Get category icon
+  const getCategoryIcon = (category: string) => {
+    switch (category.toLowerCase()) {
+      case 'photographers': return Camera;
+      case 'event planners': return Users;
+      case 'venues': return Building2;
+      case 'decorators': return Sparkles;
+      case 'caterers': return Users;
+      case 'makeup artists': return Sparkles;
+      case 'djs, lighting, and entertainment': return Video;
+      case 'anchors': return Users;
+      case 'transportation services': return Users;
+      case 'fashion/costume designers': return Users;
+      case 'tent & equipment rentals': return Building2;
+      default: return Users;
+    }
+  };
+
+  const CategoryIcon = getCategoryIcon(vendor.category);
 
   return (
-    <div className="font-volte min-h-screen px-[2vw]">
-      <div className="h-24"></div>
-      <Header />
-      
-      {/* Debug/Admin controls - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-gray-100 p-4 rounded-lg mb-4 flex gap-2 items-center">
-          <button 
-            onClick={refreshMedia}
-            className="bg-blue-500 text-white px-3 py-1 rounded text-sm"
-            disabled={mediaLoadingState.images || mediaLoadingState.videos}
-          >
-            {mediaLoadingState.images || mediaLoadingState.videos ? 'Refreshing...' : 'Refresh Media'}
-          </button>
-          <button 
-            onClick={clearCache}
-            className="bg-red-500 text-white px-3 py-1 rounded text-sm"
-          >
-            Clear Cache
-          </button>
-          <span className="text-sm text-gray-600">
-            📷 {images.length} images, 🎥 {videos.length} videos
-          </span>
-        </div>
-      )}
-
-      <CustomCarousel images={images} />
-      
-      <section className="bg-white w-full px-6 md:px-16 py-2 rounded-3xl shadow-md">
-        <div className="grid grid-cols-1 lg:grid-cols-2 mt-10 gap-10 items-start">
-          {/* Info Section */}
-          <div>
-            <h1 className="text-5xl font-bold text-[#001f3f] mb-4">
-              {vendor.name || "Vendor Name"}
-            </h1>
-            <p className="text-gray-700 text-lg mb-6">
-              {vendor.description || "No description available."}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-lg font-semibold text-gray-600 mb-1">
-                  Experts In
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {experts.map((expert, index) => (
-                    <span
-                      key={index}
-                      className="flex-col justify-center align-middle bg-orange-200 text-orange-900 px-4 py-1 rounded-full text-lg font-medium border-black border-[1.4px] hover:bg-orange-200 transition-all cursor-pointer"
-                    >
-                      {expert.toUpperCase()}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-semibold text-gray-600 mb-1">
-                  Location
-                </h4>
-                <p className="text-black text-xl font-medium">
-                  {vendor.location || "Unknown Location"}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-semibold text-gray-600 mb-1">
-                  Price starting from
-                </h4>
-                <p className="text-black text-xl font-semibold font-montserrat">
-                  ₹ {vendor.price ?? "N/A"}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-lg font-semibold text-gray-600 mb-1">
-                  Rating
-                </h4>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: rating }, (_, i) => (
-                    <DynamicIcon
-                      key={i}
-                      name="star"
-                      color="orange"
-                      size={"lg"}
-                    />
-                  ))}
-                  {Array.from({ length: 5 - rating }, (_, i) => (
-                    <DynamicIcon key={i} name="star" color="gray" size={"sm"} />
-                  ))}
+    <>
+      <style>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes ken-burns {
+          0% {
+            transform: scale(1) translateX(0) translateY(0);
+          }
+          50% {
+            transform: scale(1.05) translateX(-2%) translateY(-1%);
+          }
+          100% {
+            transform: scale(1.1) translateX(-4%) translateY(-2%);
+          }
+        }
+        
+        @keyframes card-slide-up {
+          from {
+            opacity: 0;
+            transform: translateY(50px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out forwards;
+        }
+        
+        .animate-ken-burns {
+          animation: ken-burns 20s ease-in-out infinite;
+        }
+        
+        .animate-card-slide-up {
+          animation: card-slide-up 0.8s ease-out forwards;
+        }
+        
+        .animate-fade-in-up:nth-child(1) { animation-delay: 0.1s; }
+        .animate-fade-in-up:nth-child(2) { animation-delay: 0.2s; }
+        .animate-fade-in-up:nth-child(3) { animation-delay: 0.3s; }
+        .animate-fade-in-up:nth-child(4) { animation-delay: 0.4s; }
+      `}</style>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" onClick={openWhatsApp}>
+      {/* Mobile Header - Compact */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm lg:hidden">
+        <div className="container mx-auto px-3 py-2">
+          <div className="flex items-center justify-between">
+            {/* Left side - Company info */}
+            <div className="flex items-center gap-2">
+              <img 
+                src={vendor.avatar_url || "/images/vendor.jpeg"} 
+                alt={vendor.brand_name}
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-blue-500"
+              />
+              <div className="min-w-0">
+                <h1 className="text-sm sm:text-base font-bold text-gray-900 truncate">{vendor.brand_name}</h1>
+                <div className="flex items-center gap-1 -mt-1">
+                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5">{vendor.category}</Badge>
+                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5">All Events</Badge>
                 </div>
               </div>
             </div>
 
-            <button className="mt-8 bg-orange-500 hover:bg-orange-600 text-white font-semibold px-6 py-2 rounded-md transition">
-              Book Now
-            </button>
-          </div>
+            {/* Right side - Rating and actions */}
+            <div className="flex items-center gap-2">
+              {/* Compact Rating */}
+              <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg border border-amber-200">
+                <Star className="w-3 h-3 text-amber-500 fill-current" />
+                <span className="text-xs font-bold text-amber-700">{rating}</span>
+              </div>
 
-          {/* Video Section */}
-          <div className="bg-[url(/images/background.jpg)] bg-cover bg-center p-4 rounded-2xl">
-            {mediaLoadingState.videos ? (
-              <div className="text-center text-gray-500 font-medium">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-2"></div>
-                Loading videos...
+              {/* Action Buttons - Mobile Optimized */}
+              <div className="flex items-center gap-1">
+                <Button 
+                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                >
+                  <MessageCircle className="w-3 h-3 mr-1" />
+                  <span className="hidden xs:inline">WA</span>
+                </Button>
+                <Button 
+                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                >
+                  <MessageCircle className="w-3 h-3 mr-1" />
+                  <span className="hidden xs:inline">Chat</span>
+                </Button>
+                <Button 
+                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                >
+                  <Phone className="w-3 h-3 mr-1" />
+                  <span className="hidden xs:inline">Call</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={(e) => { e.stopPropagation(); setIsSaved(!isSaved); }}
+                  className="w-7 h-7 hover:bg-red-50 border-2"
+                >
+                  <Heart className={`w-3 h-3 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+                </Button>
               </div>
-            ) : videos?.length > 0 ? (
-              <div
-                className={`grid gap-2 ${
-                  videos.length === 1
-                    ? "grid-cols-1"
-                    : videos.length === 2
-                    ? "grid-cols-2"
-                    : "grid-cols-2 grid-rows-2"
-                }`}
-              >
-                {videos.slice(0, videos.length > 4 ? 3 : 4).map((video, i) => (
-                  <video
-                    key={video.id}
-                    controls
-                    className="w-full h-[32vh] object-cover rounded-lg"
-                    src={video.url}
-                    preload="metadata"
-                  />
-                ))}
-                {videos.length > 4 && (
-                  <div className="relative w-full h-[32vh] bg-black/70 text-white rounded-lg flex items-center justify-center text-xl font-semibold">
-                    +{videos.length - 3}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Header - Original Rich Version */}
+      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm hidden lg:block">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img 
+                src={vendor.avatar_url || "/images/vendor.jpeg"} 
+                alt={vendor.brand_name}
+                className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+              />
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-1">
+                <h1 className="text-xl font-bold text-gray-900">{vendor.brand_name}</h1>
+                  
+                  {/* Premium Animated Rating Widget */}
+                  <div 
+                    className="relative group cursor-pointer self-end"
+                    onMouseEnter={() => setShowRatingTooltip(true)}
+                    onMouseLeave={() => setShowRatingTooltip(false)}
+                  >
+                    <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-amber-50/80 to-orange-50/80 border border-amber-200/60 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 backdrop-blur-sm">
+                      {/* Animated Stars with Shimmer */}
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => {
+                          const starValue = i + 1;
+                          const rating = vendor.rating || 4.5;
+                          const isFilled = starValue <= Math.floor(rating);
+                          const isHalfFilled = starValue === Math.ceil(rating) && rating % 1 !== 0;
+                          
+                          return (
+                            <div key={i} className="relative group/star">
+                              {/* Background star (always gray) */}
+                              <Star className="w-5 h-5 text-gray-300" />
+                              
+                              {/* Filled portion */}
+                              {isFilled && (
+                                <div className="absolute inset-0">
+                                  <Star 
+                                    className="w-5 h-5 text-amber-500 fill-current group-hover:animate-pulse transition-all duration-700"
+                                    style={{
+                                      animationDelay: `${i * 0.15}s`,
+                                      filter: 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))'
+                                    }}
+                                  />
+        </div>
+      )}
+
+                              {/* Half filled portion */}
+                              {isHalfFilled && (
+                                <div className="absolute inset-0 overflow-hidden w-1/2">
+                                  <Star 
+                                    className="w-5 h-5 text-amber-500 fill-current group-hover:animate-pulse transition-all duration-700"
+                                    style={{
+                                      animationDelay: `${i * 0.15}s`,
+                                      filter: 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))'
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Fused Rating Pill */}
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-200 rounded-full shadow-sm">
+                        <span className="text-sm font-bold text-amber-800">
+                          {rating}
+                        </span>
+                        <div className="w-1 h-1 bg-amber-400 rounded-full"></div>
+                        <span className="text-xs font-semibold text-amber-700">
+                          Top Rated
+          </span>
+        </div>
+                    </div>
+                    
+                    {/* Enhanced Tooltip with Animation */}
+                    {showRatingTooltip && (
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-3 bg-gray-900/95 backdrop-blur-sm text-white text-sm rounded-xl px-4 py-3 shadow-2xl z-50 whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-200">
+                        <div className="text-center">
+                          <div className="font-semibold text-white">Rated by {vendor.review_count || 0} verified customers</div>
+                          <div className="text-gray-300 mt-1 text-xs">Click to see reviews</div>
+                        </div>
+                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-900/95 rotate-45"></div>
+        </div>
+      )}
                   </div>
-                )}
+                  
+                </div>
+                <div className="flex items-center gap-2 -mt-4">
+                  <Badge variant="secondary" className="text-xs">{vendor.category}</Badge>
+                  <Badge variant="outline" className="text-xs">All Events</Badge>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className="text-center text-gray-500 font-medium">
-                No videos available
+            <div className="flex items-center gap-2">
+              <Button 
+                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-green-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">WhatsApp</span>
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-blue-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">Chat</span>
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); }}
+                className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-orange-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <Phone className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">Call</span>
+              </Button>
+              <Button 
+                onClick={(e) => { e.stopPropagation(); }}
+                className="bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-purple-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                <Calendar className="w-4 h-4 mr-2 relative z-10" />
+                <span className="relative z-10">Visit</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={(e) => { e.stopPropagation(); setIsSaved(!isSaved); }}
+                className="hover:bg-red-50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-red-100 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg"></div>
+                <Heart className={`w-5 h-5 relative z-10 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={(e) => e.stopPropagation()}
+                className="hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-blue-100 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg"></div>
+                <Share2 className="w-5 h-5 text-gray-600 relative z-10" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero Section - Mobile Optimized */}
+      <div className="relative bg-gradient-to-br from-slate-50 via-amber-50/30 to-orange-50/30">
+        
+        {/* Mobile-First Simple Layout */}
+        <div className="block lg:hidden">
+          <div className="container mx-auto px-4 py-6">
+            {/* Mobile Hero Card - Clean and Simple */}
+            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-lg border border-amber-200/50 mb-6">
+              {/* Company Name */}
+              <div className="text-center mb-4">
+                <h1 className="text-2xl font-black text-gray-900 mb-2">{vendor.brand_name}</h1>
+                <p className="text-amber-600 font-medium">{vendor.description || "Professional services for your special day"}</p>
+              </div>
+
+              {/* Owner Info */}
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
+                  <img 
+                    src={vendor.avatar_url || "/images/vendor.jpeg"} 
+                    alt={vendor.brand_name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+          <div>
+                  <div className="font-bold text-gray-800">{vendor.spoc_name}</div>
+                  <div className="text-sm text-blue-600 flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    Contact Person
+                  </div>
+                </div>
+              </div>
+
+              {/* Category Badges */}
+              <div className="flex justify-center gap-2 mb-4">
+                <Badge className="px-3 py-1 text-xs bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full">
+                  <CategoryIcon className="w-3 h-3 mr-1" />
+                  {vendor.category}
+                </Badge>
+                <Badge className="px-3 py-1 text-xs bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  All Events
+                </Badge>
+              </div>
+
+              {/* Key Info */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="text-center p-3 bg-amber-50 rounded-lg">
+                  <div className="font-bold text-amber-600">{vendor.address || "Location"}</div>
+                  <div className="text-xs text-gray-600">Location</div>
+                </div>
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="font-bold text-blue-600">{vendor.experience || "5+ Years"}</div>
+                  <div className="text-xs text-gray-600">Experience</div>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <Button 
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 text-lg font-bold rounded-xl shadow-lg"
+                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+              >
+                <MessageCircle className="w-5 h-5 mr-2" />
+                Chat to Book Now
+              </Button>
+            </div>
+
+            {/* Mobile Gallery */}
+            {highlightImages.length > 0 && (
+              <div className="relative rounded-2xl overflow-hidden shadow-lg h-64 mb-6">
+                <img 
+                  src={highlightImages[currentSlide]?.media_url || "/images/vendor.jpeg"} 
+                  alt={highlightImages[currentSlide]?.title || "Highlight"}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                <div className="absolute bottom-4 left-4 right-4 text-white">
+                  <h3 className="font-bold mb-1">{highlightImages[currentSlide]?.title || "Our Work"}</h3>
+                  <p className="text-sm opacity-90">{highlightImages[currentSlide]?.description || "Professional services"}</p>
+                </div>
               </div>
             )}
           </div>
         </div>
-      </section>
 
-      <section>
-        <Tabview videos={vendor.videos} />
-      </section>
+        {/* Desktop Layout (unchanged) */}
+        <div className="hidden lg:block min-h-[80vh]">
+        <div className="relative z-10 container mx-auto px-6 py-16">
+          <div className="max-w-8xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch min-h-[60vh]">
+              
+              {/* Left Side - Main Content Card */}
+              <div className="flex justify-center lg:justify-start lg:col-span-7 relative">
+                {/* Subtle divider line */}
+                <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent"></div>
+                <div className="w-full max-w-[800px] animate-card-slide-up">
+                  {/* Main Info Card */}
+                  <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
+                    
+                    {/* Name and Profile Row */}
+                    <div className="flex items-start mb-8 relative">
+                      <div className="flex-1 pr-8">
+                        <h1 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight tracking-tight">
+                          {vendor.brand_name}
+            </h1>
+                      </div>
+                      <div className="flex flex-col items-center flex-shrink-0">
+                        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 shadow-lg">
+                          <img 
+                            src={vendor.avatar_url || "/images/vendor.jpeg"} 
+                            alt={vendor.brand_name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="text-center mt-3 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl shadow-md border border-gray-200">
+                          <div className="text-sm font-bold text-gray-800">{vendor.spoc_name}</div>
+                          <div className="text-xs font-semibold text-blue-600 flex items-center gap-1 justify-center">
+                            <Users className="w-3 h-3" />
+                            Contact Person
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Category Badges Row */}
+                    <div className="flex items-center gap-4 mb-10 -mt-6">
+                      <Badge className="px-6 py-3 text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
+                        <CategoryIcon className="w-4 h-4" />
+                        {vendor.category}
+                      </Badge>
+                      <Badge className="px-6 py-3 text-base font-semibold bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        All Events
+                      </Badge>
+                    </div>
+
+                    {/* Tagline */}
+                    <p className="text-4xl lg:text-5xl font-bold text-gray-800 mb-8 leading-relaxed relative">
+                      <span className="relative z-10">{vendor.description || "Professional services for your special day"}</span>
+                      <div className="absolute -bottom-2 left-0 w-24 h-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"></div>
+                    </p>
+                    
+                    {/* Cultural Greeting */}
+                    <p className="text-xl text-amber-700 font-medium mb-10 italic">
+                      "Namaskaram! Professional {vendor.category.toLowerCase()} services with South Indian expertise"
+                    </p>
+
+                    {/* Bio */}
+                    <p className="text-xl text-gray-700 mb-12 leading-relaxed">
+                      Professional {vendor.category.toLowerCase()} services with {vendor.experience || '5+'} years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
+                    </p>
+
+                    {/* Details Icons Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                      <div className="flex items-center gap-6 text-gray-700 p-8 bg-gradient-to-r from-amber-50/70 to-orange-50/70 rounded-3xl border-2 border-amber-200/60 shadow-xl hover:shadow-2xl transition-all duration-300">
+                        <div className="w-20 h-20 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center border-2 border-amber-300 shadow-lg">
+                          <MapPin className="w-10 h-10 text-amber-700" />
+                        </div>
+              <div>
+                          <span className="font-bold text-2xl text-gray-800">{vendor.address || "Location"}</span>
+                          <p className="text-lg text-gray-600">Serving South India</p>
+                </div>
+              </div>
+
+                      <div className="flex items-center gap-6 text-gray-700 p-8 bg-gradient-to-r from-red-50/70 to-pink-50/70 rounded-3xl border-2 border-red-200/60 shadow-xl hover:shadow-2xl transition-all duration-300">
+                        <div className="w-20 h-20 bg-gradient-to-r from-red-100 to-pink-100 rounded-full flex items-center justify-center border-2 border-red-300 shadow-lg">
+                          <Trophy className="w-10 h-10 text-red-700" />
+                        </div>
+              <div>
+                          <span className="font-bold text-2xl text-gray-800">{vendor.experience || "5+ Years"}</span>
+                          <p className="text-lg text-gray-600">Professional Experience</p>
+                        </div>
+              </div>
+
+              </div>
+
+                    {/* CTA Button */}
+                    <div className="mt-8">
+                      <Button 
+                        size="lg" 
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white px-12 py-10 text-3xl font-black shadow-2xl hover:scale-105 hover:shadow-green-500/50 active:scale-95 transition-all duration-300 rounded-3xl border-2 border-green-400/30 hover:border-green-300/50 relative overflow-hidden group"
+                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                      >
+                        <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-3xl"></div>
+                        <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
+                        <span className="relative z-10">Chat to Book Now</span>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side - Gallery Carousel */}
+              <div className="flex justify-center lg:justify-end lg:col-span-5 h-full">
+                <div className="w-full max-w-[600px] h-full flex flex-col animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                  <div className="relative rounded-3xl overflow-hidden shadow-2xl flex-1 bg-gradient-to-br from-gray-100 to-gray-200">
+                    <img 
+                      src={highlightImages.length > 0 ? highlightImages[currentSlide]?.media_url : vendor.avatar_url || "/images/vendor.jpeg"} 
+                      alt={vendor.brand_name}
+                      className="w-full h-full object-cover transition-all duration-1000 hover:scale-105"
+                        style={{ imageRendering: 'crisp-edges' }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+                    
+                    {/* Image Info Overlay */}
+                    <div className="absolute bottom-6 left-6 right-6 text-white">
+                      <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+                        <h3 className="text-2xl font-bold mb-2 text-white drop-shadow-lg">{highlightImages[currentSlide]?.title || "Our Work"}</h3>
+                        <p className="text-base text-white/95 font-medium drop-shadow-md">{highlightImages[currentSlide]?.description || "Professional services"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Image Navigation */}
+                  {highlightImages.length > 1 && (
+                    <div className="flex justify-center mt-6 gap-3">
+                      {highlightImages.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
+                          className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                            index === currentSlide ? 'bg-blue-600 scale-125 shadow-lg' : 'bg-gray-300 hover:bg-gray-400'
+                          }`}
+                    />
+                  ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+                </div>
+              </div>
+            </div>
+
+      {/* Section Divider */}
+      <div className="h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
+
+      {/* Quick Info Strip - Mobile Optimized */}
+      <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-orange-50/40 border-b border-amber-200/50">
+        <div className="container mx-auto px-3 sm:px-6 py-6 sm:py-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8 text-center">
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-amber-50 to-orange-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-amber-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-amber-500/25 transition-all duration-300">
+                <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
+            </div>
+              <div className="text-2xl sm:text-4xl font-black text-amber-800 mb-1 sm:mb-2">8+</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Hours Coverage</div>
+              <div className="text-xs sm:text-sm text-amber-700 font-medium">Professional service</div>
+            </div>
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-red-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-red-500/25 transition-all duration-300">
+                <Trophy className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
+            </div>
+              <div className="text-2xl sm:text-4xl font-black text-red-800 mb-1 sm:mb-2">{vendor.experience || "5+"}</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Years Experience</div>
+              <div className="text-xs sm:text-sm text-red-700 font-medium">Professional Service</div>
+            </div>
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-green-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-green-500/25 transition-all duration-300">
+                <Star className="w-5 h-5 sm:w-8 sm:h-8 text-white fill-current" />
+          </div>
+              <div className="text-2xl sm:text-4xl font-black text-green-800 mb-1 sm:mb-2">{vendor.review_count || 0}</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">5-Star Reviews</div>
+              <div className="text-xs sm:text-sm text-green-700 font-medium">Happy Customers</div>
+            </div>
+            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-purple-50 to-indigo-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-purple-200 hover:scale-105">
+              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
+                <Users className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
+              </div>
+              <div className="text-2xl sm:text-4xl font-black text-purple-800 mb-1 sm:mb-2">{vendor.total_events || 0}</div>
+              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Events Completed</div>
+              <div className="text-xs sm:text-sm text-purple-700 font-medium">Across South India</div>
+            </div>
+          </div>
+        </div>
+          </div>
+
+      {/* Section Divider */}
+      <div className="h-16 bg-gradient-to-b from-slate-50 to-white"></div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-3 sm:px-6 py-8 sm:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-12">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-8">
+            {/* Additional Info Badges */}
+            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-8">
+              {[
+                { text: "Professional Service", icon: Award, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50", textColor: "text-blue-800" },
+                { text: "Quality Guarantee", icon: CheckCircle, color: "from-purple-500 to-pink-500", bg: "from-purple-50 to-pink-50", textColor: "text-purple-800" },
+                { text: "On-Time Delivery", icon: Clock, color: "from-green-500 to-emerald-500", bg: "from-green-50 to-emerald-50", textColor: "text-green-800" },
+                { text: "Expert Team", icon: Users, color: "from-amber-500 to-orange-500", bg: "from-amber-50 to-orange-50", textColor: "text-amber-800" }
+              ].map((item, index) => (
+                <div 
+                  key={index} 
+                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r ${item.bg} border-2 border-transparent hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group cursor-pointer`}
+                >
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
+                      <item.icon className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
+              </div>
+                    <span className={item.textColor}>{item.text}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Services Section */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
+              <CardContent className="p-8">
+                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                  <CategoryIcon className="w-8 h-8 text-amber-600" />
+                  Our Services
+                </h2>
+                <p className="text-gray-600 mb-8 text-lg">Specialized in professional {vendor.category.toLowerCase()} services</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {specialties.slice(0, 6).map((specialty, index) => (
+                    <div 
+                      key={index}
+                      className={`group p-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 border-transparent hover:border-white/50 shadow-lg`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className={`p-4 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+                          <CategoryIcon className="w-8 h-8 text-white" />
+                          </div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">{specialty}</h3>
+                          <p className="text-gray-600 text-base leading-relaxed">Professional {specialty.toLowerCase()} services with attention to detail and quality.</p>
+                          </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Packages Section */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
+              <CardContent className="p-8">
+                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                  <Award className="w-8 h-8 text-red-600" />
+                  {vendor.category} Packages
+                </h2>
+                <p className="text-gray-600 mb-8 text-lg">Complete packages designed for your special events</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  {[
+                    { 
+                      name: "Essential", 
+                      popular: false,
+                      features: [
+                        "Basic service coverage",
+                        "Standard quality delivery",
+                        "Professional team",
+                        "On-time completion",
+                        "Basic consultation",
+                        "Email support"
+                      ]
+                    },
+                    { 
+                      name: "Premium", 
+                      popular: true,
+                      features: [
+                        "Extended service coverage",
+                        "High quality delivery",
+                        "Expert professional team",
+                        "Priority completion",
+                        "Detailed consultation",
+                        "Phone & email support",
+                        "Quality guarantee",
+                        "Same day preview"
+                      ]
+                    },
+                    { 
+                      name: "Luxury", 
+                      popular: false,
+                      features: [
+                        "Complete service coverage",
+                        "Premium quality delivery",
+                        "Senior expert team",
+                        "Rush delivery available",
+                        "Personal consultation",
+                        "24/7 support",
+                        "Premium guarantee",
+                        "Same day preview",
+                        "Additional bonuses"
+                      ]
+                    }
+                  ].map((pkg, index) => (
+                    <div 
+                      key={index}
+                      className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
+                        pkg.popular 
+                          ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-lg' 
+                          : 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50'
+                      }`}
+                    >
+                      {pkg.popular && (
+                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                          <Badge className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-2 text-sm font-bold">⭐ Most Popular</Badge>
+                        </div>
+                      )}
+                      <div className="text-center mb-6">
+                        <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
+                        <div className="text-sm text-gray-500">Complete {vendor.category.toLowerCase()} package</div>
+                      </div>
+                      <ul className="space-y-3 mb-8">
+                        {pkg.features.map((feature, idx) => (
+                          <li key={idx} className="flex items-center gap-3 text-gray-700">
+                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                            <span className="text-sm font-medium">{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button 
+                        className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
+                          pkg.popular 
+                            ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
+                            : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                        }`}
+                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                      >
+                        Select {pkg.name} Package
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Portfolio Gallery */}
+            {catalogImages.length > 0 && (
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <Video className="w-8 h-8 text-blue-600" />
+                    Catalog
+                  </h2>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {catalogImages.map((image, index) => (
+                      <Dialog key={index}>
+                        <DialogTrigger asChild>
+                          <div 
+                            className="relative group cursor-pointer overflow-hidden rounded-xl"
+                            onClick={(e) => { e.stopPropagation(); setSelectedImage(image); }}
+                          >
+                            <img 
+                              src={image.media_url} 
+                              alt={image.title || `Catalog ${index + 1}`}
+                              className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                              <div className="text-white text-center">
+                                <Camera className="w-8 h-8 mx-auto mb-2" />
+                                <span className="text-sm font-medium">View Full Size</span>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-6xl">
+                          <div className="relative">
+                            <img 
+                              src={image.media_url} 
+                              alt={image.title || `Catalog ${index + 1}`}
+                              className="w-full h-auto rounded-lg"
+                            />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Reviews */}
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-100">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-3xl font-bold flex items-center gap-3">
+                    <Users className="w-8 h-8 text-green-600" />
+                    Customer Reviews
+                  </h2>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold text-green-600">{rating}★</div>
+                    <div className="text-sm text-gray-600">from {vendor.review_count || 0} happy customers</div>
+              </div>
+              </div>
+                
+                <div className="space-y-6">
+                  {[
+                    {
+                      name: "Priya & Rajesh",
+                      rating: 5,
+                      date: "2 weeks ago",
+                      verified: true,
+                      text: `Amazing ${vendor.category.toLowerCase()} service! Professional team with attention to detail. They understood our requirements perfectly and delivered exceptional results. Highly recommended!`,
+                      location: "Hyderabad"
+                    },
+                    {
+                      name: "Anitha & Suresh",
+                      rating: 5,
+                      date: "1 month ago",
+                      verified: true,
+                      text: `Professional ${vendor.category.toLowerCase()} service. They captured every moment perfectly. The quality is top-notch and worth every rupee!`,
+                      location: "Chennai"
+                    },
+                    {
+                      name: "Deepa & Kumar",
+                      rating: 5,
+                      date: "2 months ago",
+                      verified: true,
+                      text: `${vendor.spoc_name}'s team was punctual and professional. They understood our requirements and delivered excellent ${vendor.category.toLowerCase()} service. We're so happy with the results!`,
+                      location: "Bangalore"
+                    }
+                  ].map((review, index) => (
+                    <div key={index} className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                            <span className="text-white font-bold text-lg">
+                              {review.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-lg text-gray-800">{review.name}</h4>
+                            <p className="text-sm text-gray-600">{review.location}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                                ))}
+                              </div>
+                              <span className="text-sm text-gray-500">{review.date}</span>
+                              {review.verified && (
+                                <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
+            )}
+          </div>
+        </div>
+                        </div>
+                      </div>
+                      <p className="text-gray-700 leading-relaxed text-lg">{review.text}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="space-y-8">
+            {/* Quick Contact Card - Enhanced for Maximum Conversions */}
+            <Card className="sticky top-4 bg-white/95 backdrop-blur-md border-2 border-white/30 shadow-2xl relative overflow-hidden">
+              {/* Confetti Effect */}
+              {showConfetti && (
+                <div className="absolute inset-0 pointer-events-none z-50">
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 animate-bounce">
+                    <div className="text-6xl">🎉</div>
     </div>
+                  <div className="absolute top-4 left-1/4 animate-bounce" style={{ animationDelay: '0.2s' }}>
+                    <div className="text-4xl">✨</div>
+                  </div>
+                  <div className="absolute top-6 right-1/4 animate-bounce" style={{ animationDelay: '0.4s' }}>
+                    <div className="text-4xl">🎊</div>
+                  </div>
+                </div>
+              )}
+              
+              <CardContent className="p-6 relative z-10">
+                {/* Headline Hook */}
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-bold text-gray-800">Best {vendor.category} Service – Limited Spot!</h3>
+                  </div>
+
+                {/* Social Proof Badge */}
+                <div className="mb-4 text-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-100 to-red-100 rounded-full border border-orange-200">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-bold text-red-700">{recentClaims} people claimed this offer today!</span>
+                  </div>
+                </div>
+
+                {/* Urgency Banner */}
+                <div className="mb-4 p-4 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 rounded-2xl shadow-lg border-2 border-green-400/30">
+                  <div className="flex items-center justify-center gap-3 text-white">
+                    <Clock className="w-6 h-6 animate-pulse" />
+                    <span className="text-lg font-bold">Contact Now in next 60 minutes & get 10% OFF!</span>
+                    <span className="text-2xl">🎯</span>
+                  </div>
+                </div>
+
+                {/* Starting Price Highlight */}
+                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200 shadow-md">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">₹</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-black text-blue-800">Contact for Pricing</div>
+                      <div className="text-sm text-blue-600 font-semibold">Professional {vendor.category}</div>
+                    </div>
+                    <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-bold">✓</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Animated Countdown Timer */}
+                <div className="mb-6 p-6 bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl border border-red-200 text-center">
+                  <div className="text-sm font-semibold text-red-700 mb-2">⏰ Limited Time Offer Ends In:</div>
+                  <div className={`text-4xl font-black text-red-800 flex items-center justify-center gap-2 ${timeLeft.minutes < 5 ? 'animate-pulse' : ''}`}>
+                    <span className="bg-red-100 px-3 py-2 rounded-lg">
+                      {timeLeft.minutes.toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-red-500">:</span>
+                    <span className="bg-red-100 px-3 py-2 rounded-lg">
+                      {timeLeft.seconds.toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="text-xs text-red-600 mt-2">Minutes : Seconds</div>
+                </div>
+
+                {/* Coupon Reveal Section */}
+                {showCoupon && (
+                  <div className="mb-6 p-6 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl border-2 border-yellow-300 animate-bounce">
+                    <div className="text-center">
+                      <h4 className="text-lg font-bold text-yellow-800 mb-3">🎉 Your Secret Coupon Code!</h4>
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="bg-yellow-200 px-4 py-2 rounded-lg border-2 border-yellow-400">
+                          <span className="text-2xl font-black text-yellow-800">HAPPYMOMENTS10</span>
+                        </div>
+                        <Button 
+                          size="sm"
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold"
+                          onClick={copyCouponCode}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      <p className="text-sm text-yellow-700 mt-2">Use this code when you contact us!</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Enhanced CTA Buttons */}
+                <div className="space-y-4">
+                  {/* WhatsApp Quick Chat Button */}
+                  <Button 
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group animate-pulse"
+                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
+                    <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
+                    <span className="relative z-10">💬 WhatsApp Quick Chat</span>
+                    <div className="absolute top-0 right-0 text-3xl animate-bounce">🚀</div>
+                  </Button>
+                  
+                  {/* Unlock Secret Offer Button */}
+                  <Button 
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 active:from-purple-800 active:to-pink-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group"
+                    onClick={(e) => { e.stopPropagation(); revealCoupon(); }}
+                  >
+                    <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
+                    <div className="flex items-center justify-center gap-3 relative z-10">
+                      <span>🔓</span>
+                      <span>Unlock My Secret Offer</span>
+                      <span>🎁</span>
+                    </div>
+                  </Button>
+                  
+                  {/* Request Callback Button */}
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-3 border-purple-500 text-purple-700 hover:bg-purple-50 hover:border-purple-600 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
+                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                  >
+                    <Phone className="w-6 h-6 mr-3" />
+                    Request Callback
+                  </Button>
+                </div>
+                
+                {/* Benefits */}
+                <div className="mt-6 space-y-3">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-semibold text-gray-700">Free consultation</span>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-semibold text-gray-700">Same day response</span>
+                  </div>
+                    <div className="flex items-center gap-3 p-3 bg-white/70 rounded-xl border border-green-200">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <span className="text-sm font-semibold text-gray-700">Flexible payment options</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Contact Info */}
+            <Card className="hover:shadow-lg transition-all duration-300 border-2 border-purple-100">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
+                  <MessageCircle className="w-6 h-6 text-purple-600" />
+                  Contact Information
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg hover:from-purple-100 hover:to-indigo-100 transition-colors border border-purple-200">
+                    <Phone className="w-6 h-6 text-purple-600" />
+                    <div>
+                      <span className="font-semibold text-gray-800">{vendor.phone_number}</span>
+                      <p className="text-sm text-gray-600">Call for immediate response</p>
+                    </div>
+                  </div>
+                  {vendor.whatsapp_number && (
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg hover:from-amber-100 hover:to-orange-100 transition-colors border border-amber-200">
+                      <MessageCircle className="w-6 h-6 text-amber-600" />
+                      <div>
+                        <span className="font-semibold text-gray-800">{vendor.whatsapp_number}</span>
+                        <p className="text-sm text-gray-600">WhatsApp for quick chat</p>
+                      </div>
+                    </div>
+                  )}
+                  {vendor.email && (
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg hover:from-pink-100 hover:to-rose-100 transition-colors border border-pink-200">
+                      <Mail className="w-6 h-6 text-pink-600" />
+                      <div>
+                        <span className="font-semibold text-gray-800">{vendor.email}</span>
+                        <p className="text-sm text-gray-600">Email for detailed quotes</p>
+                      </div>
+                    </div>
+                  )}
+                  {vendor.instagram && (
+                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg hover:from-pink-100 hover:to-rose-100 transition-colors border border-pink-200">
+                      <Instagram className="w-6 h-6 text-pink-600" />
+                      <div>
+                        <span className="font-semibold text-gray-800">{vendor.instagram}</span>
+                        <p className="text-sm text-gray-600">Follow for latest work</p>
+              </div>
+              </div>
+            )}
+                  <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg hover:from-emerald-100 hover:to-teal-100 transition-colors border border-emerald-200">
+                    <MapPin className="w-6 h-6 text-emerald-600" />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-800 mb-1">Location</div>
+                      <p className="text-sm text-gray-600 mb-2">{vendor.address || 'Location not specified'}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Policies Section */}
+            <Card className="hover:shadow-lg transition-all duration-300 border-2 border-blue-100">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
+                  <Award className="w-6 h-6 text-blue-600" />
+                  Booking Policies
+                </h3>
+                <div className="space-y-6">
+                  
+                  {/* Advance Payment Policy */}
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-sm font-bold">₹</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-green-800 mb-2">Advance Payment Policy</h4>
+                        <p className="text-sm text-green-700 leading-relaxed">
+                          50% of the total booking amount must be paid upfront to confirm the booking. 
+                          The remaining 50% should be settled at least 3 days before the event.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cancellation & Refund Policy */}
+                  <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-sm font-bold">↩</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-orange-800 mb-2">Cancellation & Refund Policy</h4>
+                        <p className="text-sm text-orange-700 leading-relaxed">
+                          Cancellations made 7 days before the event will receive a 50% refund of the advance. 
+                          Cancellations within 7 days are non-refundable.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Service Commitment Policy */}
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                        <span className="text-white text-sm font-bold">✓</span>
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-blue-800 mb-2">Service Commitment Policy</h4>
+                        <p className="text-sm text-blue-700 leading-relaxed">
+                          Vendors must arrive on time and provide all services as agreed. Any deviation should be 
+                          communicated at least 24 hours prior, failing which a compensation or rescheduling clause may apply.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Sticky WhatsApp Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Button 
+          size="lg"
+          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 animate-pulse"
+          onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+        >
+          <MessageCircle className="w-6 h-6 mr-2" />
+          Chat Now
+        </Button>
+      </div>
+
+    </div>
+    </>
   );
-}
+};
+
+export default VendorProfile;

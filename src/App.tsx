@@ -22,6 +22,7 @@ import BeautyVendor from "./pages/beautyVendor";
 import VendorProfile from "./pages/VendorProfile";
 import DecorProfile from "./pages/DecorProfile";
 import PhotographyVendors from "./pages/PhotographyVendors";
+import CategoryVendors from "./pages/CategoryVendors";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -43,10 +44,10 @@ const App = () => {
               <Route path="/admin/vendor/new" element={<AddVendor />} />
               <Route path="/admin/vendor/:vendorId/edit" element={<AdminVendorEdit />} />
               
-              {/* Redirect category pages to home for now */}
+              {/* Category pages */}
               <Route
-                path="/category/:categoryName"
-                element={<Navigate to="/" />}
+                path="/category/:category"
+                element={<CategoryVendors />}
               />
               <Route path="/categories" element={<Navigate to="/" />} />
               {/* Redirect vendor pages to home for now */}

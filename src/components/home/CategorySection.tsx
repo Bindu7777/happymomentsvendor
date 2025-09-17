@@ -1,97 +1,32 @@
 
 import { Link } from 'react-router-dom';
 import { Camera, Building2, Utensils, Flower2, ShoppingBag, Music, Users, Sparkles, Mic, Car, Tent } from 'lucide-react';
+import { CATEGORY_LIST } from '@/constants/categories';
 
-const categories = [
-  {
-    id: 1,
-    title: 'Event Planners',
-    icon: Users,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 488
-  },
-  {
-    id: 2,
-    title: 'Venues',
-    icon: Building2,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 174
-  },
-  {
-    id: 3,
-    title: 'Photographers',
-    icon: Camera,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 138
-  },
-  {
-    id: 4,
-    title: 'Decorators',
-    icon: Flower2,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 142
-  },
-  {
-    id: 5,
-    title: 'Caterers',
-    icon: Utensils,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 519
-  },
-  {
-    id: 6,
-    title: 'Makeup Artists',
-    icon: Sparkles,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 145
-  },
-  {
-    id: 7,
-    title: 'DJs, Lighting, and Entertainment',
-    icon: Music,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 472
-  },
-  {
-    id: 8,
-    title: 'Anchors',
-    icon: Mic,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 102
-  },
-  {
-    id: 9,
-    title: 'Transportation Services',
-    icon: Car,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 192
-  },
-  {
-    id: 10,
-    title: 'Fashion/Costume Designers',
-    icon: ShoppingBag,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 222
-  },
-  {
-    id: 11,
-    title: 'Tent & Equipment Rentals',
-    icon: Tent,
-    color: 'bg-wedding-orange-light',
-    iconColor: 'text-wedding-orange',
-    count: 427
-  }
-];
+// Icon mapping for categories
+const categoryIcons = {
+  'Event Planners': Users,
+  'Venues': Building2,
+  'Photographers': Camera,
+  'Decorators': Flower2,
+  'Caterers': Utensils,
+  'Makeup Artists': Sparkles,
+  'DJs, Lighting, and Entertainment': Music,
+  'Anchors': Mic,
+  'Transportation Services': Car,
+  'Fashion/Costume Designers': ShoppingBag,
+  'Tent & Equipment Rentals': Tent
+};
+
+// Generate categories from constants with icons and styling
+const categories = CATEGORY_LIST.map((category, index) => ({
+  id: parseInt(category.code),
+  title: category.name,
+  icon: categoryIcons[category.name as keyof typeof categoryIcons] || Users,
+  color: 'bg-wedding-orange-light',
+  iconColor: 'text-wedding-orange',
+  count: 0 // Will be populated dynamically in the future
+}));
 
 const CategorySection = () => {
   const planPulseTools = [
@@ -119,13 +54,7 @@ const CategorySection = () => {
           {categories.map((category, index) => (
             <Link 
               key={category.id}
-              to={
-                category.title === 'Photographers' 
-                  ? '/photography-vendors' 
-                  : category.title === 'Decorators'
-                  ? '/decor-profile'
-                  : `/category/${category.title.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`
-              }
+              to={`/category/${category.title.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`}
               className="group rounded-2xl border border-wedding-orange/10 bg-white p-6 text-center transition-all hover:shadow-card overflow-hidden relative animate-fade-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >

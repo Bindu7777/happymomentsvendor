@@ -35,10 +35,6 @@ export default function BeautyVendor() {
             <div className="text-5xl font-semibold text-wrap text-violet-200">
               Telugu Ammayi make overs
             </div>
-            <div className="flex font-black text-black items-center px-2 mb-3 gap-1">
-              <div className="text-xl">4.8</div>
-              <DynamicIcon name="star" size="lg" color="gold" />{" "}
-            </div>
             <div className="text-md font-black text-black">
               SERVICES AVAILABLE
             </div>

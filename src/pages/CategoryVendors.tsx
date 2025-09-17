@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import Header from '../components/layout/Header';
 import { Vendor } from '@/lib/supabase';
 import { getVendorsByCategory } from '@/services/supabaseService';
+import { CATEGORY_NAMES } from '@/constants/categories';
 
 const CategoryVendors = () => {
   const { category } = useParams<{ category: string }>();
@@ -29,10 +30,28 @@ const CategoryVendors = () => {
       
       try {
         // Convert URL parameter back to proper category name
-        const categoryName = category
+        let categoryName = category
           .split('-')
           .map(word => word.charAt(0).toUpperCase() + word.slice(1))
           .join(' ');
+        
+        // Handle special cases for better matching
+        const categoryMappings: Record<string, string> = {
+          'photographers': 'Photographers',
+          'event-planners': 'Event Planners',
+          'venues': 'Venues',
+          'decorators': 'Decorators',
+          'caterers': 'Caterers',
+          'makeup-artists': 'Makeup Artists',
+          'djs-lighting-and-entertainment': 'DJs, Lighting, and Entertainment',
+          'anchors': 'Anchors',
+          'transportation-services': 'Transportation Services',
+          'fashion-costume-designers': 'Fashion/Costume Designers',
+          'tent-equipment-rentals': 'Tent & Equipment Rentals'
+        };
+        
+        // Use mapping if available, otherwise use the converted name
+        categoryName = categoryMappings[category] || categoryName;
         
         console.log('Fetching vendors for category:', categoryName);
         const vendorData = await getVendorsByCategory(categoryName);

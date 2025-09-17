@@ -48,9 +48,12 @@ export const addVendor = async (vendorData: Omit<Vendor, 'created_at' | 'updated
   try {
     console.log("Attempting to add vendor with data:", vendorData);
     
+    // Remove vendor_id from the data to let the database auto-generate it
+    const { vendor_id, ...dataWithoutVendorId } = vendorData;
+    
     const { data, error } = await supabase
       .from('vendors')
-      .insert([vendorData])
+      .insert([dataWithoutVendorId])
       .select()
       .single();
 

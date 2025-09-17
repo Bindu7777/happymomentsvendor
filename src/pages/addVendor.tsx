@@ -6,16 +6,18 @@ import "primereact/resources/themes/lara-light-indigo/theme.css";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import { useNavigate } from "react-router-dom";
+import { CATEGORY_LIST } from "@/constants/categories";
 
 type VendorFormInputs = {
   // Basic Information
-  brand_name: string;
-  spoc_name: string;
-  category: string;
+  brand_name?: string;
+  spoc_name?: string;
+  category?: string;
   subcategory?: string;
   
   // Contact Information
-  phone_number: string;
+  phone_number?: string;
+  alternate_number?: string;  // Admin-only field
   whatsapp_number?: string;
   email?: string;
   instagram?: string;
@@ -40,6 +42,7 @@ type VendorFormInputs = {
   description: string;
     features: string[];
   }>;
+  deliverables?: string[];  // New deliverables field
   customer_reviews?: Array<{
     customer_name: string;
   rating: number;
@@ -56,6 +59,10 @@ type VendorFormInputs = {
     languages?: string[];
     awards?: string[];
     certifications?: string[];
+    custom_fields?: Array<{
+      field_name: string;
+      field_value: string;
+    }>;
   };
   
   // Status Fields
@@ -87,6 +94,7 @@ export default function AddVendor() {
       
       // Contact Information
       phone_number: "",
+      alternate_number: "",
       whatsapp_number: "",
       email: "",
       instagram: "",
@@ -102,6 +110,7 @@ export default function AddVendor() {
       specialties: [],
       services: [],
       packages: [],
+      deliverables: [],
       customer_reviews: [],
       booking_policies: {
         cancellation_policy: "",
@@ -112,7 +121,8 @@ export default function AddVendor() {
         working_hours: "9 AM - 6 PM, Monday-Saturday",
         languages: "",
         awards: "",
-        certifications: ""
+        certifications: "",
+        custom_fields: []
       },
       
       // Status Fields
@@ -141,6 +151,16 @@ export default function AddVendor() {
     name: "customer_reviews"
   });
 
+  const { fields: customFields, append: appendCustomField, remove: removeCustomField } = useFieldArray({
+    control,
+    name: "additional_info.custom_fields"
+  });
+
+  const { fields: deliverableFields, append: appendDeliverable, remove: removeDeliverable } = useFieldArray({
+    control,
+    name: "deliverables"
+  });
+
   const checkPhoneUniqueness = async (phone: string) => {
     try {
       const isUnique = await checkPhoneUnique(phone);
@@ -159,6 +179,7 @@ export default function AddVendor() {
       category: "Photographers",
       subcategory: "Wedding Photography",
       phone_number: "+91 98765 43210",
+      alternate_number: "+91 87654 32109",
       whatsapp_number: "+91 98765 43210",
       email: "rajesh@royalphotography.com",
       instagram: "@royalphotography",
@@ -168,6 +189,14 @@ export default function AddVendor() {
       avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
       cover_image_url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&h=400&fit=crop",
       specialties: ["Wedding Photography", "Pre-wedding Shoots", "Candid Photography", "Traditional Photography"],
+      deliverables: [
+        "High-resolution edited photos (500+ images)",
+        "Online gallery for easy sharing and downloads", 
+        "Professional wedding album (50 pages)",
+        "USB drive with all photos and videos",
+        "Same-day highlight reel (2-3 minutes)",
+        "Pre-wedding consultation and planning session"
+      ],
       services: [
         {
           name: "Full Day Wedding Photography",
@@ -222,7 +251,12 @@ export default function AddVendor() {
         working_hours: "9 AM - 7 PM, Monday-Saturday",
         languages: "English, Hindi, Telugu, Tamil",
         awards: "Best Wedding Photographer 2023, Excellence in Photography Award 2022",
-        certifications: "Professional Photography Certificate, Adobe Certified Expert"
+        certifications: "Professional Photography Certificate, Adobe Certified Expert",
+        custom_fields: [
+          { field_name: "Delivery Time", field_value: "7-10 business days" },
+          { field_name: "Service Area", field_value: "Hyderabad, Secunderabad, Cyberabad" },
+          { field_name: "Equipment", field_value: "Canon 5D Mark IV, Professional Lighting Setup" }
+        ]
       },
       verified: true,
       currently_available: true,
@@ -243,13 +277,6 @@ export default function AddVendor() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)+/g, '');
-  };
-
-  // Generate vendor ID from brand name and category
-  const generateVendorId = (brandName: string, category: string) => {
-    const slug = generateSlug(brandName);
-    const categorySlug = category.toLowerCase().replace(/\s+/g, '-');
-    return `${slug}-${categorySlug}`;
   };
 
   const onSubmit = async (data: VendorFormInputs) => {
@@ -273,9 +300,8 @@ export default function AddVendor() {
         throw new Error("Cannot connect to database. Please check your internet connection and try again.");
       }
 
-      // Generate IDs
+      // Generate slug (vendor_id will be auto-generated by database)
       const slug = generateSlug(data.brand_name);
-      const vendorId = generateVendorId(data.brand_name, data.category);
 
       // Process JSON fields - convert arrays and objects to proper format
       const processJsonFields = (data: any) => {
@@ -284,6 +310,11 @@ export default function AddVendor() {
         // Process specialties array
         if (processedData.specialties && Array.isArray(processedData.specialties)) {
           processedData.specialties = processedData.specialties.filter(s => s && s.trim() !== '');
+        }
+        
+        // Process deliverables array
+        if (processedData.deliverables && Array.isArray(processedData.deliverables)) {
+          processedData.deliverables = processedData.deliverables.filter(d => d && d.trim() !== '');
         }
         
         // Process services array
@@ -336,7 +367,6 @@ export default function AddVendor() {
 
       const vendorData = {
         ...processedData,
-        vendor_id: vendorId,
         slug: slug,
         verified: processedData.verified || false,
         currently_available: processedData.currently_available !== false,
@@ -354,7 +384,7 @@ export default function AddVendor() {
         life: 3000,
       });
 
-      // Navigate to vendor page after 2 seconds
+      // Navigate to vendor page after 2 seconds using the returned vendor_id
       setTimeout(() => {
         navigate(`/vendor/${result}`);
       }, 2000);
@@ -396,51 +426,36 @@ export default function AddVendor() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block font-medium mb-2 text-gray-700">Brand Name *</label>
+                <label className="block font-medium mb-2 text-gray-700">Brand Name</label>
                 <input
-                  {...register("brand_name", { required: "Brand name is required" })}
+                  {...register("brand_name")}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter brand name"
                 />
-                {errors.brand_name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.brand_name.message}</p>
-                )}
               </div>
 
               <div>
-                <label className="block font-medium mb-2 text-gray-700">Contact Person Name *</label>
+                <label className="block font-medium mb-2 text-gray-700">Contact Person Name</label>
                 <input
-                  {...register("spoc_name", { required: "Contact person name is required" })}
+                  {...register("spoc_name")}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter contact person name"
                 />
-                {errors.spoc_name && (
-                  <p className="text-red-500 text-sm mt-1">{errors.spoc_name.message}</p>
-                )}
             </div>
 
               <div>
-                <label className="block font-medium mb-2 text-gray-700">Category *</label>
+                <label className="block font-medium mb-2 text-gray-700">Category</label>
                 <select
-                  {...register("category", { required: "Category is required" })}
+                  {...register("category")}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">Select Category</option>
-                  <option value="Event Planners">Event Planners</option>
-                  <option value="Venues">Venues</option>
-                  <option value="Photographers">Photographers</option>
-                  <option value="Decorators">Decorators</option>
-                  <option value="Caterers">Caterers</option>
-                  <option value="Makeup Artists">Makeup Artists</option>
-                  <option value="DJs, Lighting, and Entertainment">DJs, Lighting, and Entertainment</option>
-                  <option value="Anchors">Anchors</option>
-                  <option value="Transportation Services">Transportation Services</option>
-                  <option value="Fashion/Costume Designers">Fashion/Costume Designers</option>
-                  <option value="Tent & Equipment Rentals">Tent & Equipment Rentals</option>
+                  {CATEGORY_LIST.map((category) => (
+                    <option key={category.code} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
-                {errors.category && (
-                  <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>
-                )}
               </div>
 
               <div>
@@ -460,15 +475,9 @@ export default function AddVendor() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block font-medium mb-2 text-gray-700">Phone Number *</label>
+                <label className="block font-medium mb-2 text-gray-700">Phone Number</label>
                 <input
-                  {...register("phone_number", { 
-                    required: "Phone number is required",
-                    pattern: {
-                      value: /^[+]?[0-9]{10,15}$/,
-                      message: "Please enter a valid phone number"
-                    }
-                  })}
+                  {...register("phone_number")}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter phone number"
                   onBlur={(e) => {
@@ -477,15 +486,21 @@ export default function AddVendor() {
                     }
                   }}
                 />
-                {errors.phone_number && (
-                  <p className="text-red-500 text-sm mt-1">{errors.phone_number.message}</p>
-                )}
                 {phoneUnique === false && (
                   <p className="text-red-500 text-sm mt-1">This phone number is already registered</p>
                 )}
                 {phoneUnique === true && (
                   <p className="text-green-500 text-sm mt-1">Phone number is available</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Alternate Number <span className="text-xs text-gray-500">(Admin Only)</span></label>
+                <input
+                  {...register("alternate_number")}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter alternate number (admin only, not visible in profile)"
+                />
               </div>
 
               <div>
@@ -655,6 +670,44 @@ export default function AddVendor() {
                   </button>
                 </div>
               ))}
+          </section>
+
+          {/* Deliverables */}
+          <section className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">Deliverables</h3>
+              <button
+                type="button"
+                onClick={() => appendDeliverable("Professional service delivery")}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                Add Deliverable
+              </button>
+            </div>
+            
+            {deliverableFields.map((field, index) => (
+              <div key={field.id} className="flex gap-2">
+                <input
+                  {...register(`deliverables.${index}` as const)}
+                  className="flex-1 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter what you will deliver (e.g., High-resolution edited photos, Professional album, etc.)"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeDeliverable(index)}
+                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            
+            {deliverableFields.length === 0 && (
+              <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                <p>No deliverables added yet</p>
+                <p className="text-sm">Click "Add Deliverable" to specify what you will deliver to clients</p>
+              </div>
+            )}
           </section>
 
           {/* Packages */}
@@ -839,6 +892,66 @@ export default function AddVendor() {
                 className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="List any certifications (comma-separated)"
               />
+            </div>
+
+            {/* Dynamic Custom Fields */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="text-lg font-semibold text-gray-800">Custom Fields</h4>
+                <button
+                  type="button"
+                  onClick={() => appendCustomField({ field_name: "", field_value: "" })}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Custom Field
+                </button>
+              </div>
+              
+              {customFields.map((field, index) => (
+                <div key={field.id} className="border border-gray-200 p-4 rounded-lg space-y-3 bg-gray-50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1 text-gray-700">Field Name</label>
+                      <input
+                        {...register(`additional_info.custom_fields.${index}.field_name` as const)}
+                        className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="e.g., Delivery Time, Service Area, Equipment"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1 text-gray-700">Field Value</label>
+                      <input
+                        {...register(`additional_info.custom_fields.${index}.field_value` as const)}
+                        className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter the value for this field"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeCustomField(index)}
+                    className="text-red-500 hover:text-red-700 text-sm flex items-center gap-1"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Remove Field
+                  </button>
+                </div>
+              ))}
+              
+              {customFields.length === 0 && (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                  <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <p>No custom fields added yet</p>
+                  <p className="text-sm">Click "Add Custom Field" to add flexible information fields</p>
+                </div>
+              )}
             </div>
           </section>
 

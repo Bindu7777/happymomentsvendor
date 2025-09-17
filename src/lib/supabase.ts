@@ -29,6 +29,7 @@ export interface Vendor {
   
   // Contact Information
   phone_number: string
+  alternate_number?: string  // Admin-only field, not visible in profile
   whatsapp_number?: string
   email?: string
   instagram?: string
@@ -51,9 +52,20 @@ export interface Vendor {
   specialties?: any
   services?: any
   packages?: any
+  deliverables?: string[]  // New deliverables field
   customer_reviews?: any
   booking_policies?: any
-  additional_info?: any
+  additional_info?: {
+    working_hours?: string;
+    languages?: string[];
+    awards?: string[];
+    certifications?: string[];
+    custom_fields?: Array<{
+      field_name: string;
+      field_value: string;
+    }>;
+    [key: string]: any;  // Allow any additional flexible fields
+  }
   
   // Timestamps
   created_at?: string

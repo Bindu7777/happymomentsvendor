@@ -10,16 +10,14 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Search, MapPin } from 'lucide-react';
+import { CATEGORY_LIST } from '@/constants/categories';
 
 const categories = [
   { value: 'all', label: 'All Categories' },
-  { value: 'photography', label: 'Photography' },
-  { value: 'venues', label: 'Venues' },
-  { value: 'catering', label: 'Catering' },
-  { value: 'decor', label: 'Decor & Design' },
-  { value: 'attire', label: 'Attire & Accessories' },
-  { value: 'makeup', label: 'Makeup & Hair' },
-  { value: 'music', label: 'Music & Entertainment' },
+  ...CATEGORY_LIST.map(category => ({
+    value: category.name.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-'),
+    label: category.name
+  }))
 ];
 
 const locations = [

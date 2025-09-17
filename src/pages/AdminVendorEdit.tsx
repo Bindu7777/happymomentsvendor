@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Vendor } from "@/lib/supabase";
 import { getVendorByFieldId, updateVendor, deleteVendor } from "@/services/supabaseService";
+import { CATEGORY_LIST } from "@/constants/categories";
 
 type VendorEditForm = {
   brand_name: string;
@@ -28,6 +29,7 @@ type VendorEditForm = {
   experience?: string;
   avatar_url?: string;
   cover_image_url?: string;
+  deliverables?: string[];
   verified: boolean;
   currently_available: boolean;
   rating?: number;
@@ -48,7 +50,13 @@ const AdminVendorEdit = () => {
     formState: { errors },
     setValue,
     watch,
+    control,
   } = useForm<VendorEditForm>();
+
+  const { fields: deliverableFields, append: appendDeliverable, remove: removeDeliverable } = useFieldArray({
+    control,
+    name: "deliverables"
+  });
 
   useEffect(() => {
     // Check admin authentication
@@ -76,6 +84,13 @@ const AdminVendorEdit = () => {
             setValue(key as keyof VendorEditForm, vendorData[key as keyof Vendor]);
           }
         });
+        
+        // Handle deliverables array separately
+        if (vendorData.deliverables && Array.isArray(vendorData.deliverables)) {
+          vendorData.deliverables.forEach((deliverable, index) => {
+            appendDeliverable(deliverable);
+          });
+        }
       }
       setLoading(false);
     } catch (error) {
@@ -245,13 +260,12 @@ const AdminVendorEdit = () => {
                   {...register("category", { required: "Category is required" })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="Photography">Photography</option>
-                  <option value="Decoration">Decoration</option>
-                  <option value="Catering">Catering</option>
-                  <option value="Entertainment">Entertainment</option>
-                  <option value="Venue">Venue</option>
-                  <option value="Beauty">Beauty</option>
-                  <option value="Transport">Transport</option>
+                  <option value="">Select Category</option>
+                  {CATEGORY_LIST.map((category) => (
+                    <option key={category.code} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
                 {errors.category && (
                   <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
@@ -416,6 +430,46 @@ const AdminVendorEdit = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Deliverables */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
+              <button
+                type="button"
+                onClick={() => appendDeliverable("Professional service delivery")}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm"
+              >
+                Add Deliverable
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {deliverableFields.map((field, index) => (
+                <div key={field.id} className="flex gap-2">
+                  <input
+                    {...register(`deliverables.${index}` as const)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter what you will deliver (e.g., High-resolution edited photos, Professional album, etc.)"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeDeliverable(index)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              
+              {deliverableFields.length === 0 && (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-md">
+                  <p>No deliverables added yet</p>
+                  <p className="text-sm">Click "Add Deliverable" to specify what this vendor will deliver to clients</p>
+                </div>
+              )}
             </div>
           </div>
 

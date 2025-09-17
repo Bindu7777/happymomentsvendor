@@ -286,10 +286,6 @@ I'm really excited to connect and explore working with you soon! ✨`;
             {/* Right side - Rating and actions */}
             <div className="flex items-center gap-2">
               {/* Compact Rating */}
-              <div className="flex items-center gap-1 px-2 py-1 bg-pink-50 rounded-lg border border-pink-200">
-                <Star className="w-3 h-3 text-pink-500 fill-current" />
-                <span className="text-xs font-bold text-pink-700">{decorator.rating}</span>
-              </div>
 
               {/* Action Buttons - Mobile Optimized */}
               <div className="flex items-center gap-1">
@@ -333,79 +329,6 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-1">
                 <h1 className="text-xl font-bold text-gray-900">{decorator.name}</h1>
                   
-                  {/* Premium Animated Rating Widget */}
-                  <div 
-                    className="relative group cursor-pointer self-end"
-                    onMouseEnter={() => setShowRatingTooltip(true)}
-                    onMouseLeave={() => setShowRatingTooltip(false)}
-                  >
-                    <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-pink-50/80 to-rose-50/80 border border-pink-200/60 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                      {/* Animated Stars with Shimmer */}
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => {
-                          const starValue = i + 1;
-                          const rating = decorator.rating; // 4.6
-                          const isFilled = starValue <= Math.floor(rating); // 1,2,3,4
-                          const isHalfFilled = starValue === Math.ceil(rating) && rating % 1 !== 0; // 5th star half filled
-                          
-                          return (
-                            <div key={i} className="relative group/star">
-                              {/* Background star (always gray) */}
-                              <Star className="w-5 h-5 text-gray-300" />
-                              
-                              {/* Filled portion */}
-                              {isFilled && (
-                                <div className="absolute inset-0">
-                                  <Star 
-                                    className="w-5 h-5 text-pink-500 fill-current group-hover:animate-pulse transition-all duration-700"
-                                    style={{
-                                      animationDelay: `${i * 0.15}s`,
-                                      filter: 'drop-shadow(0 0 6px rgba(236, 72, 153, 0.6))'
-                                    }}
-                                  />
-                                  </div>
-                              )}
-                              
-                              {/* Half filled portion */}
-                              {isHalfFilled && (
-                                <div className="absolute inset-0 overflow-hidden w-3/5">
-                                  <Star 
-                                    className="w-5 h-5 text-pink-500 fill-current group-hover:animate-pulse transition-all duration-700"
-                                    style={{
-                                      animationDelay: `${i * 0.15}s`,
-                                      filter: 'drop-shadow(0 0 6px rgba(236, 72, 153, 0.6))'
-                                    }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Fused Rating Pill */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-pink-100 to-rose-100 border border-pink-200 rounded-full shadow-sm">
-                        <span className="text-sm font-bold text-pink-800">
-                          {decorator.rating}
-                        </span>
-                        <div className="w-1 h-1 bg-pink-400 rounded-full"></div>
-                        <span className="text-xs font-semibold text-pink-700">
-                          Top Rated
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Enhanced Tooltip with Animation */}
-                    {showRatingTooltip && (
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-3 bg-gray-900/95 backdrop-blur-sm text-white text-sm rounded-xl px-4 py-3 shadow-2xl z-50 whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-200">
-                        <div className="text-center">
-                          <div className="font-semibold text-white">Rated by {decorator.reviewCount} verified clients</div>
-                          <div className="text-gray-300 mt-1 text-xs">Click to see reviews</div>
-                        </div>
-                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-900/95 rotate-45"></div>
-                      </div>
-                    )}
-                  </div>
                   
                 </div>
                 <div className="flex items-center gap-2 -mt-4">
@@ -908,8 +831,6 @@ I'm really excited to connect and explore working with you soon! ✨`;
                     Customer Reviews
                   </h2>
                   <div className="text-right">
-                    <div className="text-4xl font-bold text-green-600">4.6★</div>
-                    <div className="text-sm text-gray-600">from 120 happy clients</div>
                   </div>
                 </div>
                 

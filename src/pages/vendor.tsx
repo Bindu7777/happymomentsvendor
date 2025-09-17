@@ -334,79 +334,6 @@ const VendorProfile = () => {
                 <div className="flex flex-col sm:flex-row sm:items-start gap-3 mb-1">
                 <h1 className="text-xl font-bold text-gray-900">{vendor.brand_name}</h1>
                   
-                  {/* Premium Animated Rating Widget */}
-                  <div 
-                    className="relative group cursor-pointer self-end"
-                    onMouseEnter={() => setShowRatingTooltip(true)}
-                    onMouseLeave={() => setShowRatingTooltip(false)}
-                  >
-                    <div className="flex items-center gap-3 px-5 py-3 bg-gradient-to-r from-amber-50/80 to-orange-50/80 border border-amber-200/60 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 backdrop-blur-sm">
-                      {/* Animated Stars with Shimmer */}
-                      <div className="flex items-center gap-1">
-                        {[...Array(5)].map((_, i) => {
-                          const starValue = i + 1;
-                          const rating = vendor.rating || 4.5;
-                          const isFilled = starValue <= Math.floor(rating);
-                          const isHalfFilled = starValue === Math.ceil(rating) && rating % 1 !== 0;
-                          
-                          return (
-                            <div key={i} className="relative group/star">
-                              {/* Background star (always gray) */}
-                              <Star className="w-5 h-5 text-gray-300" />
-                              
-                              {/* Filled portion */}
-                              {isFilled && (
-                                <div className="absolute inset-0">
-                                  <Star 
-                                    className="w-5 h-5 text-amber-500 fill-current group-hover:animate-pulse transition-all duration-700"
-                                    style={{
-                                      animationDelay: `${i * 0.15}s`,
-                                      filter: 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))'
-                                    }}
-                                  />
-        </div>
-      )}
-
-                              {/* Half filled portion */}
-                              {isHalfFilled && (
-                                <div className="absolute inset-0 overflow-hidden w-1/2">
-                                  <Star 
-                                    className="w-5 h-5 text-amber-500 fill-current group-hover:animate-pulse transition-all duration-700"
-                                    style={{
-                                      animationDelay: `${i * 0.15}s`,
-                                      filter: 'drop-shadow(0 0 6px rgba(245, 158, 11, 0.6))'
-                                    }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Fused Rating Pill */}
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-200 rounded-full shadow-sm">
-                        <span className="text-sm font-bold text-amber-800">
-                          {rating}
-                        </span>
-                        <div className="w-1 h-1 bg-amber-400 rounded-full"></div>
-                        <span className="text-xs font-semibold text-amber-700">
-                          Top Rated
-          </span>
-        </div>
-                    </div>
-                    
-                    {/* Enhanced Tooltip with Animation */}
-                    {showRatingTooltip && (
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-3 bg-gray-900/95 backdrop-blur-sm text-white text-sm rounded-xl px-4 py-3 shadow-2xl z-50 whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-200">
-                        <div className="text-center">
-                          <div className="font-semibold text-white">Rated by {vendor.review_count || 0} verified customers</div>
-                          <div className="text-gray-300 mt-1 text-xs">Click to see reviews</div>
-                        </div>
-                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-gray-900/95 rotate-45"></div>
-        </div>
-      )}
-                  </div>
                   
                 </div>
                 <div className="flex items-center gap-2 -mt-4">
@@ -570,7 +497,7 @@ const VendorProfile = () => {
                   <div className="bg-white/95 backdrop-blur-md rounded-3xl p-12 shadow-2xl border-2 border-amber-200/50">
                     
                     {/* Name and Profile Row */}
-                    <div className="flex items-start mb-8 relative">
+                    <div className="flex items-start mb-4 relative">
                       <div className="flex-1 pr-8">
                         <h1 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight tracking-tight">
                           {vendor.brand_name}
@@ -595,7 +522,7 @@ const VendorProfile = () => {
                     </div>
 
                     {/* Category Badges Row */}
-                    <div className="flex items-center gap-4 mb-10 -mt-6">
+                    <div className="flex items-center gap-4 mb-10 -mt-10">
                       <Badge className="px-6 py-3 text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
                         <CategoryIcon className="w-4 h-4" />
                         {vendor.category}
@@ -806,6 +733,34 @@ const VendorProfile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Deliverables Section */}
+            {vendor.deliverables && vendor.deliverables.length > 0 && (
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-100">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                    What You'll Get
+                  </h2>
+                  <p className="text-gray-600 mb-8 text-lg">Complete deliverables included in our service</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {vendor.deliverables.map((deliverable, index) => (
+                      <div 
+                        key={index}
+                        className="group flex items-start gap-4 p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-green-200/50"
+                      >
+                        <div className="flex-shrink-0 p-2 bg-green-500 rounded-full group-hover:scale-110 transition-all duration-300">
+                          <CheckCircle className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-gray-800 font-medium leading-relaxed">{deliverable}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Packages Section */}
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
@@ -1039,11 +994,7 @@ const VendorProfile = () => {
                             <h4 className="font-bold text-lg text-gray-800">{review.name}</h4>
                             <p className="text-sm text-gray-600">{review.location}</p>
                             <div className="flex items-center gap-2 mt-1">
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                                ))}
-                              </div>
+                              <span className="text-sm font-bold text-amber-600">{review.rating}/5</span>
                               <span className="text-sm text-gray-500">{review.date}</span>
                               {review.verified && (
                                 <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>

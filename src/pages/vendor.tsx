@@ -901,14 +901,14 @@ const VendorProfile = () => {
             </Card>
 
             {/* Portfolio Gallery */}
-            {catalogImages.length > 0 && (
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
-                <CardContent className="p-8">
-                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    <Video className="w-8 h-8 text-blue-600" />
-                    Catalog
-                  </h2>
-                  
+            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
+              <CardContent className="p-8">
+                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                  <Video className="w-8 h-8 text-blue-600" />
+                  Catalog
+                </h2>
+                
+                {catalogImages.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {catalogImages.map((image, index) => (
                       <Dialog key={index}>
@@ -942,9 +942,49 @@ const VendorProfile = () => {
                       </Dialog>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* Placeholder images when no catalog images are available */}
+                    {[
+                      "/images/image1.jpeg",
+                      "/images/image2.jpeg",
+                      "/images/image1.jpeg",
+                      "/images/image2.jpeg"
+                    ].map((image, index) => (
+                      <Dialog key={index}>
+                        <DialogTrigger asChild>
+                          <div 
+                            className="relative group cursor-pointer overflow-hidden rounded-xl"
+                            onClick={(e) => { e.stopPropagation(); }}
+                          >
+                            <img 
+                              src={image} 
+                              alt={`Sample work ${index + 1}`}
+                              className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                              <div className="text-white text-center">
+                                <Camera className="w-8 h-8 mx-auto mb-2" />
+                                <span className="text-sm font-medium">View Full Size</span>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-6xl">
+                          <div className="relative">
+                            <img 
+                              src={image} 
+                              alt={`Sample work ${index + 1}`}
+                              className="w-full h-auto rounded-lg"
+                            />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Reviews */}
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-100">

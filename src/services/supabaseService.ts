@@ -372,6 +372,31 @@ export const saveVendorSession = (vendor: Vendor): void => {
   localStorage.setItem('vendorLoginTime', new Date().toISOString());
 };
 
+// Refresh vendor session with fresh data from database
+export const refreshVendorSession = async (): Promise<Vendor | null> => {
+  try {
+    const currentVendor = getLoggedInVendor();
+    if (!currentVendor) {
+      return null;
+    }
+
+    console.log('Refreshing vendor session data...');
+    const freshVendorData = await getVendorByFieldId(currentVendor.vendor_id);
+    
+    if (freshVendorData) {
+      // Update localStorage with fresh data
+      saveVendorSession(freshVendorData);
+      console.log('Vendor session refreshed with latest data');
+      return freshVendorData;
+    }
+    
+    return currentVendor; // Return current data if refresh fails
+  } catch (error) {
+    console.error('Error refreshing vendor session:', error);
+    return getLoggedInVendor(); // Return current data if refresh fails
+  }
+};
+
 // Vendor Profile Change Workflow Functions
 export const submitVendorProfileChange = async (
   vendorId: number, 

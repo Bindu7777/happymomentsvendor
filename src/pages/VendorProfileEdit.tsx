@@ -7,7 +7,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react';
-import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorMedia, updateVendorCatalogImages } from '../services/supabaseService';
+import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorMedia, updateVendorCatalogImages, getVendorByFieldId, saveVendorSession, refreshVendorSession } from '../services/supabaseService';
 import { Vendor } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
 
@@ -164,17 +164,36 @@ const VendorProfileEdit: React.FC = () => {
   });
 
   useEffect(() => {
-    const loggedInVendor = getLoggedInVendor();
-    
-    if (!loggedInVendor) {
-      navigate('/');
-      return;
-    }
-    
-    setVendor(loggedInVendor);
-    loadVendorData(loggedInVendor);
-    loadPendingChanges(parseInt(loggedInVendor.vendor_id));
-    loadCatalogImages(loggedInVendor.vendor_id);
+    const initializeVendorData = async () => {
+      const loggedInVendor = getLoggedInVendor();
+      
+      if (!loggedInVendor) {
+        navigate('/');
+        return;
+      }
+
+      try {
+        // Always fetch fresh data from database to ensure we have the latest approved changes
+        console.log('Refreshing vendor data for profile edit...');
+        const freshVendorData = await refreshVendorSession();
+        const vendorToUse = freshVendorData || loggedInVendor;
+        
+        console.log('Using vendor data:', vendorToUse);
+        setVendor(vendorToUse);
+        loadVendorData(vendorToUse);
+        loadPendingChanges(parseInt(vendorToUse.vendor_id));
+        loadCatalogImages(vendorToUse.vendor_id);
+      } catch (error) {
+        console.error('Error refreshing vendor data:', error);
+        // Fallback to localStorage data
+        setVendor(loggedInVendor);
+        loadVendorData(loggedInVendor);
+        loadPendingChanges(parseInt(loggedInVendor.vendor_id));
+        loadCatalogImages(loggedInVendor.vendor_id);
+      }
+    };
+
+    initializeVendorData();
   }, [navigate]);
 
   const loadVendorData = (vendorData: Vendor) => {

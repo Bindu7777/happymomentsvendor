@@ -32,7 +32,7 @@ import {
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats } from '../services/supabaseService';
+import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession } from '../services/supabaseService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
@@ -82,29 +82,37 @@ const VendorDashboard: React.FC = () => {
   }, [showNotifications]);
 
   useEffect(() => {
-    console.log('VendorDashboard useEffect triggered');
-    try {
-      const loggedInVendor = getLoggedInVendor();
-      console.log('Logged in vendor:', loggedInVendor);
-      
-      if (!loggedInVendor) {
-        console.log('No vendor logged in, redirecting to home');
-        setError('No vendor session found. Please login first.');
-        navigate('/');
-        return;
+    const initializeDashboard = async () => {
+      console.log('VendorDashboard useEffect triggered');
+      try {
+        const loggedInVendor = getLoggedInVendor();
+        console.log('Logged in vendor:', loggedInVendor);
+        
+        if (!loggedInVendor) {
+          console.log('No vendor logged in, redirecting to home');
+          setError('No vendor session found. Please login first.');
+          navigate('/');
+          return;
+        }
+        
+        // Refresh vendor session to get latest approved data
+        const refreshedVendor = await refreshVendorSession();
+        const vendorToUse = refreshedVendor || loggedInVendor;
+        
+        setVendor(vendorToUse);
+        loadPendingChanges(parseInt(vendorToUse.vendor_id));
+        loadNotifications(parseInt(vendorToUse.vendor_id));
+        loadLeadsData(parseInt(vendorToUse.vendor_id));
+        loadCalendarData(parseInt(vendorToUse.vendor_id));
+        setLoading(false);
+      } catch (err) {
+        console.error('Error in VendorDashboard useEffect:', err);
+        setError('Error loading dashboard. Please try again.');
+        setLoading(false);
       }
-      
-    setVendor(loggedInVendor);
-    loadPendingChanges(loggedInVendor.vendor_id);
-    loadNotifications(loggedInVendor.vendor_id);
-    loadLeadsData(loggedInVendor.vendor_id);
-    loadCalendarData(loggedInVendor.vendor_id);
-    setLoading(false);
-    } catch (err) {
-      console.error('Error in VendorDashboard useEffect:', err);
-      setError('Error loading dashboard. Please try again.');
-      setLoading(false);
-    }
+    };
+
+    initializeDashboard();
   }, [navigate]);
 
   const loadPendingChanges = async (vendorId: number) => {

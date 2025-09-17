@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Camera, Building2, MapPin, Users, LogIn, Shield } from 'lucide-react';
+import VendorLogin from '../VendorLogin';
 import {
   Carousel,
   CarouselContent,
@@ -70,6 +71,7 @@ const Hero = () => {
   const [vendorType, setVendorType] = useState('all');
   const [city, setCity] = useState('all');
   const [activeBackground, setActiveBackground] = useState(0);
+  const [showVendorLogin, setShowVendorLogin] = useState(false);
   const navigate = useNavigate();
 
   // Auto-rotate background images
@@ -168,8 +170,36 @@ const Hero = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Vendor Login Section */}
+            <div className="mt-8 text-center">
+              <p className="text-white/80 mb-4">Are you a vendor?</p>
+              <Button
+                onClick={() => setShowVendorLogin(true)}
+                variant="outline"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm"
+              >
+                <LogIn className="w-4 h-4 mr-2" />
+                Vendor Login
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Vendor Login Modal */}
+        {showVendorLogin && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="relative max-w-md w-full">
+              <button
+                onClick={() => setShowVendorLogin(false)}
+                className="absolute -top-4 -right-4 w-8 h-8 bg-white rounded-full flex items-center justify-center text-gray-600 hover:text-gray-800 z-10"
+              >
+                ×
+              </button>
+              <VendorLogin onClose={() => setShowVendorLogin(false)} />
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Vendor } from "@/lib/supabase";
-import { getAllVendors, updateVendor, deleteVendor } from "@/services/supabaseService";
+import { getAllVendorsForAdmin, updateVendor, deleteVendor, getAllPendingChanges, reviewVendorProfileChange } from "@/services/supabaseService";
 
 interface DashboardStats {
   totalVendors: number;
@@ -37,6 +37,9 @@ const AdminDashboard = () => {
   const [filterCategory, setFilterCategory] = useState("all");
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [showBulkActions, setShowBulkActions] = useState(false);
+  const [activeTab, setActiveTab] = useState("vendors");
+  const [pendingChanges, setPendingChanges] = useState<any[]>([]);
+  const [reviewingChange, setReviewingChange] = useState<number | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,6 +51,7 @@ const AdminDashboard = () => {
     }
 
     fetchVendors();
+    fetchPendingChanges();
   }, [navigate]);
 
   useEffect(() => {
@@ -56,12 +60,23 @@ const AdminDashboard = () => {
 
   const fetchVendors = async () => {
     try {
-      const vendorData = await getAllVendors();
+      const vendorData = await getAllVendorsForAdmin();
+      console.log('Fetched vendors for admin:', vendorData);
       setVendors(vendorData);
+      setFilteredVendors(vendorData);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching vendors:", error);
       setLoading(false);
+    }
+  };
+
+  const fetchPendingChanges = async () => {
+    try {
+      const pending = await getAllPendingChanges();
+      setPendingChanges(pending);
+    } catch (error) {
+      console.error("Error fetching pending changes:", error);
     }
   };
 

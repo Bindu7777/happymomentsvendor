@@ -23,6 +23,8 @@ import VendorProfile from "./pages/VendorProfile";
 import DecorProfile from "./pages/DecorProfile";
 import PhotographyVendors from "./pages/PhotographyVendors";
 import CategoryVendors from "./pages/CategoryVendors";
+import VendorDashboard from "./pages/VendorDashboard";
+import VendorProfileEdit from "./pages/VendorProfileEdit";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -43,6 +45,10 @@ const App = () => {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/vendor/new" element={<AddVendor />} />
               <Route path="/admin/vendor/:vendorId/edit" element={<AdminVendorEdit />} />
+              
+              {/* Vendor Routes */}
+              <Route path="/vendor-dashboard" element={<VendorDashboard />} />
+              <Route path="/vendor-profile-edit" element={<VendorProfileEdit />} />
               
               {/* Category pages */}
               <Route

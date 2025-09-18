@@ -21,6 +21,8 @@ type LeadFormData = {
   event_date_flexibility?: string;
   event_venue?: string;
   budget_range?: string;
+  budget_min?: string;
+  budget_max?: string;
   lead_source?: string;
   priority?: string;
   initial_notes?: string;
@@ -44,6 +46,8 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ lead, onClo
       event_date_flexibility: lead.event_date_flexibility || '',
       event_venue: lead.event_venue || '',
       budget_range: lead.budget_range || '',
+      budget_min: lead.budget_min?.toString() || '',
+      budget_max: lead.budget_max?.toString() || '',
       lead_source: lead.lead_source || 'website',
       priority: lead.priority || 'medium',
       initial_notes: lead.initial_notes || '',
@@ -68,6 +72,8 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ lead, onClo
         event_date_flexibility: data.event_date_flexibility && data.event_date_flexibility.trim() !== '' ? data.event_date_flexibility : null,
         event_venue: data.event_venue && data.event_venue.trim() !== '' ? data.event_venue : null,
         budget_range: data.budget_range && data.budget_range.trim() !== '' ? data.budget_range : null,
+        budget_min: data.budget_min && data.budget_min.trim() !== '' ? parseFloat(data.budget_min) : null,
+        budget_max: data.budget_max && data.budget_max.trim() !== '' ? parseFloat(data.budget_max) : null,
         lead_source: data.lead_source && data.lead_source.trim() !== '' ? data.lead_source : 'website',
         priority: data.priority && data.priority.trim() !== '' ? data.priority : 'medium',
         initial_notes: data.initial_notes && data.initial_notes.trim() !== '' ? data.initial_notes : null,
@@ -395,6 +401,7 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ lead, onClo
                     <option value="1l_2l">₹1L - ₹2L</option>
                     <option value="2l_5l">₹2L - ₹5L</option>
                     <option value="above_5l">Above ₹5L</option>
+                    <option value="custom">Custom Range</option>
                   </select>
                 ) : (
                   <p className="px-3 py-2 bg-gray-50 rounded-md">
@@ -402,6 +409,35 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ lead, onClo
                   </p>
                 )}
               </div>
+
+              {/* Custom Budget Fields */}
+              {isEditing && watch('budget_range') === 'custom' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Minimum Budget (₹)
+                    </label>
+                    <Input
+                      {...register("budget_min")}
+                      type="number"
+                      placeholder="25000"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Maximum Budget (₹)
+                    </label>
+                    <Input
+                      {...register("budget_max")}
+                      type="number"
+                      placeholder="50000"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:ring-green-500 focus:border-green-500"
+                    />
+                  </div>
+                </>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

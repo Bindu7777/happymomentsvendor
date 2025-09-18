@@ -46,7 +46,7 @@ const VendorDashboard: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [activeTab, setActiveTab] = useState('leads');
+  const [activeTab, setActiveTab] = useState('profile');
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [leadStats, setLeadStats] = useState<any>({});
@@ -84,18 +84,18 @@ const VendorDashboard: React.FC = () => {
 
   useEffect(() => {
     const initializeDashboard = async () => {
-      console.log('VendorDashboard useEffect triggered');
-      try {
-        const loggedInVendor = getLoggedInVendor();
-        console.log('Logged in vendor:', loggedInVendor);
-        
-        if (!loggedInVendor) {
-          console.log('No vendor logged in, redirecting to home');
-          setError('No vendor session found. Please login first.');
-          navigate('/');
-          return;
-        }
-        
+    console.log('VendorDashboard useEffect triggered');
+    try {
+      const loggedInVendor = getLoggedInVendor();
+      console.log('Logged in vendor:', loggedInVendor);
+      
+      if (!loggedInVendor) {
+        console.log('No vendor logged in, redirecting to home');
+        setError('No vendor session found. Please login first.');
+        navigate('/');
+        return;
+      }
+      
         // Refresh vendor session to get latest approved data
         const refreshedVendor = await refreshVendorSession();
         const vendorToUse = refreshedVendor || loggedInVendor;
@@ -105,12 +105,12 @@ const VendorDashboard: React.FC = () => {
         loadNotifications(parseInt(vendorToUse.vendor_id));
         loadLeadsData(parseInt(vendorToUse.vendor_id));
         loadCalendarData(parseInt(vendorToUse.vendor_id));
-        setLoading(false);
-      } catch (err) {
-        console.error('Error in VendorDashboard useEffect:', err);
-        setError('Error loading dashboard. Please try again.');
-        setLoading(false);
-      }
+    setLoading(false);
+    } catch (err) {
+      console.error('Error in VendorDashboard useEffect:', err);
+      setError('Error loading dashboard. Please try again.');
+      setLoading(false);
+    }
     };
 
     initializeDashboard();
@@ -319,26 +319,41 @@ const VendorDashboard: React.FC = () => {
 
   const getLeadStatusColor = (status: string) => {
     switch (status) {
-      case 'new_lead': return 'bg-blue-100 text-blue-800';
-      case 'contacted': return 'bg-yellow-100 text-yellow-800';
-      case 'negotiation': return 'bg-orange-100 text-orange-800';
-      case 'proposal_sent': return 'bg-purple-100 text-purple-800';
-      case 'customer_decision_pending': return 'bg-indigo-100 text-indigo-800';
-      case 'confirmed_booking': return 'bg-green-100 text-green-800';
-      case 'advance_received': return 'bg-emerald-100 text-emerald-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
-      case 'lost': return 'bg-red-100 text-red-800';
+      case 'new_lead': return 'text-white shadow-lg';
+      case 'contacted': return 'text-white shadow-lg';
+      case 'negotiation': return 'text-white shadow-lg'; 
+      case 'proposal_sent': return 'text-white shadow-lg';
+      case 'customer_decision_pending': return 'text-white shadow-lg';
+      case 'confirmed_booking': return 'text-white shadow-lg';
+      case 'advance_received': return 'text-white shadow-lg';
+      case 'completed': return 'text-white shadow-lg';
+      case 'lost': return 'text-white shadow-lg';
       // Legacy support
-      case 'New Lead': return 'bg-blue-100 text-blue-800';
-      case 'Contacted': return 'bg-yellow-100 text-yellow-800';
-      case 'Negotiation': return 'bg-orange-100 text-orange-800';
-      case 'Proposal Sent': return 'bg-purple-100 text-purple-800';
-      case 'Customer Decision Pending': return 'bg-indigo-100 text-indigo-800';
-      case 'Confirmed Booking': return 'bg-green-100 text-green-800';
-      case 'Advance Received': return 'bg-emerald-100 text-emerald-800';
-      case 'Completed': return 'bg-gray-100 text-gray-800';
-      case 'Lost': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'New Lead': return 'text-white shadow-lg';
+      case 'Contacted': return 'text-white shadow-lg';
+      case 'Negotiation': return 'text-white shadow-lg';
+      case 'Proposal Sent': return 'text-white shadow-lg';
+      case 'Customer Decision Pending': return 'text-white shadow-lg';
+      case 'Confirmed Booking': return 'text-white shadow-lg';
+      case 'Advance Received': return 'text-white shadow-lg';
+      case 'Completed': return 'text-white shadow-lg';
+      case 'Lost': return 'text-white shadow-lg';
+      default: return 'text-white shadow-lg';
+    }
+  };
+
+  const getLeadStatusStyle = (status: string) => {
+    switch (status) {
+      case 'new_lead': return { background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)' };
+      case 'contacted': return { background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' };
+      case 'negotiation': return { background: 'linear-gradient(135deg, #FF8C00 0%, #FF6B00 100%)' };
+      case 'proposal_sent': return { background: 'linear-gradient(135deg, #233A66 0%, #061D49 100%)' };
+      case 'customer_decision_pending': return { background: 'linear-gradient(135deg, #2684FF 0%, #061D49 100%)' };
+      case 'confirmed_booking': return { background: 'linear-gradient(135deg, #FFA326 0%, #32CD32 100%)' };
+      case 'advance_received': return { background: 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)' };
+      case 'completed': return { background: 'linear-gradient(135deg, #228B22 0%, #006400 100%)' };
+      case 'lost': return { background: 'linear-gradient(135deg, #DC143C 0%, #8B0000 100%)' };
+      default: return { background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)' };
     }
   };
 
@@ -385,49 +400,114 @@ const VendorDashboard: React.FC = () => {
   console.log('Leads:', leads);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Debug Info - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-yellow-100 border-b border-yellow-200 p-2 text-xs">
-          <strong>Debug:</strong> Vendor ID: {vendor?.vendor_id}, Brand: {vendor?.brand_name}, Leads: {leads.length}
-        </div>
-      )}
+    <>
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes icon-bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-3px); }
+        }
+        @keyframes tab-glow {
+          0%, 100% { box-shadow: 0 0 0 rgba(59, 130, 246, 0); }
+          50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+        }
+        @keyframes slide-up {
+          from { transform: translateY(10px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.8s ease-out forwards;
+        }
+        .animate-icon-bounce {
+          animation: icon-bounce 0.6s ease-in-out;
+        }
+        .animate-tab-glow {
+          animation: tab-glow 2s ease-in-out infinite;
+        }
+        .animate-slide-up {
+          animation: slide-up 0.5s ease-out forwards;
+        }
+        .shadow-3xl {
+          box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
+        }
+        .text-glow {
+          text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+      `}</style>
       
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center gap-4">
+    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 50%, #2684FF 100%)' }}>
+      
+      {/* Brand-Aligned Welcome Header */}
+      <div style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)', borderBottomColor: '#FFA326' }} className="shadow-2xl border-b-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-center py-6 md:py-8 gap-4 md:gap-0">
+            
+            {/* Mobile: Stack vertically, Desktop: Side by side */}
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 text-center md:text-left">
+              {/* Enhanced Profile Avatar */}
+              <div className="relative">
               <img
                 src={vendor.avatar_url || '/images/vendor.jpeg'}
                 alt={vendor.brand_name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-4 border-white shadow-xl ring-4 ring-white/20"
               />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{vendor.brand_name}</h1>
-                <p className="text-gray-600">{vendor.category} • {vendor.spoc_name}</p>
+                <div className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-green-500 w-5 h-5 md:w-6 md:h-6 rounded-full border-2 md:border-3 border-white flex items-center justify-center">
+                  <CheckCircle className="w-2 h-2 md:w-3 md:h-3 text-white" />
               </div>
             </div>
-            <div className="flex items-center gap-3">
+              
+              {/* Welcome Message */}
+              <div className="text-white">
+                <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 mb-2">
+                  <h1 className="text-xl md:text-3xl font-bold animate-fade-in">
+                    Welcome back, {vendor.spoc_name || vendor.brand_name}! 
+                  </h1>
+                  <div className="animate-bounce">
+                    <span className="text-xl md:text-2xl">👋</span>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-3 mb-3">
+                  {/* Category Icon */}
+                  <div className="flex items-center gap-2">
+                    {vendor.category?.toLowerCase().includes('photo') && <Camera className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
+                    {vendor.category?.toLowerCase().includes('event') && <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
+                    {vendor.category?.toLowerCase().includes('decor') && <Star className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
+                    {!vendor.category?.toLowerCase().includes('photo') && !vendor.category?.toLowerCase().includes('event') && !vendor.category?.toLowerCase().includes('decor') && <Award className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
+                    
+                    <p className="text-blue-100 text-sm md:text-lg font-medium">
+                      {vendor.category} | {vendor.brand_name}
+                    </p>
+                  </div>
+                </div>
+                
+              </div>
+            </div>
+            
+            {/* Mobile-Optimized Action Buttons */}
+            <div className="flex items-center gap-2 md:gap-3">
               <div className="relative">
                 <Button 
                   variant="outline" 
                   size="sm"
                   onClick={handleNotificationClick}
-                  className="relative"
+                  className="relative bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30 hover:border-white/50 transition-all duration-300 rounded-lg shadow-lg px-3 md:px-4 py-2 md:py-2"
                 >
-                  <Bell className="w-4 h-4 mr-2" />
-                  Notifications
+                  <Bell className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">Notifications</span>
                   {unreadNotificationCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse shadow-lg">
                       {unreadNotificationCount}
                     </span>
                   )}
                 </Button>
                 
-                {/* Notifications Dropdown */}
+                {/* Mobile-Optimized Notifications Dropdown */}
                 {showNotifications && (
-                  <div className="notification-dropdown absolute right-0 top-full mt-2 w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                  <div className="notification-dropdown absolute right-0 top-full mt-2 w-80 md:w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 md:max-h-96 overflow-y-auto">
                     <div className="p-4 border-b border-gray-200">
                       <h3 className="font-semibold text-gray-900">Profile Change Notifications</h3>
                     </div>
@@ -484,35 +564,77 @@ const VendorDashboard: React.FC = () => {
               <Button 
                 onClick={handleLogout}
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex items-center gap-1 md:gap-2 bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-red-500/20 hover:border-red-300/50 transition-all duration-300 rounded-lg shadow-lg px-3 md:px-4 py-2"
               >
                 <LogOut className="w-4 h-4" />
-                Logout
+                <span className="hidden md:inline">Logout</span>
               </Button>
             </div>
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="border-t border-gray-200">
-            <nav className="flex space-x-8">
+          {/* Brand-Aligned Navigation Tabs */}
+          <div style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)' }} className="border-t border-orange-400/30 shadow-xl">
+            <nav className="flex overflow-x-auto scrollbar-hide px-4 md:px-8 py-2 gap-2 md:gap-4">
               {[
-                { id: 'leads', label: 'CRM & Leads', icon: MessageSquare },
-                { id: 'profile', label: 'Profile Management', icon: User },
-                { id: 'calendar', label: 'Calendar', icon: Calendar },
-                { id: 'analytics', label: 'Analytics', icon: TrendingUp },
-                { id: 'invoices', label: 'Invoices', icon: FileText },
-              ].map((tab) => (
+                { 
+                  id: 'profile', 
+                  label: 'PROFILE', 
+                  mobileLabel: 'Profile',
+                  icon: User
+                },
+                { 
+                  id: 'leads', 
+                  label: 'CRM & LEADS', 
+                  mobileLabel: 'Leads',
+                  icon: MessageSquare
+                },
+                { 
+                  id: 'calendar', 
+                  label: 'CALENDAR', 
+                  mobileLabel: 'Calendar',
+                  icon: Calendar
+                },
+                { 
+                  id: 'analytics', 
+                  label: 'ANALYTICS', 
+                  mobileLabel: 'Analytics',
+                  icon: TrendingUp
+                },
+                { 
+                  id: 'invoices', 
+                  label: 'INVOICES', 
+                  mobileLabel: 'Invoices',
+                  icon: FileText
+                },
+              ].map((tab, index) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm ${
+                  className={`group flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3 py-3 md:py-4 px-3 md:px-6 rounded-xl font-bold text-xs md:text-sm transition-all duration-500 transform animate-slide-up min-w-[80px] md:min-w-auto ${
                     activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'text-white shadow-2xl scale-105 -translate-y-1 md:-translate-y-2 animate-tab-glow text-glow'
+                      : 'text-white/70 hover:text-white hover:shadow-xl hover:scale-102 hover:-translate-y-1 bg-white/5 backdrop-blur-sm hover:bg-white/10'
                   }`}
+                  style={{ 
+                    animationDelay: `${index * 0.1}s`,
+                    background: activeTab === tab.id 
+                      ? 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' 
+                      : undefined,
+                    boxShadow: activeTab === tab.id 
+                      ? '0 0 20px rgba(255, 163, 38, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3)' 
+                      : undefined
+                  }}
                 >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
+                  <tab.icon className={`w-5 h-5 md:w-6 md:h-6 transition-all duration-300 ${
+                    activeTab === tab.id 
+                      ? 'animate-icon-bounce text-white drop-shadow-lg' 
+                      : 'group-hover:scale-110 group-hover:rotate-3'
+                  }`} />
+                  <span className="tracking-wide hidden md:inline">{tab.label}</span>
+                  <span className="tracking-wide md:hidden text-xs">{tab.mobileLabel}</span>
+                  {activeTab === tab.id && (
+                    <div className="w-1 h-1 md:w-2 md:h-2 bg-white rounded-full animate-pulse ml-0 md:ml-1"></div>
+                  )}
                 </button>
               ))}
             </nav>
@@ -520,7 +642,8 @@ const VendorDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
+        
 
         {/* Profile Management Tab */}
         {activeTab === 'profile' && (
@@ -594,123 +717,117 @@ const VendorDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* CRM & Leads Tab */}
+        {/* Enhanced CRM & Leads Tab */}
         {activeTab === 'leads' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">CRM & Leads Management</h2>
+          <div className="space-y-4">
+            
+
+            {/* Header with Add Button on Right */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+              <h2 className="text-2xl font-bold text-white">My Leads</h2>
+              
+              {/* Add Lead Button on Right */}
               <Button 
                 onClick={() => setShowAddLeadModal(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl py-3 px-6 font-bold transform hover:scale-105 border-0"
+                style={{ 
+                  background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)',
+                  boxShadow: '0 0 20px rgba(255, 163, 38, 0.4), 0 8px 32px rgba(0, 0, 0, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 30px rgba(255, 163, 38, 0.6), 0 12px 40px rgba(0, 0, 0, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 0 20px rgba(255, 163, 38, 0.4), 0 8px 32px rgba(0, 0, 0, 0.2)';
+                }}
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Lead
+                <Plus className="w-5 h-5 mr-2" />
+                Add New Lead
               </Button>
             </div>
 
-            {/* Lead Pipeline Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-3">
-              {[
-                { stage: 'New Lead', count: leadStats.new_leads || 0, color: 'bg-blue-100 text-blue-800' },
-                { stage: 'Contacted', count: leadStats.contacted_leads || 0, color: 'bg-yellow-100 text-yellow-800' },
-                { stage: 'Negotiation', count: leadStats.negotiation_leads || 0, color: 'bg-orange-100 text-orange-800' },
-                { stage: 'Proposal Sent', count: leadStats.proposal_sent_leads || 0, color: 'bg-purple-100 text-purple-800' },
-                { stage: 'Decision Pending', count: leadStats.customer_decision_pending_leads || 0, color: 'bg-indigo-100 text-indigo-800' },
-                { stage: 'Confirmed', count: leadStats.confirmed_bookings || 0, color: 'bg-green-100 text-green-800' },
-                { stage: 'Advance Received', count: leadStats.advance_received_leads || 0, color: 'bg-emerald-100 text-emerald-800' },
-                { stage: 'Completed', count: leadStats.completed_leads || 0, color: 'bg-gray-100 text-gray-800' },
-                { stage: 'Lost', count: leadStats.lost_leads || 0, color: 'bg-red-100 text-red-800' },
-              ].map((stage) => (
-                <Card key={stage.stage}>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-2xl font-bold text-gray-900">{stage.count}</p>
-                    <p className="text-sm text-gray-600">{stage.stage}</p>
-                  </CardContent>
-                </Card>
-              ))}
+
+            {/* Compact Multi-Column Lead Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {leads.length > 0 ? leads.map((lead, index) => (
+                <div 
+                  key={lead.id} 
+                  className="p-4 rounded-xl transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] animate-slide-up border-2"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+                    borderColor: '#FFA326',
+                    boxShadow: '0 4px 20px rgba(255, 163, 38, 0.1)',
+                    animationDelay: `${index * 0.1}s`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(255, 163, 38, 0.2), 0 0 20px rgba(6, 29, 73, 0.1)';
+                    e.currentTarget.style.borderColor = '#FF8C00';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 163, 38, 0.1)';
+                    e.currentTarget.style.borderColor = '#FFA326';
+                  }}
+                >
+                  {/* Compact Lead Info */}
+                  <div className="flex items-center gap-3 mb-3">
+                    {/* Brand-Aligned Avatar */}
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)',
+                        border: '2px solid #FFA326'
+                      }}
+                    >
+                      {lead.customer_name ? lead.customer_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'NA'}
             </div>
 
-            {/* Leads Table */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>All Leads</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Filter
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Search className="w-4 h-4 mr-2" />
-                      Search
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {leads.length > 0 ? leads.map((lead) => (
-                    <div key={lead.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-                      <div 
-                        className="flex-1 cursor-pointer"
+                    <div className="flex-1 min-w-0">
+                      <h3 
+                        className="font-bold text-gray-900 text-lg cursor-pointer hover:text-orange-600 transition-colors truncate"
                         onClick={() => handleViewCustomerDetails(lead)}
+                        style={{ color: '#061D49' }}
                       >
-                        <h3 className="font-medium text-gray-900 hover:text-blue-600">{lead.customer_name}</h3>
-                        <p className="text-sm text-gray-600">
-                          {lead.event_type || 'Event Type TBD'} • {
-                            lead.event_date ? 
-                              new Date(lead.event_date).toLocaleDateString() : 
-                              lead.event_date_flexibility ? 
-                                lead.event_date_flexibility.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 
-                                'Date TBD'
-                          }
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          Last contact: {lead.last_contact_date ? 
-                            new Date(lead.last_contact_date).toLocaleDateString() : 
-                            new Date(lead.created_at).toLocaleDateString()
-                          } • Click to view details
-                        </p>
+                        {lead.customer_name}
+                      </h3>
+                      
+                      {/* Compact Event Info Pills */}
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                          📅 {lead.event_type || 'Event TBD'}
+                        </span>
+                        <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                          🕒 {lead.event_date ? new Date(lead.event_date).toLocaleDateString() : 'Date TBD'}
+                        </span>
+                        {lead.budget_range && (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                            💰 {lead.budget_range.replace('_', '-').replace('k', 'K').replace('l', 'L')}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3">
+                    </div>
+                  </div>
+
+                  {/* Status and Actions Row */}
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Compact Status Dropdown */}
                         <select
                           value={lead.status}
                           onChange={(e) => handleStatusUpdate(lead.id, e.target.value)}
-                          className={`text-xs px-2 py-1 rounded border ${getLeadStatusColor(lead.status)}`}
+                      className={`flex-1 text-sm px-3 py-2 rounded-lg border-0 font-semibold shadow-md transition-all duration-200 cursor-pointer ${getLeadStatusColor(lead.status)}`}
+                      style={getLeadStatusStyle(lead.status)}
                         >
                           <option value="new_lead">New Lead</option>
                           <option value="contacted">Contacted</option>
                           <option value="negotiation">Negotiation</option>
                           <option value="proposal_sent">Proposal Sent</option>
-                          <option value="customer_decision_pending">Customer Decision Pending</option>
+                      <option value="customer_decision_pending">Decision Pending</option>
                           <option value="confirmed_booking">Confirmed</option>
                           <option value="advance_received">Advance Received</option>
                           <option value="completed">Completed</option>
                           <option value="lost">Lost</option>
                         </select>
-                        <div className="text-sm font-medium text-gray-900">
-                          {/* Show deal amount if confirmed, otherwise show budget */}
-                          {lead.status === 'confirmed_booking' && lead.deal_amount ? (
-                            <div className="flex flex-col">
-                              <span className="text-green-600 font-semibold">Deal: ₹{lead.deal_amount.toLocaleString()}</span>
-                              <span className="text-xs text-gray-500">
-                                Budget: {lead.budget_range ? 
-                                  lead.budget_range.replace('_', ' - ').replace('k', 'K').replace('l', 'L') : 
-                                  'Not specified'
-                                }
-                              </span>
-                            </div>
-                          ) : (
-                            <span>
-                              {lead.budget_range ? 
-                                lead.budget_range.replace('_', ' - ').replace('k', 'K').replace('l', 'L') : 
-                                lead.budget_min ? 
-                                  `₹${lead.budget_min.toLocaleString()}${lead.budget_max && lead.budget_max !== lead.budget_min ? `-${lead.budget_max.toLocaleString()}` : ''}` :
-                                  'Budget TBD'
-                              }
-                            </span>
-                          )}
-                        </div>
+                    
+                    {/* Compact Action Buttons */}
                         <div className="flex gap-1">
                           <Button 
                             size="sm" 
@@ -719,11 +836,22 @@ const VendorDashboard: React.FC = () => {
                               e.stopPropagation();
                               handleViewCustomerDetails(lead);
                             }}
-                            title="View/Edit Customer Details"
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Eye className="w-3 h-3" />
+                        title="View Details & Budget"
+                        className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                        style={{ 
+                          background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)',
+                          boxShadow: '0 0 10px rgba(255, 163, 38, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, #061D49 0%, #233A66 100%)';
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
                           </Button>
+                      
                           {lead.customer_phone && (
                             <Button 
                               size="sm" 
@@ -733,10 +861,19 @@ const VendorDashboard: React.FC = () => {
                                 window.open(`tel:${lead.customer_phone}`);
                               }}
                               title="Call Customer"
-                            >
-                              <Phone className="w-3 h-3" />
+                          className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                          style={{ background: 'linear-gradient(135deg, #233A66 0%, #2684FF 100%)' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #233A66 0%, #2684FF 100%)';
+                          }}
+                        >
+                          <Phone className="w-4 h-4" />
                             </Button>
                           )}
+                      
                           {(lead.customer_whatsapp || lead.customer_phone) && (
                             <Button 
                               size="sm" 
@@ -745,37 +882,53 @@ const VendorDashboard: React.FC = () => {
                                 e.stopPropagation();
                                 handleWhatsAppChat(lead);
                               }}
-                              title="WhatsApp Customer"
-                              className="text-green-600 hover:text-green-700"
-                            >
-                              <MessageCircle className="w-3 h-3" />
-                            </Button>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteLead(lead.id, lead.customer_name);
-                            }}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            title="Delete Lead"
-                          >
-                            <Trash2 className="w-3 h-3" />
+                          title="WhatsApp"
+                          className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                          style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)';
+                          }}
+                        >
+                          <MessageCircle className="w-4 h-4" />
                           </Button>
+                      )}
                         </div>
-                      </div>
-                    </div>
+                </div>
+                  
+                  {/* Last Contact Info */}
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 text-center">
+                      Last contact: {lead.last_contact_date ? 
+                        new Date(lead.last_contact_date).toLocaleDateString() : 
+                        new Date(lead.created_at).toLocaleDateString()
+                      }
+                    </p>
+                  </div>
+                </div>
                   )) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                      <p className="text-lg font-medium">No leads yet</p>
-                      <p className="text-sm">Start adding leads to track your customer pipeline</p>
+                  <div className="col-span-full text-center py-12 px-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)', border: '2px dashed #FFA326' }}>
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' }}>
+                      <MessageSquare className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2" style={{ color: '#061D49' }}>Ready to grow your business?</h3>
+                    <p className="text-gray-600 mb-4">Start building your customer pipeline by adding your first lead</p>
+                    <Button 
+                      onClick={() => setShowAddLeadModal(true)}
+                      className="text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg py-2 px-6 font-semibold transform hover:scale-105 border-0"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)',
+                        boxShadow: '0 0 15px rgba(255, 163, 38, 0.3)'
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Your First Lead
+                    </Button>
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
           </div>
         )}
 
@@ -1001,7 +1154,33 @@ const VendorDashboard: React.FC = () => {
           onConfirm={handleConfirmDeal}
         />
       )}
+      
+      {/* Brand-Aligned Floating Action Button */}
+      {activeTab === 'leads' && (
+        <div className="fixed bottom-8 right-8 z-50">
+          <Button
+            onClick={() => setShowAddLeadModal(true)}
+            className="w-16 h-16 rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-110 border-0 text-white"
+            title="Quick Add Lead"
+            style={{ 
+              background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)',
+              boxShadow: '0 0 30px rgba(255, 163, 38, 0.4), 0 12px 40px rgba(0, 0, 0, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = '0 0 40px rgba(255, 163, 38, 0.6), 0 16px 50px rgba(0, 0, 0, 0.4)';
+              e.currentTarget.style.transform = 'scale(1.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = '0 0 30px rgba(255, 163, 38, 0.4), 0 12px 40px rgba(0, 0, 0, 0.3)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <Plus className="w-8 h-8 text-white drop-shadow-lg" />
+          </Button>
     </div>
+      )}
+    </div>
+    </>
   );
 };
 

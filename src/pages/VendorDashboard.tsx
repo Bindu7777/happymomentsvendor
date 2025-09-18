@@ -59,6 +59,8 @@ const VendorDashboard: React.FC = () => {
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [showDealPriceModal, setShowDealPriceModal] = useState(false);
   const [confirmingLead, setConfirmingLead] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<any>(null);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,124 +83,79 @@ const VendorDashboard: React.FC = () => {
   });
   const navigate = useNavigate();
 
-  // Proper filtering function: OR within categories, AND between categories
+  // Clean filtering function: OR within categories, AND between categories
   const applyFilters = () => {
-    console.log('=== APPLY FILTERS START ===');
-    console.log('Current leads:', leads);
-    console.log('Current filters:', filters);
-    
     try {
       let result = [...leads];
       
-      // Apply each filter category with proper logic
-      
-      // 1. SEARCH QUERY FILTER (if any)
+      // 1. Search query filter
       if (searchQuery && searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
-        console.log('Applying search filter:', query);
-        result = result.filter(lead => {
-          const match = lead.customer_name?.toLowerCase().includes(query) ||
-                       lead.event_type?.toLowerCase().includes(query) ||
-                       lead.customer_phone?.includes(query) ||
-                       lead.initial_notes?.toLowerCase().includes(query);
-          if (match) console.log(`✓ Lead ${lead.customer_name} matches search`);
-          return match;
-        });
-        console.log(`After search filter: ${result.length} leads`);
+        result = result.filter(lead => 
+          lead.customer_name?.toLowerCase().includes(query) ||
+          lead.event_type?.toLowerCase().includes(query) ||
+          lead.customer_phone?.includes(query) ||
+          lead.initial_notes?.toLowerCase().includes(query)
+        );
       }
       
-      // 2. LEAD STAGE FILTER (OR within category)
+      // 2. Lead stage filter (OR within category)
       if (filters.stages && filters.stages.length > 0) {
-        console.log('Applying stage filter (OR logic):', filters.stages);
-        result = result.filter(lead => {
-          const match = filters.stages.includes(lead.status);
-          console.log(`Lead ${lead.customer_name} status: ${lead.status} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
-          return match;
-        });
-        console.log(`After stage filter: ${result.length} leads`);
+        result = result.filter(lead => filters.stages.includes(lead.status));
       }
       
-      // 3. EVENT TYPE FILTER (OR within category)
+      // 3. Event type filter (OR within category)
       if (filters.eventTypes && filters.eventTypes.length > 0) {
-        console.log('Applying event type filter (OR logic):', filters.eventTypes);
-        result = result.filter(lead => {
-          const match = lead.event_type && filters.eventTypes.includes(lead.event_type);
-          console.log(`Lead ${lead.customer_name} event: ${lead.event_type} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
-          return match;
-        });
-        console.log(`After event type filter: ${result.length} leads`);
+        result = result.filter(lead => 
+          lead.event_type && filters.eventTypes.includes(lead.event_type)
+        );
       }
       
-      // 4. BUDGET RANGE FILTER (OR within category)
+      // 4. Budget range filter (OR within category)
       if (filters.budgetRanges && filters.budgetRanges.length > 0) {
-        console.log('Applying budget filter (OR logic):', filters.budgetRanges);
-        result = result.filter(lead => {
-          const match = lead.budget_range && filters.budgetRanges.includes(lead.budget_range);
-          console.log(`Lead ${lead.customer_name} budget: ${lead.budget_range} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
-          return match;
-        });
-        console.log(`After budget filter: ${result.length} leads`);
+        result = result.filter(lead => 
+          lead.budget_range && filters.budgetRanges.includes(lead.budget_range)
+        );
       }
       
-      // 5. EVENT DATE RANGE FILTER
+      // 5. Event date range filter
       if (filters.eventDateRange && (filters.eventDateRange.start || filters.eventDateRange.end)) {
-        console.log('Applying event date range filter:', filters.eventDateRange);
         result = result.filter(lead => {
-          if (!lead.event_date) {
-            console.log(`Lead ${lead.customer_name} has no event date - ✗ NO MATCH`);
-            return false;
-          }
-          
+          if (!lead.event_date) return false;
           try {
             const eventDate = new Date(lead.event_date);
             const startDate = filters.eventDateRange.start ? new Date(filters.eventDateRange.start) : null;
             const endDate = filters.eventDateRange.end ? new Date(filters.eventDateRange.end) : null;
             
-            let match = true;
-            if (startDate && eventDate < startDate) match = false;
-            if (endDate && eventDate > endDate) match = false;
-            
-            console.log(`Lead ${lead.customer_name} event date: ${lead.event_date} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
-            return match;
+            if (startDate && eventDate < startDate) return false;
+            if (endDate && eventDate > endDate) return false;
+            return true;
           } catch (error) {
-            console.error('Error parsing event date:', error);
             return false;
           }
         });
-        console.log(`After event date filter: ${result.length} leads`);
       }
       
-      // 6. LAST CONTACTED DATE RANGE FILTER
+      // 6. Last contacted date range filter
       if (filters.lastContactedRange && (filters.lastContactedRange.start || filters.lastContactedRange.end)) {
-        console.log('Applying last contacted date range filter:', filters.lastContactedRange);
         result = result.filter(lead => {
-          if (!lead.last_contact_date && !lead.created_at) {
-            console.log(`Lead ${lead.customer_name} has no contact date - ✗ NO MATCH`);
-            return false;
-          }
-          
+          if (!lead.last_contact_date && !lead.created_at) return false;
           try {
             const contactDate = new Date(lead.last_contact_date || lead.created_at);
             const startDate = filters.lastContactedRange.start ? new Date(filters.lastContactedRange.start) : null;
             const endDate = filters.lastContactedRange.end ? new Date(filters.lastContactedRange.end) : null;
             
-            let match = true;
-            if (startDate && contactDate < startDate) match = false;
-            if (endDate && contactDate > endDate) match = false;
-            
-            console.log(`Lead ${lead.customer_name} contact date: ${lead.last_contact_date || lead.created_at} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
-            return match;
+            if (startDate && contactDate < startDate) return false;
+            if (endDate && contactDate > endDate) return false;
+            return true;
           } catch (error) {
-            console.error('Error parsing contact date:', error);
             return false;
           }
         });
-        console.log(`After contact date filter: ${result.length} leads`);
       }
       
-      // 7. QUICK DATE FILTER
+      // 7. Quick date filter
       if (filters.quickDateFilter) {
-        console.log('Applying quick date filter:', filters.quickDateFilter);
         try {
           let filterDate = null;
           const today = new Date();
@@ -217,36 +174,23 @@ const VendorDashboard: React.FC = () => {
           
           if (filterDate) {
             result = result.filter(lead => {
-              if (!lead.event_date) {
-                console.log(`Lead ${lead.customer_name} has no event date for quick filter - ✗ NO MATCH`);
-                return false;
-              }
-              
+              if (!lead.event_date) return false;
               try {
                 const eventDate = new Date(lead.event_date);
-                const match = eventDate >= filterDate;
-                console.log(`Lead ${lead.customer_name} event date: ${lead.event_date} vs ${filterDate.toDateString()} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
-                return match;
+                return eventDate >= filterDate;
               } catch (error) {
-                console.error('Error parsing date for quick filter:', error);
                 return false;
               }
             });
-            console.log(`After quick date filter: ${result.length} leads`);
           }
         } catch (error) {
-          console.error('Error in quick date filter:', error);
+          // Silent error handling
         }
       }
       
-      console.log('=== FINAL RESULT ===');
-      console.log(`Total leads after all filters: ${result.length}`);
-      console.log('Filtered leads:', result.map(lead => ({ name: lead.customer_name, status: lead.status, eventType: lead.event_type, budget: lead.budget_range })));
-      
       setFilteredLeads(result);
-      console.log('=== APPLY FILTERS END ===');
     } catch (error) {
-      console.error('ERROR in applyFilters:', error);
+      // Fallback: show all leads if filtering fails
       setFilteredLeads([...leads]);
     }
   };
@@ -278,9 +222,7 @@ const VendorDashboard: React.FC = () => {
 
   // Initialize filtered leads when leads first load
   useEffect(() => {
-    console.log('Initializing filtered leads:', { leadsLength: leads.length, filteredLeadsLength: filteredLeads.length });
     if (leads.length > 0 && filteredLeads.length === 0) {
-      console.log('Setting initial filtered leads');
       setFilteredLeads([...leads]);
     }
   }, [leads, filteredLeads.length]);
@@ -325,16 +267,62 @@ const VendorDashboard: React.FC = () => {
           initial_notes: "Annual company event",
           created_at: "2024-09-16",
           last_contact_date: "2024-09-16"
+        },
+        {
+          id: 4,
+          customer_name: "Priya Anniversary",
+          customer_phone: "+91 65432 10987",
+          event_type: "Anniversary",
+          event_date: "2024-12-20",
+          budget_range: "50k_1l",
+          status: "proposal_sent",
+          initial_notes: "5th anniversary celebration",
+          created_at: "2024-09-15",
+          last_contact_date: "2024-09-15"
+        },
+        {
+          id: 5,
+          customer_name: "Kumar Family",
+          customer_phone: "+91 54321 09876",
+          event_type: "Baby Shower",
+          event_date: "2024-10-30",
+          budget_range: "25k_50k",
+          status: "customer_decision_pending",
+          initial_notes: "Baby shower photography",
+          created_at: "2024-09-14",
+          last_contact_date: "2024-09-14"
+        },
+        {
+          id: 6,
+          customer_name: "Rohan Engagement",
+          customer_phone: "+91 43210 98765",
+          event_type: "Engagement",
+          event_date: "2024-11-25",
+          budget_range: "1l_2l",
+          status: "advance_received",
+          initial_notes: "Engagement ceremony photography",
+          created_at: "2024-09-13",
+          last_contact_date: "2024-09-13"
+        },
+        {
+          id: 7,
+          customer_name: "Lost Event Lead",
+          customer_phone: "+91 32109 87654",
+          event_type: "Wedding",
+          event_date: "2024-09-01",
+          budget_range: "above_5l",
+          status: "lost",
+          initial_notes: "Client went with another vendor",
+          created_at: "2024-08-15",
+          last_contact_date: "2024-08-20"
         }
       ];
-      console.log('Setting sample leads data');
       setLeads(sampleLeads);
     }
   }, [leads.length]);
 
-  // Apply filters when leads or filters change - SIMPLIFIED
+  // Apply filters when leads or filters change
   useEffect(() => {
-    console.log('useEffect triggered for filtering');
     if (leads.length > 0) {
       applyFilters();
     }
@@ -359,13 +347,10 @@ const VendorDashboard: React.FC = () => {
 
   useEffect(() => {
     const initializeDashboard = async () => {
-    console.log('VendorDashboard useEffect triggered');
     try {
       const loggedInVendor = getLoggedInVendor();
-      console.log('Logged in vendor:', loggedInVendor);
       
       if (!loggedInVendor) {
-        console.log('No vendor logged in, redirecting to home');
         setError('No vendor session found. Please login first.');
         navigate('/');
         return;
@@ -419,7 +404,6 @@ const VendorDashboard: React.FC = () => {
       try {
         const success = await markAllNotificationsAsRead(parseInt(vendor.vendor_id));
         if (success) {
-          console.log('All notifications marked as read');
           setUnreadNotificationCount(0); // Reset the count immediately
         }
       } catch (error) {
@@ -469,7 +453,7 @@ const VendorDashboard: React.FC = () => {
       const result = await updateLeadStatus(leadId, newStatus);
       if (result.success && vendor) {
         // Reload leads data
-        loadLeadsData(vendor.vendor_id);
+        loadLeadsData(parseInt(vendor.vendor_id));
       }
     } catch (error) {
       console.error('Error updating lead status:', error);
@@ -491,11 +475,11 @@ const VendorDashboard: React.FC = () => {
       const result = await updateVendorLead(confirmingLead.id, updateData);
       if (result.success && vendor) {
         // Reload leads data
-        loadLeadsData(vendor.vendor_id);
+        loadLeadsData(parseInt(vendor.vendor_id));
         setShowDealPriceModal(false);
         setConfirmingLead(null);
       } else {
-        console.error('Failed to confirm deal:', result.error);
+        console.error('Failed to confirm deal:', result.message);
         alert('Failed to confirm deal. Please try again.');
       }
     } catch (error) {
@@ -504,30 +488,35 @@ const VendorDashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteLead = async (leadId: number, customerName: string) => {
-    if (window.confirm(`Are you sure you want to delete the lead for "${customerName}"? This action cannot be undone.`)) {
-      try {
-        console.log('Deleting lead:', leadId, customerName);
-        
-        // For now, delete from local state (replace with API call later)
-        const updatedLeads = leads.filter(lead => lead.id !== leadId);
-        setLeads(updatedLeads);
-        
-        // Show success message
-        alert(`Successfully deleted lead for "${customerName}"`);
-        
-        // Uncomment this when using real API:
-        // const result = await deleteVendorLead(leadId);
-        // if (result.success && vendor) {
-        //   loadLeadsData(vendor.vendor_id);
-        // } else {
-        //   console.error('Failed to delete lead:', result.error);
-        //   alert('Failed to delete lead. Please try again.');
-        // }
+  const handleDeleteLead = (leadId: number, customerName: string) => {
+    // Show custom delete confirmation modal
+    const lead = leads.find(l => l.id === leadId);
+    setLeadToDelete(lead);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteLead = async () => {
+    if (!leadToDelete) return;
+    
+    try {
+      // For now, delete from local state (replace with API call later)
+      const updatedLeads = leads.filter(lead => lead.id !== leadToDelete.id);
+      setLeads(updatedLeads);
+      
+      // Close modal and reset state
+      setShowDeleteModal(false);
+      setLeadToDelete(null);
+      
+      // Uncomment this when using real API:
+      // const result = await deleteVendorLead(leadToDelete.id);
+      // if (result.success && vendor) {
+      //   loadLeadsData(parseInt(vendor.vendor_id));
+      // } else {
+      //   console.error('Failed to delete lead:', result.error);
+      // }
       } catch (error) {
-        console.error('Error deleting lead:', error);
-        alert('Error deleting lead. Please try again.');
-      }
+      setShowDeleteModal(false);
+      setLeadToDelete(null);
     }
   };
 
@@ -551,7 +540,7 @@ const VendorDashboard: React.FC = () => {
     const result = await createVendorEvent(eventData);
     if (result.success) {
       if (vendor) {
-        await loadCalendarData(vendor.vendor_id);
+        await loadCalendarData(parseInt(vendor.vendor_id));
       }
     } else {
       alert(result.error || 'Failed to create event');
@@ -562,7 +551,7 @@ const VendorDashboard: React.FC = () => {
     const result = await updateVendorEvent(eventId, eventData);
     if (result.success) {
       if (vendor) {
-        await loadCalendarData(vendor.vendor_id);
+        await loadCalendarData(parseInt(vendor.vendor_id));
       }
     } else {
       alert(result.error || 'Failed to update event');
@@ -573,7 +562,7 @@ const VendorDashboard: React.FC = () => {
     const result = await deleteVendorEvent(eventId);
     if (result.success) {
       if (vendor) {
-        await loadCalendarData(vendor.vendor_id);
+        await loadCalendarData(parseInt(vendor.vendor_id));
       }
     } else {
       alert(result.error || 'Failed to delete event');
@@ -582,7 +571,7 @@ const VendorDashboard: React.FC = () => {
 
   const handleCalendarRefresh = async () => {
     if (vendor) {
-      await loadCalendarData(vendor.vendor_id);
+      await loadCalendarData(parseInt(vendor.vendor_id));
     }
   };
 
@@ -642,7 +631,6 @@ const VendorDashboard: React.FC = () => {
   };
 
   if (loading) {
-    console.log('VendorDashboard is in loading state');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -665,7 +653,6 @@ const VendorDashboard: React.FC = () => {
   }
 
   if (!vendor) {
-    console.log('No vendor found, showing access denied');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -679,9 +666,6 @@ const VendorDashboard: React.FC = () => {
     );
   }
 
-  console.log('Rendering VendorDashboard with vendor:', vendor);
-  console.log('Active tab:', activeTab);
-  console.log('Leads:', leads);
 
   return (
     <>
@@ -1009,10 +993,7 @@ const VendorDashboard: React.FC = () => {
 
             {/* Header with Add Button on Right */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-white">My Leads ({leads.length} total, {filteredLeads.length} filtered)</h2>
-                <p className="text-blue-200 text-sm">Debug: Stages={filters.stages.length}, EventTypes={filters.eventTypes.length}, Search="{searchQuery}"</p>
-              </div>
+              <h2 className="text-2xl font-bold text-white">My Leads</h2>
               
               {/* Add Lead Button on Right */}
               <Button 
@@ -1069,36 +1050,43 @@ const VendorDashboard: React.FC = () => {
               {/* Advanced Filters Panel */}
               {showFilters && (
                 <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-lg animate-fade-in">
+                  {/* Filter Panel Header with Close Button */}
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                    <h3 className="text-lg font-bold text-gray-900">Filter Leads</h3>
+                    <Button
+                      onClick={() => setShowFilters(false)}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100 border-gray-300"
+                      title="Close Filters"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     
                     {/* Lead Stage Filter */}
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-3">Lead Stage</label>
                       <div className="space-y-2">
-                        {['new_lead', 'contacted', 'negotiation', 'confirmed', 'completed', 'cancelled'].map((stage) => (
+                        {['new_lead', 'contacted', 'negotiation', 'proposal_sent', 'customer_decision_pending', 'confirmed_booking', 'advance_received', 'completed', 'lost'].map((stage) => (
                           <label key={stage} className="flex items-center space-x-3 cursor-pointer">
                             <input
                               type="checkbox"
                               checked={filters.stages.includes(stage)}
                               onChange={(e) => {
-                                console.log('=== CHECKBOX CLICKED ===');
-                                console.log('Stage:', stage, 'Checked:', e.target.checked);
-                                
                                 if (e.target.checked) {
                                   const newStages = [...filters.stages, stage];
-                                  console.log('Adding stage, new stages:', newStages);
                                   setFilters(prev => {
                                     const newFilters = { ...prev, stages: newStages };
-                                    // Trigger filtering after state update
                                     setTimeout(() => applyFilters(), 50);
                                     return newFilters;
                                   });
                                 } else {
                                   const newStages = filters.stages.filter(s => s !== stage);
-                                  console.log('Removing stage, new stages:', newStages);
                                   setFilters(prev => {
                                     const newFilters = { ...prev, stages: newStages };
-                                    // Trigger filtering after state update
                                     setTimeout(() => applyFilters(), 50);
                                     return newFilters;
                                   });
@@ -1107,7 +1095,7 @@ const VendorDashboard: React.FC = () => {
                               className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400"
                             />
                             <span className="text-sm text-gray-700 capitalize">
-                              {stage.replace('_', ' ')}
+                              {stage.replace(/_/g, ' ').replace('customer decision pending', 'Decision Pending').replace('confirmed booking', 'Confirmed').replace('advance received', 'Advance Received')}
                             </span>
                           </label>
                         ))}
@@ -1252,25 +1240,11 @@ const VendorDashboard: React.FC = () => {
                       Clear All Filters
                     </Button>
                     <Button
-                      onClick={() => {
-                        console.log('Manual apply filters clicked');
-                        applyFilters();
-                        setShowFilters(false);
-                      }}
+                      onClick={() => setShowFilters(false)}
                       className="text-white"
                       style={{ backgroundColor: '#FFA326' }}
                     >
                       Apply Filters
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        console.log('Test: Setting new_lead filter manually');
-                        setFilters(prev => ({ ...prev, stages: ['new_lead'] }));
-                      }}
-                      variant="outline"
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      Test: Set New Lead
                     </Button>
                   </div>
                 </div>
@@ -1649,7 +1623,7 @@ const VendorDashboard: React.FC = () => {
 
             {/* Calendar Component */}
             <VendorCalendar
-              vendorId={vendor.vendor_id}
+              vendorId={parseInt(vendor.vendor_id)}
               events={calendarEvents}
               onEventCreate={handleEventCreate}
               onEventUpdate={handleEventUpdate}
@@ -1788,24 +1762,15 @@ const VendorDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Other tabs placeholder */}
-        {(activeTab === 'profile' && activeTab !== 'overview' && activeTab !== 'leads' && activeTab !== 'analytics' && activeTab !== 'invoices') && (
-          <div className="text-center py-12">
-            <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Management</h3>
-            <p className="text-gray-600 mb-4">This feature is coming soon</p>
-            <Button variant="outline">Coming Soon</Button>
-          </div>
-        )}
       </div>
 
       {/* Add Lead Modal */}
       {showAddLeadModal && vendor && (
         <AddLeadModal
-          vendorId={vendor.vendor_id}
+          vendorId={parseInt(vendor.vendor_id)}
           onClose={() => setShowAddLeadModal(false)}
           onLeadAdded={() => {
-            loadLeadsData(vendor.vendor_id);
+            loadLeadsData(parseInt(vendor.vendor_id));
             setShowAddLeadModal(false);
           }}
         />
@@ -1821,7 +1786,7 @@ const VendorDashboard: React.FC = () => {
           }}
           onLeadUpdated={() => {
             if (vendor) {
-              loadLeadsData(vendor.vendor_id);
+              loadLeadsData(parseInt(vendor.vendor_id));
             }
           }}
         />
@@ -1837,6 +1802,79 @@ const VendorDashboard: React.FC = () => {
           }}
           onConfirm={handleConfirmDeal}
         />
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {showDeleteModal && leadToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md shadow-2xl rounded-xl border-0">
+            <CardHeader className="bg-gradient-to-r from-red-600 to-red-700 text-white rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-6 h-6" />
+                  <CardTitle className="text-xl font-bold">Delete Lead</CardTitle>
+    </div>
+                <Button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setLeadToDelete(null);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-8 h-8 text-red-600" />
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    Are you sure you want to delete this lead?
+                  </h3>
+                  <p className="text-gray-600 mb-1">
+                    <strong>{leadToDelete.customer_name}</strong>
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {leadToDelete.event_type} • {leadToDelete.status?.replace('_', ' ')}
+                  </p>
+                </div>
+                
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-700 font-medium">
+                    ⚠️ This action cannot be undone
+                  </p>
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setLeadToDelete(null);
+                    }}
+                    variant="outline"
+                    className="flex-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={confirmDeleteLead}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Lead
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
       
       {/* Brand-Aligned Floating Action Button */}

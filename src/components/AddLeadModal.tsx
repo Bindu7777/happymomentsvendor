@@ -177,13 +177,13 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl rounded-xl border-0">
         
-        {/* Enhanced Header with Progress */}
+        {/* Enhanced Header with Progress - Mobile Visible */}
         <CardHeader className="bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-t-xl">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              {React.createElement(getStepIcon(currentStep), { className: "w-6 h-6" })}
-              <div>
-                <CardTitle className="text-xl font-bold">Add New Lead</CardTitle>
+              {React.createElement(getStepIcon(currentStep), { className: "w-6 h-6", style: { color: '#FFA326' } })}
+              <div className="text-center sm:text-left">
+                <CardTitle className="text-xl font-bold" style={{ color: '#FFA326' }}>Add New Lead</CardTitle>
                 <p className="text-blue-100 text-sm">Step {currentStep} of {totalSteps}: {getStepTitle(currentStep)}</p>
               </div>
             </div>
@@ -194,7 +194,16 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                 onClick={fillSampleData}
                 variant="outline"
                 size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 hover:border-white/50 transition-all"
+                className="text-white border-2 hover:bg-white hover:text-gray-900 transition-all"
+                style={{ borderColor: '#FFA326', color: '#FFA326' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#FFA326';
+                  e.currentTarget.style.color = 'white';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#FFA326';
+                }}
               >
                 Sample Data
               </Button>
@@ -209,30 +218,30 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
             </div>
           </div>
           
-          {/* Progress Bar */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
+          {/* Mobile-Visible Progress Bar */}
+          <div className="mt-6">
+            <div className="flex items-center justify-center sm:justify-between mb-3">
               {[1, 2, 3].map((step) => (
                 <div key={step} className="flex items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                     step <= currentStep 
-                      ? 'bg-white text-blue-600 shadow-lg' 
+                      ? 'text-white shadow-lg' 
                       : 'bg-white/20 text-white/60'
-                  }`}>
-                    {step < currentStep ? <CheckCircle className="w-4 h-4" /> : step}
+                  }`} style={step <= currentStep ? { backgroundColor: '#FFA326' } : {}}>
+                    {step < currentStep ? <CheckCircle className="w-5 h-5" /> : step}
                   </div>
                   {step < 3 && (
-                    <div className={`h-1 w-20 mx-2 rounded-full transition-all duration-300 ${
-                      step < currentStep ? 'bg-white' : 'bg-white/20'
-                    }`} />
+                    <div className={`h-2 w-12 sm:w-20 mx-2 rounded-full transition-all duration-300`} style={{
+                      backgroundColor: step < currentStep ? '#FFA326' : 'rgba(255, 255, 255, 0.2)'
+                    }} />
                   )}
                 </div>
               ))}
             </div>
-            <div className="flex justify-between text-xs text-blue-100">
-              <span>Customer Info</span>
-              <span>Event Details</span>
-              <span>Budget & Details</span>
+            <div className="grid grid-cols-3 text-xs text-blue-100 text-center">
+              <span className={currentStep === 1 ? 'font-bold' : ''} style={currentStep === 1 ? { color: '#FFA326' } : {}}>Customer Info</span>
+              <span className={currentStep === 2 ? 'font-bold' : ''} style={currentStep === 2 ? { color: '#FFA326' } : {}}>Event Details</span>
+              <span className={currentStep === 3 ? 'font-bold' : ''} style={currentStep === 3 ? { color: '#FFA326' } : {}}>Budget & Details</span>
             </div>
           </div>
         </CardHeader>
@@ -249,7 +258,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
             {currentStep === 1 && (
               <div className="space-y-6 animate-fade-in">
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg" style={{ backgroundColor: '#FFA326' }}>
                     <User className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">Customer Information</h3>
@@ -264,7 +273,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     <Input
                       {...register("customer_name", { required: "Customer name is required" })}
                       placeholder="Enter customer name"
-                      className="h-12 text-lg rounded-lg border-2 focus:border-blue-500 transition-all"
+                      className="h-12 text-lg rounded-lg border-2 transition-all"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     />
                     {errors.customer_name && (
                       <p className="mt-1 text-sm text-red-600 font-medium">{errors.customer_name.message}</p>
@@ -278,7 +290,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     <Input
                       {...register("customer_phone", { required: "Phone number is required" })}
                       placeholder="+91 98765 43210"
-                      className="h-12 text-lg rounded-lg border-2 focus:border-blue-500 transition-all"
+                      className="h-12 text-lg rounded-lg border-2 transition-all"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     />
                     {errors.customer_phone && (
                       <p className="mt-1 text-sm text-red-600 font-medium">{errors.customer_phone.message}</p>
@@ -292,7 +307,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     <Input
                       {...register("customer_whatsapp")}
                       placeholder="+91 98765 43210"
-                      className="h-12 rounded-lg border-2 focus:border-green-500 transition-all"
+                      className="h-12 rounded-lg border-2 transition-all"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#25D366'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     />
                   </div>
 
@@ -304,7 +322,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                       {...register("customer_address")}
                       placeholder="Enter customer address"
                       rows={3}
-                      className="rounded-lg border-2 focus:border-blue-500 transition-all resize-none"
+                      className="rounded-lg border-2 transition-all resize-none"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     />
                   </div>
                 </div>
@@ -315,7 +336,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
             {currentStep === 2 && (
               <div className="space-y-6 animate-fade-in">
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg" style={{ backgroundColor: '#FFA326' }}>
                     <Calendar className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">Event Details</h3>
@@ -329,7 +350,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     </label>
                     <select
                       {...register("event_type")}
-                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition-all text-lg"
+                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg transition-all text-lg"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     >
                       <option value="">Select Event Type</option>
                       <option value="Wedding">Wedding 💒</option>
@@ -349,7 +373,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     <Input
                       {...register("event_date")}
                       type="date"
-                      className="h-12 text-lg rounded-lg border-2 focus:border-purple-500 transition-all"
+                      className="h-12 text-lg rounded-lg border-2 transition-all"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     />
                   </div>
 
@@ -359,7 +386,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     </label>
                     <select
                       {...register("event_date_flexibility")}
-                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition-all text-lg"
+                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg transition-all text-lg"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     >
                       <option value="">Select timeline</option>
                       <option value="next_month">Next Month 📅</option>
@@ -377,7 +407,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     <Input
                       {...register("event_venue")}
                       placeholder="Enter event venue"
-                      className="h-12 text-lg rounded-lg border-2 focus:border-purple-500 transition-all"
+                      className="h-12 text-lg rounded-lg border-2 transition-all"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     />
                   </div>
                 </div>
@@ -388,7 +421,7 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
             {currentStep === 3 && (
               <div className="space-y-6 animate-fade-in">
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg" style={{ backgroundColor: '#FFA326' }}>
                     <DollarSign className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900">Budget & Lead Details</h3>
@@ -402,7 +435,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     </label>
                     <select
                       {...register("budget_range")}
-                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition-all text-lg"
+                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg transition-all text-lg"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     >
                       <option value="">Select Budget Range</option>
                       <option value="under_25k">Under ₹25,000 💰</option>
@@ -421,7 +457,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     </label>
                     <select
                       {...register("lead_source")}
-                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition-all text-lg"
+                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg transition-all text-lg"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     >
                       <option value="website">Website 🌐</option>
                       <option value="referral">Referral 👥</option>
@@ -438,7 +477,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     </label>
                     <select
                       {...register("priority")}
-                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 transition-all text-lg"
+                      className="w-full h-12 px-4 py-3 border-2 border-gray-300 rounded-lg transition-all text-lg"
+                      style={{ borderColor: '#E5E7EB' }}
+                      onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                      onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                     >
                       <option value="low">Low 🟢</option>
                       <option value="medium">Medium 🟡</option>
@@ -456,7 +498,10 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                     {...register("initial_notes")}
                     placeholder="Add any initial notes about this lead..."
                     rows={4}
-                    className="rounded-lg border-2 focus:border-emerald-500 transition-all resize-none"
+                    className="rounded-lg border-2 transition-all resize-none"
+                    style={{ borderColor: '#E5E7EB' }}
+                    onFocus={(e) => e.target.style.borderColor = '#FFA326'}
+                    onBlur={(e) => e.target.style.borderColor = '#E5E7EB'}
                   />
                 </div>
               </div>
@@ -489,7 +534,8 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
               </div>
 
               <div className="flex gap-3">
-                {currentStep < totalSteps && (
+                {/* Skip button only for steps 2 and 3, not for step 1 */}
+                {currentStep < totalSteps && currentStep > 1 && (
                   <Button
                     type="button"
                     onClick={skipStep}
@@ -512,7 +558,14 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                       setError('');
                       nextStep();
                     }}
-                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-teal-600 hover:from-blue-700 hover:to-teal-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
+                    className="flex items-center gap-2 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
+                    style={{ backgroundColor: '#FFA326' }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#FF8C00';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#FFA326';
+                    }}
                   >
                     Next Step
                     <ArrowRight className="w-4 h-4" />
@@ -521,7 +574,14 @@ const AddLeadModal: React.FC<AddLeadModalProps> = ({ vendorId, onClose, onLeadAd
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
+                    className="flex items-center gap-2 text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg"
+                    style={{ backgroundColor: loading ? '#9CA3AF' : '#FFA326' }}
+                    onMouseEnter={(e) => {
+                      if (!loading) e.currentTarget.style.backgroundColor = '#FF8C00';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!loading) e.currentTarget.style.backgroundColor = '#FFA326';
+                    }}
                   >
                     {loading ? (
                       <>

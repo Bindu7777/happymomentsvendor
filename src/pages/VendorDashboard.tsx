@@ -440,8 +440,8 @@ const VendorDashboard: React.FC = () => {
       
     <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 50%, #2684FF 100%)' }}>
       
-      {/* Brand-Aligned Welcome Header */}
-      <div style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)', borderBottomColor: '#FFA326' }} className="shadow-2xl border-b-4">
+      {/* Brand-Aligned Welcome Header - Hidden on Mobile, Visible on Desktop */}
+      <div style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)', borderBottomColor: '#FFA326' }} className="hidden md:block shadow-2xl border-b-4">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center py-6 md:py-8 gap-4 md:gap-0">
             
@@ -572,74 +572,75 @@ const VendorDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Brand-Aligned Navigation Tabs */}
-          <div style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)' }} className="border-t border-orange-400/30 shadow-xl">
-            <nav className="flex overflow-x-auto scrollbar-hide px-4 md:px-8 py-2 gap-2 md:gap-4">
-              {[
-                { 
-                  id: 'profile', 
-                  label: 'PROFILE', 
-                  mobileLabel: 'Profile',
-                  icon: User
-                },
-                { 
-                  id: 'leads', 
-                  label: 'CRM & LEADS', 
-                  mobileLabel: 'Leads',
-                  icon: MessageSquare
-                },
-                { 
-                  id: 'calendar', 
-                  label: 'CALENDAR', 
-                  mobileLabel: 'Calendar',
-                  icon: Calendar
-                },
-                { 
-                  id: 'analytics', 
-                  label: 'ANALYTICS', 
-                  mobileLabel: 'Analytics',
-                  icon: TrendingUp
-                },
-                { 
-                  id: 'invoices', 
-                  label: 'INVOICES', 
-                  mobileLabel: 'Invoices',
-                  icon: FileText
-                },
-              ].map((tab, index) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`group flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3 py-3 md:py-4 px-3 md:px-6 rounded-xl font-bold text-xs md:text-sm transition-all duration-500 transform animate-slide-up min-w-[80px] md:min-w-auto ${
-                    activeTab === tab.id
-                      ? 'text-white shadow-2xl scale-105 -translate-y-1 md:-translate-y-2 animate-tab-glow text-glow'
-                      : 'text-white/70 hover:text-white hover:shadow-xl hover:scale-102 hover:-translate-y-1 bg-white/5 backdrop-blur-sm hover:bg-white/10'
-                  }`}
-                  style={{ 
-                    animationDelay: `${index * 0.1}s`,
-                    background: activeTab === tab.id 
-                      ? 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' 
-                      : undefined,
-                    boxShadow: activeTab === tab.id 
-                      ? '0 0 20px rgba(255, 163, 38, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3)' 
-                      : undefined
-                  }}
-                >
-                  <tab.icon className={`w-5 h-5 md:w-6 md:h-6 transition-all duration-300 ${
-                    activeTab === tab.id 
-                      ? 'animate-icon-bounce text-white drop-shadow-lg' 
-                      : 'group-hover:scale-110 group-hover:rotate-3'
-                  }`} />
-                  <span className="tracking-wide hidden md:inline">{tab.label}</span>
-                  <span className="tracking-wide md:hidden text-xs">{tab.mobileLabel}</span>
-                  {activeTab === tab.id && (
-                    <div className="w-1 h-1 md:w-2 md:h-2 bg-white rounded-full animate-pulse ml-0 md:ml-1"></div>
-                  )}
-                </button>
-              ))}
-            </nav>
-          </div>
         </div>
+      </div>
+
+      {/* Brand-Aligned Navigation Tabs - Always Visible on Mobile & Desktop */}
+      <div style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)' }} className="border-t border-orange-400/30 shadow-xl sticky top-0 z-40">
+        <nav className="flex overflow-x-auto scrollbar-hide px-4 md:px-8 py-2 gap-2 md:gap-4 max-w-7xl mx-auto">
+          {[
+            { 
+              id: 'profile', 
+              label: 'PROFILE', 
+              mobileLabel: 'Profile',
+              icon: User
+            },
+            { 
+              id: 'leads', 
+              label: 'CRM & LEADS', 
+              mobileLabel: 'Leads',
+              icon: MessageSquare
+            },
+            { 
+              id: 'calendar', 
+              label: 'CALENDAR', 
+              mobileLabel: 'Calendar',
+              icon: Calendar
+            },
+            { 
+              id: 'analytics', 
+              label: 'ANALYTICS', 
+              mobileLabel: 'Analytics',
+              icon: TrendingUp
+            },
+            { 
+              id: 'invoices', 
+              label: 'INVOICES', 
+              mobileLabel: 'Invoices',
+              icon: FileText
+            },
+          ].map((tab, index) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`group flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3 py-3 md:py-4 px-3 md:px-6 rounded-xl font-bold text-xs md:text-sm transition-all duration-500 transform animate-slide-up min-w-[80px] md:min-w-auto flex-shrink-0 ${
+                activeTab === tab.id
+                  ? 'text-white shadow-2xl scale-105 -translate-y-1 md:-translate-y-2 animate-tab-glow text-glow'
+                  : 'text-white/70 hover:text-white hover:shadow-xl hover:scale-102 hover:-translate-y-1 bg-white/5 backdrop-blur-sm hover:bg-white/10'
+              }`}
+              style={{ 
+                animationDelay: `${index * 0.1}s`,
+                background: activeTab === tab.id 
+                  ? 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' 
+                  : undefined,
+                boxShadow: activeTab === tab.id 
+                  ? '0 0 20px rgba(255, 163, 38, 0.4), 0 8px 32px rgba(0, 0, 0, 0.3)' 
+                  : undefined
+              }}
+            >
+              <tab.icon className={`w-5 h-5 md:w-6 md:h-6 transition-all duration-300 ${
+                activeTab === tab.id 
+                  ? 'animate-icon-bounce text-white drop-shadow-lg' 
+                  : 'group-hover:scale-110 group-hover:rotate-3'
+              }`} />
+              <span className="tracking-wide hidden md:inline">{tab.label}</span>
+              <span className="tracking-wide md:hidden text-xs">{tab.mobileLabel}</span>
+              {activeTab === tab.id && (
+                <div className="w-1 h-1 md:w-2 md:h-2 bg-white rounded-full animate-pulse ml-0 md:ml-1"></div>
+              )}
+            </button>
+          ))}
+        </nav>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
@@ -906,8 +907,8 @@ const VendorDashboard: React.FC = () => {
                         new Date(lead.created_at).toLocaleDateString()
                       }
                     </p>
-                  </div>
-                </div>
+                      </div>
+                    </div>
                   )) : (
                   <div className="col-span-full text-center py-12 px-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)', border: '2px dashed #FFA326' }}>
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' }}>

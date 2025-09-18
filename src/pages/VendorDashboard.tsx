@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User, 
@@ -27,9 +27,11 @@ import {
   Search,
   Bell,
   Settings,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
@@ -43,18 +45,32 @@ const VendorDashboard: React.FC = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const [renderError, setRenderError] = useState<string>('');
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
+  const [filteredLeads, setFilteredLeads] = useState<any[]>([]);
   const [leadStats, setLeadStats] = useState<any>({});
   const [showAddLeadModal, setShowAddLeadModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [showDealPriceModal, setShowDealPriceModal] = useState(false);
   const [confirmingLead, setConfirmingLead] = useState<any>(null);
+  
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    stages: [] as string[],
+    eventTypes: [] as string[],
+    budgetRanges: [] as string[],
+    eventDateRange: { start: '', end: '' },
+    lastContactedRange: { start: '', end: '' },
+    quickDateFilter: '' // Today, This Week, This Month, etc.
+  });
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [calendarStats, setCalendarStats] = useState<any>({});
   const [analytics] = useState({
@@ -64,6 +80,265 @@ const VendorDashboard: React.FC = () => {
     emailClicks: 34,
   });
   const navigate = useNavigate();
+
+  // Proper filtering function: OR within categories, AND between categories
+  const applyFilters = () => {
+    console.log('=== APPLY FILTERS START ===');
+    console.log('Current leads:', leads);
+    console.log('Current filters:', filters);
+    
+    try {
+      let result = [...leads];
+      
+      // Apply each filter category with proper logic
+      
+      // 1. SEARCH QUERY FILTER (if any)
+      if (searchQuery && searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        console.log('Applying search filter:', query);
+        result = result.filter(lead => {
+          const match = lead.customer_name?.toLowerCase().includes(query) ||
+                       lead.event_type?.toLowerCase().includes(query) ||
+                       lead.customer_phone?.includes(query) ||
+                       lead.initial_notes?.toLowerCase().includes(query);
+          if (match) console.log(`✓ Lead ${lead.customer_name} matches search`);
+          return match;
+        });
+        console.log(`After search filter: ${result.length} leads`);
+      }
+      
+      // 2. LEAD STAGE FILTER (OR within category)
+      if (filters.stages && filters.stages.length > 0) {
+        console.log('Applying stage filter (OR logic):', filters.stages);
+        result = result.filter(lead => {
+          const match = filters.stages.includes(lead.status);
+          console.log(`Lead ${lead.customer_name} status: ${lead.status} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
+          return match;
+        });
+        console.log(`After stage filter: ${result.length} leads`);
+      }
+      
+      // 3. EVENT TYPE FILTER (OR within category)
+      if (filters.eventTypes && filters.eventTypes.length > 0) {
+        console.log('Applying event type filter (OR logic):', filters.eventTypes);
+        result = result.filter(lead => {
+          const match = lead.event_type && filters.eventTypes.includes(lead.event_type);
+          console.log(`Lead ${lead.customer_name} event: ${lead.event_type} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
+          return match;
+        });
+        console.log(`After event type filter: ${result.length} leads`);
+      }
+      
+      // 4. BUDGET RANGE FILTER (OR within category)
+      if (filters.budgetRanges && filters.budgetRanges.length > 0) {
+        console.log('Applying budget filter (OR logic):', filters.budgetRanges);
+        result = result.filter(lead => {
+          const match = lead.budget_range && filters.budgetRanges.includes(lead.budget_range);
+          console.log(`Lead ${lead.customer_name} budget: ${lead.budget_range} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
+          return match;
+        });
+        console.log(`After budget filter: ${result.length} leads`);
+      }
+      
+      // 5. EVENT DATE RANGE FILTER
+      if (filters.eventDateRange && (filters.eventDateRange.start || filters.eventDateRange.end)) {
+        console.log('Applying event date range filter:', filters.eventDateRange);
+        result = result.filter(lead => {
+          if (!lead.event_date) {
+            console.log(`Lead ${lead.customer_name} has no event date - ✗ NO MATCH`);
+            return false;
+          }
+          
+          try {
+            const eventDate = new Date(lead.event_date);
+            const startDate = filters.eventDateRange.start ? new Date(filters.eventDateRange.start) : null;
+            const endDate = filters.eventDateRange.end ? new Date(filters.eventDateRange.end) : null;
+            
+            let match = true;
+            if (startDate && eventDate < startDate) match = false;
+            if (endDate && eventDate > endDate) match = false;
+            
+            console.log(`Lead ${lead.customer_name} event date: ${lead.event_date} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
+            return match;
+          } catch (error) {
+            console.error('Error parsing event date:', error);
+            return false;
+          }
+        });
+        console.log(`After event date filter: ${result.length} leads`);
+      }
+      
+      // 6. LAST CONTACTED DATE RANGE FILTER
+      if (filters.lastContactedRange && (filters.lastContactedRange.start || filters.lastContactedRange.end)) {
+        console.log('Applying last contacted date range filter:', filters.lastContactedRange);
+        result = result.filter(lead => {
+          if (!lead.last_contact_date && !lead.created_at) {
+            console.log(`Lead ${lead.customer_name} has no contact date - ✗ NO MATCH`);
+            return false;
+          }
+          
+          try {
+            const contactDate = new Date(lead.last_contact_date || lead.created_at);
+            const startDate = filters.lastContactedRange.start ? new Date(filters.lastContactedRange.start) : null;
+            const endDate = filters.lastContactedRange.end ? new Date(filters.lastContactedRange.end) : null;
+            
+            let match = true;
+            if (startDate && contactDate < startDate) match = false;
+            if (endDate && contactDate > endDate) match = false;
+            
+            console.log(`Lead ${lead.customer_name} contact date: ${lead.last_contact_date || lead.created_at} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
+            return match;
+          } catch (error) {
+            console.error('Error parsing contact date:', error);
+            return false;
+          }
+        });
+        console.log(`After contact date filter: ${result.length} leads`);
+      }
+      
+      // 7. QUICK DATE FILTER
+      if (filters.quickDateFilter) {
+        console.log('Applying quick date filter:', filters.quickDateFilter);
+        try {
+          let filterDate = null;
+          const today = new Date();
+          
+          switch (filters.quickDateFilter) {
+            case 'today':
+              filterDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+              break;
+            case 'week':
+              filterDate = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+              break;
+            case 'month':
+              filterDate = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+              break;
+          }
+          
+          if (filterDate) {
+            result = result.filter(lead => {
+              if (!lead.event_date) {
+                console.log(`Lead ${lead.customer_name} has no event date for quick filter - ✗ NO MATCH`);
+                return false;
+              }
+              
+              try {
+                const eventDate = new Date(lead.event_date);
+                const match = eventDate >= filterDate;
+                console.log(`Lead ${lead.customer_name} event date: ${lead.event_date} vs ${filterDate.toDateString()} - ${match ? '✓ MATCH' : '✗ NO MATCH'}`);
+                return match;
+              } catch (error) {
+                console.error('Error parsing date for quick filter:', error);
+                return false;
+              }
+            });
+            console.log(`After quick date filter: ${result.length} leads`);
+          }
+        } catch (error) {
+          console.error('Error in quick date filter:', error);
+        }
+      }
+      
+      console.log('=== FINAL RESULT ===');
+      console.log(`Total leads after all filters: ${result.length}`);
+      console.log('Filtered leads:', result.map(lead => ({ name: lead.customer_name, status: lead.status, eventType: lead.event_type, budget: lead.budget_range })));
+      
+      setFilteredLeads(result);
+      console.log('=== APPLY FILTERS END ===');
+    } catch (error) {
+      console.error('ERROR in applyFilters:', error);
+      setFilteredLeads([...leads]);
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilters({
+      stages: [],
+      eventTypes: [],
+      budgetRanges: [],
+      eventDateRange: { start: '', end: '' },
+      lastContactedRange: { start: '', end: '' },
+      quickDateFilter: ''
+    });
+  };
+
+
+  const getActiveFilterCount = () => {
+    return (
+      (searchQuery.trim() ? 1 : 0) +
+      filters.stages.length +
+      filters.eventTypes.length +
+      filters.budgetRanges.length +
+      (filters.eventDateRange.start || filters.eventDateRange.end ? 1 : 0) +
+      (filters.lastContactedRange.start || filters.lastContactedRange.end ? 1 : 0) +
+      (filters.quickDateFilter ? 1 : 0)
+    );
+  };
+
+  // Initialize filtered leads when leads first load
+  useEffect(() => {
+    console.log('Initializing filtered leads:', { leadsLength: leads.length, filteredLeadsLength: filteredLeads.length });
+    if (leads.length > 0 && filteredLeads.length === 0) {
+      console.log('Setting initial filtered leads');
+      setFilteredLeads([...leads]);
+    }
+  }, [leads, filteredLeads.length]);
+
+  // Temporary sample data for testing (remove this after real data is connected)
+  useEffect(() => {
+    if (leads.length === 0) {
+      const sampleLeads = [
+        {
+          id: 1,
+          customer_name: "John & Sarah Wedding",
+          customer_phone: "+91 98765 43210",
+          customer_whatsapp: "+91 98765 43210",
+          event_type: "Wedding",
+          event_date: "2024-12-15",
+          budget_range: "1l_2l",
+          status: "new_lead",
+          initial_notes: "Looking for premium wedding photography",
+          created_at: "2024-09-18",
+          last_contact_date: "2024-09-18"
+        },
+        {
+          id: 2,
+          customer_name: "Rahul Birthday",
+          customer_phone: "+91 87654 32109",
+          event_type: "Birthday Party",
+          event_date: "2024-10-25",
+          budget_range: "50k_1l",
+          status: "contacted",
+          initial_notes: "25th birthday celebration",
+          created_at: "2024-09-17",
+          last_contact_date: "2024-09-17"
+        },
+        {
+          id: 3,
+          customer_name: "Tech Corp Event",
+          customer_phone: "+91 76543 21098",
+          event_type: "Corporate Event",
+          event_date: "2024-11-10",
+          budget_range: "2l_5l",
+          status: "negotiation",
+          initial_notes: "Annual company event",
+          created_at: "2024-09-16",
+          last_contact_date: "2024-09-16"
+        }
+      ];
+      console.log('Setting sample leads data');
+      setLeads(sampleLeads);
+    }
+  }, [leads.length]);
+
+  // Apply filters when leads or filters change - SIMPLIFIED
+  useEffect(() => {
+    console.log('useEffect triggered for filtering');
+    if (leads.length > 0) {
+      applyFilters();
+    }
+  }, [leads.length, filters.stages.length]);
 
   // Close notifications dropdown when clicking outside
   useEffect(() => {
@@ -232,14 +507,23 @@ const VendorDashboard: React.FC = () => {
   const handleDeleteLead = async (leadId: number, customerName: string) => {
     if (window.confirm(`Are you sure you want to delete the lead for "${customerName}"? This action cannot be undone.`)) {
       try {
-        const result = await deleteVendorLead(leadId);
-        if (result.success && vendor) {
-          // Reload leads data
-          loadLeadsData(vendor.vendor_id);
-        } else {
-          console.error('Failed to delete lead:', result.error);
-          alert('Failed to delete lead. Please try again.');
-        }
+        console.log('Deleting lead:', leadId, customerName);
+        
+        // For now, delete from local state (replace with API call later)
+        const updatedLeads = leads.filter(lead => lead.id !== leadId);
+        setLeads(updatedLeads);
+        
+        // Show success message
+        alert(`Successfully deleted lead for "${customerName}"`);
+        
+        // Uncomment this when using real API:
+        // const result = await deleteVendorLead(leadId);
+        // if (result.success && vendor) {
+        //   loadLeadsData(vendor.vendor_id);
+        // } else {
+        //   console.error('Failed to delete lead:', result.error);
+        //   alert('Failed to delete lead. Please try again.');
+        // }
       } catch (error) {
         console.error('Error deleting lead:', error);
         alert('Error deleting lead. Please try again.');
@@ -610,11 +894,11 @@ const VendorDashboard: React.FC = () => {
               icon: FileText
             },
           ].map((tab, index) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
               className={`group flex flex-col md:flex-row items-center justify-center gap-1 md:gap-3 py-3 md:py-4 px-3 md:px-6 rounded-xl font-bold text-xs md:text-sm transition-all duration-500 transform animate-slide-up min-w-[80px] md:min-w-auto flex-shrink-0 ${
-                activeTab === tab.id
+                    activeTab === tab.id
                   ? 'text-white shadow-2xl scale-105 -translate-y-1 md:-translate-y-2 animate-tab-glow text-glow'
                   : 'text-white/70 hover:text-white hover:shadow-xl hover:scale-102 hover:-translate-y-1 bg-white/5 backdrop-blur-sm hover:bg-white/10'
               }`}
@@ -638,9 +922,9 @@ const VendorDashboard: React.FC = () => {
               {activeTab === tab.id && (
                 <div className="w-1 h-1 md:w-2 md:h-2 bg-white rounded-full animate-pulse ml-0 md:ml-1"></div>
               )}
-            </button>
-          ))}
-        </nav>
+                </button>
+              ))}
+            </nav>
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 md:py-8">
@@ -725,7 +1009,10 @@ const VendorDashboard: React.FC = () => {
 
             {/* Header with Add Button on Right */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-              <h2 className="text-2xl font-bold text-white">My Leads</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-white">My Leads ({leads.length} total, {filteredLeads.length} filtered)</h2>
+                <p className="text-blue-200 text-sm">Debug: Stages={filters.stages.length}, EventTypes={filters.eventTypes.length}, Search="{searchQuery}"</p>
+              </div>
               
               {/* Add Lead Button on Right */}
               <Button 
@@ -747,10 +1034,341 @@ const VendorDashboard: React.FC = () => {
               </Button>
             </div>
 
+            {/* Search and Filter Controls */}
+            <div className="mb-6 space-y-4">
+              {/* Search Bar and Filter Toggle */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Input
+                    type="text"
+                    placeholder="Search leads by name, event type, phone, or notes..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-12 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 transition-all"
+                  />
+                </div>
+                <Button
+                  onClick={() => setShowFilters(!showFilters)}
+                  variant="outline"
+                  className="h-12 px-6 bg-white border-2 border-gray-200 hover:border-orange-400 hover:bg-orange-50 text-gray-700 hover:text-orange-600 transition-all rounded-xl"
+                >
+                  <Filter className="w-5 h-5 mr-2" />
+                  Filters
+                  {getActiveFilterCount() > 0 && (
+                    <Badge 
+                      className="ml-2 text-xs px-2 py-1 text-white rounded-full"
+                      style={{ backgroundColor: '#FFA326' }}
+                    >
+                      {getActiveFilterCount()}
+                    </Badge>
+                  )}
+                </Button>
+              </div>
+
+              {/* Advanced Filters Panel */}
+              {showFilters && (
+                <div className="bg-white rounded-xl border-2 border-gray-200 p-6 shadow-lg animate-fade-in">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    {/* Lead Stage Filter */}
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">Lead Stage</label>
+                      <div className="space-y-2">
+                        {['new_lead', 'contacted', 'negotiation', 'confirmed', 'completed', 'cancelled'].map((stage) => (
+                          <label key={stage} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={filters.stages.includes(stage)}
+                              onChange={(e) => {
+                                console.log('=== CHECKBOX CLICKED ===');
+                                console.log('Stage:', stage, 'Checked:', e.target.checked);
+                                
+                                if (e.target.checked) {
+                                  const newStages = [...filters.stages, stage];
+                                  console.log('Adding stage, new stages:', newStages);
+                                  setFilters(prev => {
+                                    const newFilters = { ...prev, stages: newStages };
+                                    // Trigger filtering after state update
+                                    setTimeout(() => applyFilters(), 50);
+                                    return newFilters;
+                                  });
+                                } else {
+                                  const newStages = filters.stages.filter(s => s !== stage);
+                                  console.log('Removing stage, new stages:', newStages);
+                                  setFilters(prev => {
+                                    const newFilters = { ...prev, stages: newStages };
+                                    // Trigger filtering after state update
+                                    setTimeout(() => applyFilters(), 50);
+                                    return newFilters;
+                                  });
+                                }
+                              }}
+                              className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400"
+                            />
+                            <span className="text-sm text-gray-700 capitalize">
+                              {stage.replace('_', ' ')}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Event Type Filter */}
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">Event Type</label>
+                      <div className="space-y-2">
+                        {['Wedding', 'Birthday Party', 'Anniversary', 'Corporate Event', 'Engagement', 'Baby Shower', 'Other'].map((type) => (
+                          <label key={type} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={filters.eventTypes.includes(type)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilters(prev => ({ ...prev, eventTypes: [...prev.eventTypes, type] }));
+                                } else {
+                                  setFilters(prev => ({ ...prev, eventTypes: prev.eventTypes.filter(t => t !== type) }));
+                                }
+                              }}
+                              className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400"
+                            />
+                            <span className="text-sm text-gray-700">{type}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Budget Range Filter */}
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">Budget Range</label>
+                      <div className="space-y-2">
+                        {['under_25k', '25k_50k', '50k_1l', '1l_2l', '2l_5l', 'above_5l'].map((range) => (
+                          <label key={range} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={filters.budgetRanges.includes(range)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFilters(prev => ({ ...prev, budgetRanges: [...prev.budgetRanges, range] }));
+                                } else {
+                                  setFilters(prev => ({ ...prev, budgetRanges: prev.budgetRanges.filter(r => r !== range) }));
+                                }
+                              }}
+                              className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {range.replace('_', '-').replace('k', 'K').replace('l', 'L')}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Quick Date Filters */}
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">Quick Date Filter</label>
+                      <div className="space-y-2">
+                        {[
+                          { value: 'today', label: 'Today' },
+                          { value: 'week', label: 'This Week' },
+                          { value: 'month', label: 'This Month' }
+                        ].map((option) => (
+                          <label key={option.value} className="flex items-center space-x-3 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="quickDateFilter"
+                              checked={filters.quickDateFilter === option.value}
+                              onChange={() => setFilters(prev => ({ ...prev, quickDateFilter: option.value }))}
+                              className="w-4 h-4 text-orange-500 border-gray-300 focus:ring-orange-400"
+                            />
+                            <span className="text-sm text-gray-700">{option.label}</span>
+                          </label>
+                        ))}
+                      </div>
+            </div>
+
+                    {/* Event Date Range */}
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">Event Date Range</label>
+                      <div className="space-y-3">
+                        <Input
+                          type="date"
+                          placeholder="Start Date"
+                          value={filters.eventDateRange.start}
+                          onChange={(e) => setFilters(prev => ({ 
+                            ...prev, 
+                            eventDateRange: { ...prev.eventDateRange, start: e.target.value }
+                          }))}
+                          className="h-10 border-gray-300 rounded-lg focus:border-orange-400 focus:ring-orange-200"
+                        />
+                        <Input
+                          type="date"
+                          placeholder="End Date"
+                          value={filters.eventDateRange.end}
+                          onChange={(e) => setFilters(prev => ({ 
+                            ...prev, 
+                            eventDateRange: { ...prev.eventDateRange, end: e.target.value }
+                          }))}
+                          className="h-10 border-gray-300 rounded-lg focus:border-orange-400 focus:ring-orange-200"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Last Contacted Range */}
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-3">Last Contacted Range</label>
+                      <div className="space-y-3">
+                        <Input
+                          type="date"
+                          placeholder="Start Date"
+                          value={filters.lastContactedRange.start}
+                          onChange={(e) => setFilters(prev => ({ 
+                            ...prev, 
+                            lastContactedRange: { ...prev.lastContactedRange, start: e.target.value }
+                          }))}
+                          className="h-10 border-gray-300 rounded-lg focus:border-orange-400 focus:ring-orange-200"
+                        />
+                        <Input
+                          type="date"
+                          placeholder="End Date"
+                          value={filters.lastContactedRange.end}
+                          onChange={(e) => setFilters(prev => ({ 
+                            ...prev, 
+                            lastContactedRange: { ...prev.lastContactedRange, end: e.target.value }
+                          }))}
+                          className="h-10 border-gray-300 rounded-lg focus:border-orange-400 focus:ring-orange-200"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Filter Actions */}
+                  <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                    <Button
+                      onClick={clearFilters}
+                      variant="outline"
+                      className="text-gray-600 hover:text-red-600 hover:border-red-300 hover:bg-red-50"
+                    >
+                      Clear All Filters
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        console.log('Manual apply filters clicked');
+                        applyFilters();
+                        setShowFilters(false);
+                      }}
+                      className="text-white"
+                      style={{ backgroundColor: '#FFA326' }}
+                    >
+                      Apply Filters
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        console.log('Test: Setting new_lead filter manually');
+                        setFilters(prev => ({ ...prev, stages: ['new_lead'] }));
+                      }}
+                      variant="outline"
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      Test: Set New Lead
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Active Filter Pills */}
+              {getActiveFilterCount() > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {searchQuery.trim() && (
+                    <Badge 
+                      className="flex items-center gap-2 px-3 py-1 text-white rounded-full cursor-pointer hover:opacity-80"
+                      style={{ backgroundColor: '#FFA326' }}
+                      onClick={() => setSearchQuery('')}
+                    >
+                      Search: "{searchQuery}"
+                      <X className="w-3 h-3" />
+                    </Badge>
+                  )}
+                  
+                  {filters.stages.map(stage => (
+                    <Badge 
+                      key={stage}
+                      className="flex items-center gap-2 px-3 py-1 text-white rounded-full cursor-pointer hover:opacity-80"
+                      style={{ backgroundColor: '#061D49' }}
+                      onClick={() => setFilters(prev => ({ ...prev, stages: prev.stages.filter(s => s !== stage) }))}
+                    >
+                      {stage.replace('_', ' ')}
+                      <X className="w-3 h-3" />
+                    </Badge>
+                  ))}
+
+                  {filters.eventTypes.map(type => (
+                    <Badge 
+                      key={type}
+                      className="flex items-center gap-2 px-3 py-1 text-white rounded-full cursor-pointer hover:opacity-80"
+                      style={{ backgroundColor: '#2563EB' }}
+                      onClick={() => setFilters(prev => ({ ...prev, eventTypes: prev.eventTypes.filter(t => t !== type) }))}
+                    >
+                      {type}
+                      <X className="w-3 h-3" />
+                    </Badge>
+                  ))}
+
+                  {filters.budgetRanges.map(range => (
+                    <Badge 
+                      key={range}
+                      className="flex items-center gap-2 px-3 py-1 text-white rounded-full cursor-pointer hover:opacity-80"
+                      style={{ backgroundColor: '#059669' }}
+                      onClick={() => setFilters(prev => ({ ...prev, budgetRanges: prev.budgetRanges.filter(r => r !== range) }))}
+                    >
+                      {range.replace('_', '-').replace('k', 'K').replace('l', 'L')}
+                      <X className="w-3 h-3" />
+                    </Badge>
+                  ))}
+
+                  {filters.quickDateFilter && (
+                    <Badge 
+                      className="flex items-center gap-2 px-3 py-1 text-white rounded-full cursor-pointer hover:opacity-80"
+                      style={{ backgroundColor: '#7C3AED' }}
+                      onClick={() => setFilters(prev => ({ ...prev, quickDateFilter: '' }))}
+                    >
+                      {filters.quickDateFilter === 'today' ? 'Today' : 
+                       filters.quickDateFilter === 'week' ? 'This Week' : 'This Month'}
+                      <X className="w-3 h-3" />
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Results Summary */}
+              <div className="flex justify-between items-center text-sm text-gray-400">
+                <span>
+                  Showing {filteredLeads.length} of {leads.length} leads
+                  {getActiveFilterCount() > 0 && ` (${getActiveFilterCount()} filters active)`}
+                </span>
+              </div>
+            </div>
+
 
             {/* Compact Multi-Column Lead Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {leads.length > 0 ? leads.map((lead, index) => (
+              {renderError ? (
+                <div className="col-span-full text-center py-12 px-6 rounded-xl bg-red-50 border-2 border-red-200">
+                  <h3 className="text-xl font-bold mb-2 text-red-800">Rendering Error</h3>
+                  <p className="text-red-600 mb-4">{renderError}</p>
+                  <Button onClick={() => setRenderError('')} className="bg-red-600 hover:bg-red-700 text-white">
+                    Try Again
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {filteredLeads && filteredLeads.length > 0 ? filteredLeads.map((lead, index) => {
+                    try {
+                      if (!lead || !lead.id) {
+                        console.error('Invalid lead data:', lead);
+                        return null;
+                      }
+                      return (
                 <div 
                   key={lead.id} 
                   className="p-4 rounded-xl transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] animate-slide-up border-2"
@@ -894,10 +1512,33 @@ const VendorDashboard: React.FC = () => {
                           }}
                         >
                           <MessageCircle className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          {/* Delete Lead Button */}
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteLead(lead.id, lead.customer_name);
+                            }}
+                            title="Delete Lead"
+                            className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                            style={{ background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)' }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)';
+                              e.currentTarget.style.transform = 'scale(1.05)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)';
+                              e.currentTarget.style.transform = 'scale(1)';
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </Button>
-                      )}
                         </div>
-                </div>
+                      </div>
                   
                   {/* Last Contact Info */}
                   <div className="mt-2 pt-2 border-t border-gray-100">
@@ -907,27 +1548,69 @@ const VendorDashboard: React.FC = () => {
                         new Date(lead.created_at).toLocaleDateString()
                       }
                     </p>
-                      </div>
                     </div>
-                  )) : (
+                    </div>
+                      );
+                    } catch (error) {
+                      console.error('Error rendering lead:', error, lead);
+                      setRenderError(`Error rendering lead: ${error instanceof Error ? error.message : 'Unknown error'}`);
+                      return null;
+                    }
+                  }) : (
                   <div className="col-span-full text-center py-12 px-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)', border: '2px dashed #FFA326' }}>
                     <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' }}>
-                      <MessageSquare className="w-8 h-8 text-white" />
+                      {leads.length === 0 ? (
+                        <MessageSquare className="w-8 h-8 text-white" />
+                      ) : (
+                        <Filter className="w-8 h-8 text-white" />
+                  )}
+                </div>
+                    {leads.length === 0 ? (
+                      <>
+                        <h3 className="text-xl font-bold mb-2" style={{ color: '#061D49' }}>Ready to grow your business?</h3>
+                        <p className="text-gray-600 mb-4">Start building your customer pipeline by adding your first lead</p>
+                          <Button 
+                          onClick={() => setShowAddLeadModal(true)}
+                          className="text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg py-2 px-6 font-semibold transform hover:scale-105 border-0"
+                          style={{ 
+                            background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)',
+                            boxShadow: '0 0 15px rgba(255, 163, 38, 0.3)'
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Your First Lead
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="text-xl font-bold mb-2" style={{ color: '#061D49' }}>No leads match your filters</h3>
+                        <p className="text-gray-600 mb-4">Try adjusting your search criteria or clearing some filters to see more results</p>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                          <Button 
+                            onClick={clearFilters}
+                            variant="outline"
+                            className="text-gray-600 hover:text-orange-600 hover:border-orange-400 hover:bg-orange-50 border-2"
+                          >
+                            <X className="w-4 h-4 mr-2" />
+                            Clear All Filters
+                          </Button>
+                          <Button 
+                            onClick={() => setShowAddLeadModal(true)}
+                            className="text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg py-2 px-6 font-semibold transform hover:scale-105 border-0"
+                            style={{ 
+                              background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)',
+                              boxShadow: '0 0 15px rgba(255, 163, 38, 0.3)'
+                            }}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add New Lead
+                          </Button>
+                        </div>
+                      </>
+                    )}
                     </div>
-                    <h3 className="text-xl font-bold mb-2" style={{ color: '#061D49' }}>Ready to grow your business?</h3>
-                    <p className="text-gray-600 mb-4">Start building your customer pipeline by adding your first lead</p>
-                    <Button 
-                      onClick={() => setShowAddLeadModal(true)}
-                      className="text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg py-2 px-6 font-semibold transform hover:scale-105 border-0"
-                      style={{ 
-                        background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)',
-                        boxShadow: '0 0 15px rgba(255, 163, 38, 0.3)'
-                      }}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Your First Lead
-                    </Button>
-                    </div>
+                  )}
+                </>
                   )}
                 </div>
           </div>

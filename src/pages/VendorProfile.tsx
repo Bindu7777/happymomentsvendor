@@ -185,7 +185,7 @@ const VendorProfile = () => {
         description: "Professional service delivery"
       }
     ],
-    services: vendor.services || [],
+    services: vendor.specialties || vendor.services || [],
     packages: vendor.packages || defaultPhotographer.packages,
     portfolio: vendor.catalog_images || ["/images/image1.jpeg", "/images/image2.jpeg"],
     reviews: vendor.customer_reviews || [],
@@ -805,52 +805,6 @@ I'm really excited to connect and explore working with you soon! ✨`;
         </div>
       </div>
 
-      {/* Section Divider */}
-      <div className="h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
-
-      {/* Quick Info Strip - Mobile Optimized */}
-      <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-orange-50/40 border-b border-amber-200/50">
-        <div className="container mx-auto px-3 sm:px-6 py-6 sm:py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8 text-center">
-            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-amber-50 to-orange-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-amber-200 hover:scale-105">
-              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-amber-500/25 transition-all duration-300">
-                <Clock className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
-            </div>
-              <div className="text-2xl sm:text-4xl font-black text-amber-800 mb-1 sm:mb-2">8+</div>
-              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Hours Coverage</div>
-              <div className="text-xs sm:text-sm text-amber-700 font-medium">300+ photos included</div>
-            </div>
-            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-red-50 to-pink-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-red-200 hover:scale-105">
-              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-red-500/25 transition-all duration-300">
-                <Trophy className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
-            </div>
-              <div className="text-2xl sm:text-4xl font-black text-red-800 mb-1 sm:mb-2">10+</div>
-              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Years Experience</div>
-              <div className="text-xs sm:text-sm text-red-700 font-medium">South Indian Weddings</div>
-            </div>
-            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-green-200 hover:scale-105">
-              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-green-500/25 transition-all duration-300">
-                <Star className="w-5 h-5 sm:w-8 sm:h-8 text-white fill-current" />
-          </div>
-              <div className="text-2xl sm:text-4xl font-black text-green-800 mb-1 sm:mb-2">128</div>
-              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">5-Star Reviews</div>
-              <div className="text-xs sm:text-sm text-green-700 font-medium">Happy Couples</div>
-            </div>
-            <div className="group flex flex-col items-center p-4 sm:p-8 bg-gradient-to-br from-purple-50 to-indigo-100 rounded-2xl sm:rounded-3xl shadow-lg sm:shadow-xl hover:shadow-2xl transition-all duration-500 border-2 border-purple-200 hover:scale-105">
-              <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mb-2 sm:mb-4 shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
-                <Users className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
-              </div>
-              <div className="text-2xl sm:text-4xl font-black text-purple-800 mb-1 sm:mb-2">500+</div>
-              <div className="text-sm sm:text-lg font-bold text-gray-800 mb-1">Weddings Captured</div>
-              <div className="text-xs sm:text-sm text-purple-700 font-medium">Across South India</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Section Divider */}
-      <div className="h-16 bg-gradient-to-b from-slate-50 to-white"></div>
-
       {/* Main Content */}
       <div className="container mx-auto px-3 sm:px-6 py-8 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-12">
@@ -877,6 +831,38 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 </div>
               ))}
             </div>
+
+            {/* Highlights of Vendor Section */}
+            {vendor?.highlight_features && vendor.highlight_features.length > 0 && (
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-100">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <Sparkles className="w-8 h-8 text-purple-600" />
+                    Highlights of Vendor
+                  </h2>
+                  <p className="text-gray-600 mb-8 text-lg">What makes us stand out from the rest</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {vendor.highlight_features.map((feature, index) => (
+                      <div 
+                        key={index}
+                        className="group p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 border-transparent hover:border-purple-200 shadow-lg"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <CheckCircle className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-800 group-hover:text-purple-800 transition-colors duration-300">
+                              {feature}
+                            </h3>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Services Section */}
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-amber-100">

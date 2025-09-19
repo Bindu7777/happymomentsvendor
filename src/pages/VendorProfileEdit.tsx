@@ -29,16 +29,13 @@ type VendorEditForm = {
   address?: string;
   
   // Business Details
-  description?: string;
   experience?: string;
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
-  avatar_url?: string;
-  cover_image_url?: string;
+  highlight_features?: string[];
   
   // JSON Fields
-  specialties?: string[];
   services?: Array<{
     name: string;
     description: string;
@@ -110,14 +107,11 @@ const VendorProfileEdit: React.FC = () => {
       email: '',
       instagram: '',
       address: '',
-      description: '',
       experience: '',
       quick_intro: '',
       caption: '',
       detailed_intro: '',
-      avatar_url: '',
-      cover_image_url: '',
-      specialties: [],
+      highlight_features: [],
       services: [],
       packages: [],
       deliverables: [],
@@ -137,11 +131,6 @@ const VendorProfileEdit: React.FC = () => {
       },
       currently_available: false
     }
-  });
-
-  const { fields: specialtyFields, append: appendSpecialty, remove: removeSpecialty } = useFieldArray({
-    control,
-    name: "specialties" as any
   });
 
   const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
@@ -174,6 +163,23 @@ const VendorProfileEdit: React.FC = () => {
     name: "additional_info.custom_fields" as any
   });
 
+  const { fields: highlightFields, append: appendHighlight, remove: removeHighlight } = useFieldArray({
+    control,
+    name: "highlight_features" as any
+  });
+
+  // Simplified services loading
+  useEffect(() => {
+    if (vendor && vendor.specialties && Array.isArray(vendor.specialties) && serviceFields.length === 0) {
+      // Only load if services are empty to avoid infinite loops
+      vendor.specialties.forEach((specialty) => {
+        if (specialty && specialty.trim() !== '') {
+          appendService({ name: specialty, description: '', price: '' });
+        }
+      });
+    }
+  }, [vendor?.specialties]);
+
   useEffect(() => {
     const initializeVendorData = async () => {
       const loggedInVendor = getLoggedInVendor();
@@ -184,21 +190,24 @@ const VendorProfileEdit: React.FC = () => {
       }
 
       try {
-        // Always fetch fresh data from database to ensure we have the latest approved changes
-        console.log('Refreshing vendor data for profile edit...');
-        const freshVendorData = await refreshVendorSession();
+        console.log('Loading vendor data for profile edit...');
         
-        if (!freshVendorData) {
-          throw new Error('Failed to refresh vendor session');
-        }
+        // Use cached data first for faster loading
+        setVendor(loggedInVendor);
         
-        console.log('Using fresh vendor data:', freshVendorData);
-        setVendor(freshVendorData);
+        // Load form with cached data immediately
+        loadVendorData(loggedInVendor, []);
         
-        // Load catalog images first, then populate form
-        const catalogImages = await loadCatalogImages(freshVendorData.vendor_id);
-        loadVendorData(freshVendorData, catalogImages);
-        loadPendingChanges(parseInt(freshVendorData.vendor_id));
+        // Load additional data in background
+        Promise.all([
+          loadCatalogImages(loggedInVendor.vendor_id),
+          loadPendingChanges(parseInt(loggedInVendor.vendor_id))
+        ]).then(([catalogImages, _]) => {
+          setCatalogImages(catalogImages);
+          console.log('Background data loaded');
+        }).catch(error => {
+          console.error('Error loading background data:', error);
+        });
       } catch (error) {
         console.error('Error refreshing vendor data:', error);
         // Fallback: fetch directly from database using vendor ID
@@ -232,19 +241,7 @@ const VendorProfileEdit: React.FC = () => {
   }, [navigate, forceRefresh]);
 
   const loadVendorData = (vendorData: Vendor, catalogImagesData?: string[]) => {
-    console.log('=== LOADING VENDOR DATA ===');
-    console.log('Full vendor data:', vendorData);
-    console.log('Description:', vendorData.description);
-    console.log('Services type:', typeof vendorData.services);
-    console.log('Services data:', vendorData.services);
-    console.log('Packages type:', typeof vendorData.packages);
-    console.log('Packages data:', vendorData.packages);
-    console.log('Booking policies type:', typeof vendorData.booking_policies);
-    console.log('Booking policies data:', vendorData.booking_policies);
-    console.log('Specialties type:', typeof vendorData.specialties);
-    console.log('Specialties data:', vendorData.specialties);
-    console.log('Catalog images from vendor:', vendorData.catalog_images?.length);
-    console.log('Catalog images from parameter:', catalogImagesData?.length);
+    console.log('Loading vendor data...');
     
     // Helper function to check if an object/array is effectively empty
     const isEffectivelyEmpty = (value: any): boolean => {
@@ -277,13 +274,12 @@ const VendorProfileEdit: React.FC = () => {
     setValue('email', vendorData.email || '');
     setValue('instagram', vendorData.instagram || '');
     setValue('address', vendorData.address || '');
-    setValue('description', vendorData.description || '');
     setValue('experience', vendorData.experience || '');
     setValue('quick_intro', vendorData.quick_intro || '');
     setValue('caption', vendorData.caption || '');
     setValue('detailed_intro', vendorData.detailed_intro || '');
-    setValue('avatar_url', vendorData.avatar_url || '');
-    setValue('cover_image_url', vendorData.cover_image_url || '');
+    setValue('highlight_features', vendorData.highlight_features || []);
+    setValue('services', vendorData.services || []);
     setValue('currently_available', vendorData.currently_available || false);
     
     console.log('=== SETTING FORM VALUES ===');
@@ -325,88 +321,22 @@ const VendorProfileEdit: React.FC = () => {
     console.log('=== CLEARING AND POPULATING ARRAYS ===');
     
     // Clear all existing array fields first
-    while (specialtyFields.length > 0) {
-      removeSpecialty(0);
-    }
-    while (serviceFields.length > 0) {
-      removeService(0);
-    }
-    while (packageFields.length > 0) {
-      removePackage(0);
-    }
-    while (deliverableFields.length > 0) {
-      removeDeliverable(0);
-    }
-    while (catalogImageFields.length > 0) {
-      removeCatalogImage(0);
-    }
-    while (reviewFields.length > 0) {
-      removeReview(0);
-    }
-    while (customFields.length > 0) {
-      removeCustomField(0);
-    }
-    
-    console.log('All arrays cleared');
+    // Reset form to prevent duplicates
     
     // Now populate with vendor data
     if (vendorData.specialties && Array.isArray(vendorData.specialties) && vendorData.specialties.length > 0) {
-      console.log('Adding specialties:', vendorData.specialties);
+      console.log('Adding specialties as services:', vendorData.specialties);
       vendorData.specialties.forEach((specialty) => {
         if (specialty && specialty.trim() !== '') {
-          appendSpecialty(specialty);
+          appendService({ name: specialty, description: '', price: '' });
         }
       });
     }
 
-    console.log('=== SERVICES CHECK ===');
-    console.log('Services exists:', !!vendorData.services);
-    console.log('Services is array:', Array.isArray(vendorData.services));
-    console.log('Services length:', vendorData.services?.length);
-    console.log('Services content:', vendorData.services);
-    
-    if (vendorData.services && Array.isArray(vendorData.services) && vendorData.services.length > 0) {
-      console.log('Adding services to form...');
-      vendorData.services.forEach((service, index) => {
-        console.log(`Service ${index}:`, service);
-        if (service && service.name) {
-          appendService(service);
-        }
-      });
-    } else {
-      console.log('No services to load or services data is invalid');
-      console.log('Services type is:', typeof vendorData.services);
-      if (typeof vendorData.services === 'string') {
-        console.log('Services is a string, trying to parse...');
-        try {
-          const parsedServices = JSON.parse(vendorData.services);
-          console.log('Parsed services:', parsedServices);
-          if (Array.isArray(parsedServices) && parsedServices.length > 0) {
-            console.log('Adding parsed services to form...');
-            parsedServices.forEach((service, index) => {
-              console.log(`Parsed Service ${index}:`, service);
-              if (service && service.name) {
-                appendService(service);
-              }
-            });
-          }
-        } catch (e) {
-          console.error('Failed to parse services JSON:', e);
-        }
-      }
-    }
+    // Services will be loaded by the useEffect hook above
 
-    console.log('=== PACKAGES CHECK ===');
-    console.log('Packages exists:', !!vendorData.packages);
-    console.log('Packages type:', typeof vendorData.packages);
-    console.log('Packages data:', vendorData.packages);
-    console.log('Is array:', Array.isArray(vendorData.packages));
-    console.log('Length:', vendorData.packages?.length);
-    
     if (vendorData.packages && Array.isArray(vendorData.packages) && vendorData.packages.length > 0) {
-      console.log('Adding packages to form...');
-      vendorData.packages.forEach((pkg, index) => {
-        console.log(`Package ${index}:`, pkg);
+      vendorData.packages.forEach((pkg) => {
         if (pkg && pkg.name) {
           appendPackage(pkg);
         }
@@ -517,16 +447,11 @@ const VendorProfileEdit: React.FC = () => {
         email: vendor.email || '',
         instagram: vendor.instagram || '',
         address: vendor.address || '',
-        description: vendor.description || '',
         experience: vendor.experience || '',
         quick_intro: vendor.quick_intro || '',
         caption: vendor.caption || '',
         detailed_intro: vendor.detailed_intro || '',
-        avatar_url: vendor.avatar_url || '',
-        cover_image_url: vendor.cover_image_url || '',
-        brand_logo_url: vendor.brand_logo_url || '',
-        contact_person_image_url: vendor.contact_person_image_url || '',
-        specialties: vendor.specialties || [],
+        highlight_features: vendor.highlight_features || [],
         services: vendor.services || [],
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
@@ -551,16 +476,11 @@ const VendorProfileEdit: React.FC = () => {
         email: data.email || '',
         instagram: data.instagram || '',
         address: data.address || '',
-        description: data.description || '',
         experience: data.experience || '',
         quick_intro: data.quick_intro || '',
         caption: data.caption || '',
         detailed_intro: data.detailed_intro || '',
-        avatar_url: data.avatar_url || '',
-        cover_image_url: data.cover_image_url || '',
-        brand_logo_url: data.brand_logo_url || '',
-        contact_person_image_url: data.contact_person_image_url || '',
-        specialties: data.specialties?.filter(s => s && s.trim() !== '') || [],
+        highlight_features: data.highlight_features?.filter(h => h && h.trim() !== '') || [],
         services: data.services?.filter(s => s.name && s.name.trim() !== '') || [],
         packages: data.packages?.filter(p => p.name && p.name.trim() !== '').map(pkg => ({
           ...pkg,
@@ -917,27 +837,6 @@ const VendorProfileEdit: React.FC = () => {
               <CardTitle>Content</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Preview Image */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
-                <h4 className="text-lg font-semibold text-blue-800 mb-3">Preview: How your content will appear</h4>
-                <div className="bg-white p-4 rounded-lg shadow-sm border">
-                  <div className="space-y-4">
-                    <h2 className="text-3xl font-bold text-gray-800">
-                      Creative floral decorations with unique designs.
-                      <div className="w-16 h-1 bg-orange-400 mt-2"></div>
-                    </h2>
-                    <p className="text-lg text-amber-700 font-medium italic">
-                      "Namaskaram! Professional decorators services with South Indian expertise"
-                    </p>
-                    <p className="text-lg text-gray-700">
-                      Professional decorators services with 7+ years years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 text-sm text-blue-600">
-                  <p><strong>Top text</strong> = Quick Intro | <strong>Middle text (italic)</strong> = Caption | <strong>Bottom text</strong> = Detailed Intro</p>
-                </div>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1117,76 +1016,132 @@ const VendorProfileEdit: React.FC = () => {
                 </div>
               </div>
 
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Avatar URL
-                </label>
-                <Input
-                  {...register("avatar_url")}
-                  type="url"
-                  placeholder="https://example.com/avatar.jpg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cover Image URL
-                </label>
-                <Input
-                  {...register("cover_image_url")}
-                  type="url"
-                  placeholder="https://example.com/cover.jpg"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <Textarea
-                  {...register("description")}
-                  placeholder="Describe your services and experience"
-                  rows={4}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Specialties */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Specialties</span>
-                <Button
-                  type="button"
-                  onClick={() => appendSpecialty("")}
-                  variant="outline"
-                  size="sm"
-                >
-                  Add Specialty
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {specialtyFields.map((field, index) => (
+              {/* Highlight Features */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-lg font-semibold text-gray-800">Highlight Features</h4>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (highlightFields.length < 4) {
+                        appendHighlight("Award-winning service");
+                      }
+                    }}
+                    disabled={highlightFields.length >= 4}
+                    variant={highlightFields.length >= 4 ? "secondary" : "outline"}
+                    size="sm"
+                  >
+                    Add Highlight {highlightFields.length >= 4 ? '(Max 4)' : `(${highlightFields.length}/4)`}
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-gray-600">Add up to 4 key features that make your service stand out</p>
+                
+                {highlightFields.map((field, index) => (
                   <div key={field.id} className="flex gap-2">
                     <Input
-                      {...register(`specialties.${index}` as const)}
-                      placeholder="Enter specialty"
+                      {...register(`highlight_features.${index}` as const)}
+                      placeholder={`Highlight feature ${index + 1} (e.g., Award-winning service, Same-day delivery)`}
                       className="flex-1"
                     />
                     <Button
                       type="button"
-                      onClick={() => removeSpecialty(index)}
-                      variant="outline"
+                      onClick={() => removeHighlight(index)}
+                      variant="destructive"
                       size="sm"
                     >
                       Remove
                     </Button>
                   </div>
                 ))}
+                
+                {highlightFields.length === 0 && (
+                  <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                    <p>No highlight features added yet. Click "Add Highlight" to start.</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Services */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Services</span>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      // Force reload services from specialties
+                      if (vendor && vendor.specialties && Array.isArray(vendor.specialties)) {
+                        console.log('Manual reload services from specialties:', vendor.specialties);
+                        
+                        // Clear existing services first
+                        while (serviceFields.length > 0) {
+                          removeService(0);
+                        }
+                        
+                        // Add services from specialties
+                        vendor.specialties.forEach((specialty) => {
+                          if (specialty && specialty.trim() !== '') {
+                            appendService({ name: specialty, description: '', price: '' });
+                          }
+                        });
+                      }
+                    }}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    Load Existing
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => appendService({ name: "", description: "", price: "" })}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Add Service
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              
+              <div className="space-y-4">
+                {serviceFields.map((field, index) => (
+                  <div key={field.id} className="p-4 border rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                      <Input
+                        {...register(`services.${index}.name` as const)}
+                        placeholder="Service name"
+                      />
+                      <Input
+                        {...register(`services.${index}.price` as const)}
+                        placeholder="Price (optional)"
+                      />
+                    </div>
+                    <Textarea
+                      {...register(`services.${index}.description` as const)}
+                      placeholder="Service description"
+                      rows={2}
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => removeService(index)}
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                    >
+                      Remove Service
+                    </Button>
+                  </div>
+                ))}
+                {serviceFields.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    No services added yet. Click "Add Service" to get started.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -1282,60 +1237,6 @@ const VendorProfileEdit: React.FC = () => {
                 {catalogImageFields.length === 0 && (
                   <p className="text-gray-500 text-center py-4">
                     No catalog images added yet. Click "Add Image URL" to showcase your work.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Services */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Services</span>
-                <Button
-                  type="button"
-                  onClick={() => appendService({ name: "", description: "", price: "" })}
-                  variant="outline"
-                  size="sm"
-                >
-                  Add Service
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {serviceFields.map((field, index) => (
-                  <div key={field.id} className="p-4 border rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                      <Input
-                        {...register(`services.${index}.name` as const)}
-                        placeholder="Service name"
-                      />
-                      <Input
-                        {...register(`services.${index}.price` as const)}
-                        placeholder="Price (optional)"
-                      />
-                    </div>
-                    <Textarea
-                      {...register(`services.${index}.description` as const)}
-                      placeholder="Service description"
-                      rows={2}
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => removeService(index)}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      Remove Service
-                    </Button>
-                  </div>
-                ))}
-                {serviceFields.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No services added yet. Click "Add Service" to get started.
                   </p>
                 )}
               </div>

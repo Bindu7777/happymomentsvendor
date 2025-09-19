@@ -26,16 +26,13 @@ type VendorFormInputs = {
   address?: string;
   
   // Business Details
-  description?: string;
   experience?: string;
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
-  avatar_url?: string;
-  cover_image_url?: string;
+  highlight_features?: string[];
   
   // JSON Fields (will be stored as JSON)
-  specialties?: string[];
   services?: Array<{
     name: string;
     description: string;
@@ -108,16 +105,13 @@ export default function AddVendor() {
       address: "",
       
       // Business Details
-      description: "",
       experience: "",
       quick_intro: "",
       caption: "",
       detailed_intro: "",
-      avatar_url: "",
-      cover_image_url: "",
+      highlight_features: [],
       
       // JSON Fields
-      specialties: [],
       services: [],
       packages: [],
       deliverables: [],
@@ -141,11 +135,6 @@ export default function AddVendor() {
     }
   });
 
-  const { fields: specialtyFields, append: appendSpecialty, remove: removeSpecialty } = useFieldArray({
-    control,
-    name: "specialties"
-  });
-
   const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
     control,
     name: "services"
@@ -164,6 +153,11 @@ export default function AddVendor() {
   const { fields: customFields, append: appendCustomField, remove: removeCustomField } = useFieldArray({
     control,
     name: "additional_info.custom_fields"
+  });
+
+  const { fields: highlightFields, append: appendHighlight, remove: removeHighlight } = useFieldArray({
+    control,
+    name: "highlight_features"
   });
 
   const { fields: deliverableFields, append: appendDeliverable, remove: removeDeliverable } = useFieldArray({
@@ -201,9 +195,15 @@ export default function AddVendor() {
       quick_intro: "Creative wedding photography with artistic vision",
       caption: "Namaskaram! Capturing your precious moments with expertise and passion",
       detailed_intro: "Professional photography services with 10+ years of experience. We specialize in creating memorable visual stories for your special occasions with attention to detail and artistic excellence.",
+      highlight_features: ["Award-winning photographer", "Same-day delivery", "Professional equipment", "Candid & traditional styles"],
       avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
       cover_image_url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&h=400&fit=crop",
-      specialties: ["Wedding Photography", "Pre-wedding Shoots", "Candid Photography", "Traditional Photography"],
+      services: [
+        { name: "Wedding Photography", description: "Full day coverage with professional editing", price: "₹50,000" },
+        { name: "Pre-wedding Shoots", description: "Romantic couple session with multiple locations", price: "₹25,000" },
+        { name: "Candid Photography", description: "Natural moments captured beautifully", price: "₹40,000" },
+        { name: "Traditional Photography", description: "Classic posed photography for ceremonies", price: "₹35,000" }
+      ],
       deliverables: [
         "High-resolution edited photos (500+ images)",
         "Online gallery for easy sharing and downloads", 
@@ -211,23 +211,6 @@ export default function AddVendor() {
         "USB drive with all photos and videos",
         "Same-day highlight reel (2-3 minutes)",
         "Pre-wedding consultation and planning session"
-      ],
-      services: [
-        {
-          name: "Full Day Wedding Photography",
-          description: "Complete wedding day coverage from morning to night",
-          price: "₹50,000"
-        },
-        {
-          name: "Pre-wedding Photography",
-          description: "Romantic pre-wedding photo session",
-          price: "₹15,000"
-        },
-        {
-          name: "Engagement Photography",
-          description: "Engagement ceremony photography",
-          price: "₹10,000"
-        }
       ],
       packages: [
         {
@@ -322,9 +305,9 @@ export default function AddVendor() {
       const processJsonFields = (data: any) => {
         const processedData = { ...data };
         
-        // Process specialties array
-        if (processedData.specialties && Array.isArray(processedData.specialties)) {
-          processedData.specialties = processedData.specialties.filter(s => s && s.trim() !== '');
+        // Process services array
+        if (processedData.services && Array.isArray(processedData.services)) {
+          processedData.services = processedData.services.filter(s => s && (s.name || s).trim() !== '');
         }
         
         // Process deliverables array
@@ -420,7 +403,7 @@ export default function AddVendor() {
 
   return (
     <div className="bg-[#E6E6FA] min-h-screen flex items-center justify-center p-4">
-       <Toast ref={toast} /> 
+      <Toast ref={toast} /> 
       <div className="max-w-4xl w-full mx-auto p-8 bg-white shadow-lg rounded-xl">
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-3xl font-bold">Add New Vendor</h2>
@@ -510,27 +493,6 @@ export default function AddVendor() {
           <section className="space-y-4">
             <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Content</h3>
             
-            {/* Preview Image */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
-              <h4 className="text-lg font-semibold text-blue-800 mb-3">Preview: How your content will appear</h4>
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="space-y-4">
-                  <h2 className="text-3xl font-bold text-gray-800">
-                    Creative floral decorations with unique designs.
-                    <div className="w-16 h-1 bg-orange-400 mt-2"></div>
-                  </h2>
-                  <p className="text-lg text-amber-700 font-medium italic">
-                    "Namaskaram! Professional decorators services with South Indian expertise"
-                  </p>
-                  <p className="text-lg text-gray-700">
-                    Professional decorators services with 7+ years years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 text-sm text-blue-600">
-                <p><strong>Top text</strong> = Quick Intro | <strong>Middle text (italic)</strong> = Caption | <strong>Bottom text</strong> = Detailed Intro</p>
-              </div>
-            </div>
             
             <div>
               <label className="block font-medium mb-2 text-gray-700">Quick Intro <span className="text-red-500">*</span></label>
@@ -680,79 +642,64 @@ export default function AddVendor() {
           <section className="space-y-4">
             <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Business Details</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block font-medium mb-2 text-gray-700">Experience</label>
-                <input
-                  {...register("experience")}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., 5+ Years (optional)"
-                />
-              </div>
-
-              <div>
-                <label className="block font-medium mb-2 text-gray-700">Avatar URL</label>
-                <input
-                  {...register("avatar_url")}
-                  type="url"
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://example.com/avatar.jpg (optional)"
-                />
-              </div>
-            </div>
-
             <div>
-              <label className="block font-medium mb-2 text-gray-700">Cover Image URL</label>
+              <label className="block font-medium mb-2 text-gray-700">Experience</label>
               <input
-                {...register("cover_image_url")}
-                type="url"
+                {...register("experience")}
                 className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://example.com/cover.jpg (optional)"
+                placeholder="e.g., 5+ Years (optional)"
               />
             </div>
 
-
-            <div>
-              <label className="block font-medium mb-2 text-gray-700">Description</label>
-              <textarea
-                {...register("description")}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Describe your services and experience (optional)"
-                rows={4}
-              />
-            </div>
-          </section>
-
-          {/* Specialties */}
-          <section className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">Specialties</h3>
-              <button
-                type="button"
-                onClick={() => appendSpecialty("Wedding Photography")}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
-              >
-                Add Specialty
-              </button>
-            </div>
-            
-            {specialtyFields.map((field, index) => (
-              <div key={field.id} className="flex gap-2">
-                <input
-                  {...register(`specialties.${index}` as const)}
-                  className="flex-1 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter specialty"
-                />
+            {/* Highlight Features */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="text-lg font-semibold text-gray-800">Highlight Features</h4>
                 <button
                   type="button"
-                  onClick={() => removeSpecialty(index)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                  onClick={() => {
+                    if (highlightFields.length < 4) {
+                      appendHighlight("Award-winning service");
+                    }
+                  }}
+                  disabled={highlightFields.length >= 4}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    highlightFields.length >= 4 
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                      : 'bg-green-500 hover:bg-green-600 text-white'
+                  }`}
                 >
-                  Remove
+                  Add Highlight {highlightFields.length >= 4 ? '(Max 4)' : `(${highlightFields.length}/4)`}
                 </button>
               </div>
-            ))}
+              
+              <p className="text-sm text-gray-600">Add up to 4 key features that make your service stand out</p>
+              
+              {highlightFields.map((field, index) => (
+                <div key={field.id} className="flex gap-2">
+                  <input
+                    {...register(`highlight_features.${index}` as const)}
+                    className="flex-1 border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={`Highlight feature ${index + 1} (e.g., Award-winning service, Same-day delivery)`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeHighlight(index)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              
+              {highlightFields.length === 0 && (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                  <p>No highlight features added yet. Click "Add Highlight" to start.</p>
+                </div>
+              )}
+            </div>
           </section>
+
 
           {/* Services */}
           <section className="space-y-4">
@@ -765,9 +712,9 @@ export default function AddVendor() {
               >
                 Add Service
               </button>
-          </div>
+            </div>
 
-              {serviceFields.map((field, index) => (
+            {serviceFields.map((field, index) => (
               <div key={field.id} className="border border-gray-200 p-4 rounded-lg space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <input
@@ -786,16 +733,30 @@ export default function AddVendor() {
                   className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Service description"
                   rows={2}
-                  />
-                  <button
-                    type="button"
+                />
+                <button
+                  type="button"
                   onClick={() => removeService(index)}
                   className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
-                  >
+                >
                   Remove Service
-                  </button>
-                </div>
-              ))}
+                </button>
+              </div>
+            ))}
+          </section>
+
+          {/* Packages */}
+          <section className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-semibold text-gray-800 border-b pb-2">Packages</h3>
+              <button
+                type="button"
+                onClick={() => appendPackage({ name: "Basic Package", description: "Essential service package", features: ["Feature 1", "Feature 2"], price: "₹25,000" })}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm"
+              >
+                Add Package
+              </button>
+            </div>
           </section>
 
           {/* Deliverables */}
@@ -1096,7 +1057,7 @@ export default function AddVendor() {
                 <label htmlFor="verified" className="text-gray-700 font-medium">
                   Verified Vendor
                 </label>
-          </div>
+              </div>
 
               <div className="flex items-center space-x-3">
                 <input

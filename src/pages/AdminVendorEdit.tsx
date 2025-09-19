@@ -27,13 +27,11 @@ type VendorEditForm = {
   email?: string;
   instagram?: string;
   address?: string;
-  description?: string;
   experience?: string;
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
-  avatar_url?: string;
-  cover_image_url?: string;
+  highlight_features?: string[];
   deliverables?: string[];
   verified: boolean;
   currently_available: boolean;
@@ -61,6 +59,11 @@ const AdminVendorEdit = () => {
   const { fields: deliverableFields, append: appendDeliverable, remove: removeDeliverable } = useFieldArray({
     control,
     name: "deliverables"
+  });
+
+  const { fields: highlightFields, append: appendHighlight, remove: removeHighlight } = useFieldArray({
+    control,
+    name: "highlight_features"
   });
 
   useEffect(() => {
@@ -320,27 +323,6 @@ const AdminVendorEdit = () => {
           <div className="bg-white shadow rounded-lg p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Content</h3>
             
-            {/* Preview Image */}
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200 mb-6">
-              <h4 className="text-lg font-semibold text-blue-800 mb-3">Preview: How your content will appear</h4>
-              <div className="bg-white p-4 rounded-lg shadow-sm border">
-                <div className="space-y-4">
-                  <h2 className="text-3xl font-bold text-gray-800">
-                    Creative floral decorations with unique designs.
-                    <div className="w-16 h-1 bg-orange-400 mt-2"></div>
-                  </h2>
-                  <p className="text-lg text-amber-700 font-medium italic">
-                    "Namaskaram! Professional decorators services with South Indian expertise"
-                  </p>
-                  <p className="text-lg text-gray-700">
-                    Professional decorators services with 7+ years years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 text-sm text-blue-600">
-                <p><strong>Top text</strong> = Quick Intro | <strong>Middle text (italic)</strong> = Caption | <strong>Bottom text</strong> = Detailed Intro</p>
-              </div>
-            </div>
             
             <div className="grid grid-cols-1 gap-6">
               <div>
@@ -525,38 +507,54 @@ const AdminVendorEdit = () => {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Avatar URL
-                </label>
-                <input
-                  {...register("avatar_url")}
-                  type="url"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
+              {/* Highlight Features */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Cover Image URL
-                </label>
-                <input
-                  {...register("cover_image_url")}
-                  type="url"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  {...register("description")}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-lg font-semibold text-gray-800">Highlight Features</h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (highlightFields.length < 4) {
+                          appendHighlight("Award-winning service");
+                        }
+                      }}
+                      disabled={highlightFields.length >= 4}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                        highlightFields.length >= 4 
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                          : 'bg-green-500 hover:bg-green-600 text-white'
+                      }`}
+                    >
+                      Add Highlight {highlightFields.length >= 4 ? '(Max 4)' : `(${highlightFields.length}/4)`}
+                    </button>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600">Add up to 4 key features that make your service stand out</p>
+                  
+                  {highlightFields.map((field, index) => (
+                    <div key={field.id} className="flex gap-2">
+                      <input
+                        {...register(`highlight_features.${index}` as const)}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        placeholder={`Highlight feature ${index + 1} (e.g., Award-winning service, Same-day delivery)`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeHighlight(index)}
+                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  
+                  {highlightFields.length === 0 && (
+                    <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                      <p>No highlight features added yet. Click "Add Highlight" to start.</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

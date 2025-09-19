@@ -740,6 +740,7 @@ const AdminDashboard = () => {
                                   'quick_intro': 'Quick Intro',
                                   'caption': 'Caption',
                                   'detailed_intro': 'Detailed Intro',
+                                  'highlight_features': 'Highlight Features',
                                   'brand_logo_url': 'Brand Logo',
                                   'contact_person_image_url': 'Contact Person Image',
                                   'brand_name': 'Brand Name',

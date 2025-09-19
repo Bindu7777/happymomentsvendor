@@ -46,6 +46,15 @@ BEGIN
     END IF;
 END $$;
 
+-- Add highlight_features column if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vendors' AND column_name = 'highlight_features') THEN
+        ALTER TABLE vendors ADD COLUMN highlight_features JSONB;
+        COMMENT ON COLUMN vendors.highlight_features IS 'Array of highlight features (max 4 items)';
+    END IF;
+END $$;
+
 -- Verify the new columns were added
 SELECT 
     column_name, 
@@ -54,7 +63,7 @@ SELECT
     column_default
 FROM information_schema.columns 
 WHERE table_name = 'vendors' 
-    AND column_name IN ('quick_intro', 'caption', 'detailed_intro', 'brand_logo_url', 'contact_person_image_url')
+    AND column_name IN ('quick_intro', 'caption', 'detailed_intro', 'brand_logo_url', 'contact_person_image_url', 'highlight_features')
 ORDER BY column_name;
 
 -- Show a sample of the updated table structure
@@ -64,6 +73,7 @@ SELECT
     caption,
     detailed_intro,
     brand_logo_url,
-    contact_person_image_url
+    contact_person_image_url,
+    highlight_features
 FROM vendors 
 LIMIT 3;

@@ -36,11 +36,11 @@ export interface Vendor {
   address?: string
   
   // Business Details
-  description?: string
   experience?: string
   quick_intro?: string
   caption?: string
   detailed_intro?: string
+  highlight_features?: string[]
   total_events?: number
   rating?: number
   review_count?: number
@@ -54,7 +54,6 @@ export interface Vendor {
   contact_person_image_url?: string
   
   // JSON Data Fields
-  specialties?: any
   services?: any
   packages?: any
   deliverables?: string[]  // New deliverables field

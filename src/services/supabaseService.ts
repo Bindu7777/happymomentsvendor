@@ -2,6 +2,60 @@
 import { supabase, Vendor, VendorMedia } from "../lib/supabase";
 import { PostgrestError } from "@supabase/supabase-js";
 
+// Helper function to parse JSON fields in vendor data
+const parseVendorJsonFields = (vendorData: any): Vendor => {
+  // Parse JSON fields if they are strings
+  if (vendorData.services && typeof vendorData.services === 'string') {
+    try {
+      vendorData.services = JSON.parse(vendorData.services);
+    } catch (e) {
+      console.warn('Failed to parse services JSON:', e);
+    }
+  }
+  
+  if (vendorData.packages && typeof vendorData.packages === 'string') {
+    try {
+      vendorData.packages = JSON.parse(vendorData.packages);
+    } catch (e) {
+      console.warn('Failed to parse packages JSON:', e);
+    }
+  }
+  
+  if (vendorData.specialties && typeof vendorData.specialties === 'string') {
+    try {
+      vendorData.specialties = JSON.parse(vendorData.specialties);
+    } catch (e) {
+      console.warn('Failed to parse specialties JSON:', e);
+    }
+  }
+  
+  if (vendorData.customer_reviews && typeof vendorData.customer_reviews === 'string') {
+    try {
+      vendorData.customer_reviews = JSON.parse(vendorData.customer_reviews);
+    } catch (e) {
+      console.warn('Failed to parse customer_reviews JSON:', e);
+    }
+  }
+  
+  if (vendorData.booking_policies && typeof vendorData.booking_policies === 'string') {
+    try {
+      vendorData.booking_policies = JSON.parse(vendorData.booking_policies);
+    } catch (e) {
+      console.warn('Failed to parse booking_policies JSON:', e);
+    }
+  }
+  
+  if (vendorData.additional_info && typeof vendorData.additional_info === 'string') {
+    try {
+      vendorData.additional_info = JSON.parse(vendorData.additional_info);
+    } catch (e) {
+      console.warn('Failed to parse additional_info JSON:', e);
+    }
+  }
+
+  return vendorData as Vendor;
+};
+
 // Test Supabase connection
 export const testConnection = async () => {
   try {
@@ -37,7 +91,7 @@ export const getVendorByFieldId = async (
       return null;
     }
 
-    return data as Vendor;
+    return parseVendorJsonFields(data);
   } catch (error) {
     console.error('Error fetching vendor:', error);
     return null;
@@ -340,7 +394,7 @@ export const vendorLogin = async (username: string, password: string): Promise<{
 
     return { 
       success: true, 
-      vendor: data.vendors as Vendor,
+      vendor: parseVendorJsonFields(data.vendors),
       message: 'Login successful' 
     };
   } catch (error) {

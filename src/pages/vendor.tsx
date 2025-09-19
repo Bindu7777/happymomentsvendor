@@ -326,7 +326,7 @@ const VendorProfile = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src={vendor.avatar_url || "/images/vendor.jpeg"} 
+                src={vendor.brand_logo_url || vendor.avatar_url || "/images/vendor.jpeg"} 
                 alt={vendor.brand_name}
                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
               />
@@ -412,8 +412,8 @@ const VendorProfile = () => {
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
                   <img 
-                    src={vendor.avatar_url || "/images/vendor.jpeg"} 
-                    alt={vendor.brand_name}
+                    src={vendor.contact_person_image_url || vendor.avatar_url || "/images/vendor.jpeg"} 
+                    alt={vendor.spoc_name}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -502,8 +502,8 @@ const VendorProfile = () => {
                       <div className="flex flex-col items-center flex-shrink-0">
                         <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 shadow-lg">
                           <img 
-                            src={vendor.avatar_url || "/images/vendor.jpeg"} 
-                            alt={vendor.brand_name}
+                            src={vendor.contact_person_image_url || vendor.avatar_url || "/images/vendor.jpeg"} 
+                            alt={vendor.spoc_name}
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -531,18 +531,20 @@ const VendorProfile = () => {
 
                     {/* Tagline */}
                     <p className="text-4xl lg:text-5xl font-bold text-gray-800 mb-8 leading-relaxed relative">
-                      <span className="relative z-10">{vendor.description || "Professional services for your special day"}</span>
+                      <span className="relative z-10">{vendor.quick_intro || vendor.description || "Professional services for your special day"}</span>
                       <div className="absolute -bottom-2 left-0 w-24 h-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"></div>
                     </p>
                     
                     {/* Cultural Greeting */}
-                    <p className="text-xl text-amber-700 font-medium mb-10 italic">
-                      "Namaskaram! Professional {vendor.category.toLowerCase()} services with South Indian expertise"
-                    </p>
+                    {vendor.caption && (
+                      <p className="text-xl text-amber-700 font-medium mb-10 italic">
+                        "{vendor.caption}"
+                      </p>
+                    )}
 
                     {/* Bio */}
                     <p className="text-xl text-gray-700 mb-12 leading-relaxed">
-                      Professional {vendor.category.toLowerCase()} services with {vendor.experience || '5+'} years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
+                      {vendor.detailed_intro || `Professional ${vendor.category.toLowerCase()} services with ${vendor.experience || '5+'} years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.`}
                     </p>
 
                     {/* Details Icons Row */}
@@ -767,7 +769,7 @@ const VendorProfile = () => {
                 </h2>
                 <p className="text-gray-600 mb-8 text-lg">Complete packages designed for your special events</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {[
+                  {(vendor.packages && vendor.packages.length > 0 ? vendor.packages : [
                     { 
                       name: "Essential", 
                       popular: false,
@@ -809,7 +811,7 @@ const VendorProfile = () => {
                         "Additional bonuses"
                       ]
                     }
-                  ].map((pkg, index) => (
+                  ]).map((pkg, index) => (
                     <div 
                       key={index}
                       className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
@@ -825,10 +827,15 @@ const VendorProfile = () => {
                       )}
                       <div className="text-center mb-6">
                         <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
-                        <div className="text-sm text-gray-500">Complete {vendor.category.toLowerCase()} package</div>
+                        {pkg.price && (
+                          <div className="text-lg font-bold text-blue-600 mb-2">{pkg.price}</div>
+                        )}
+                        <div className="text-sm text-gray-500">
+                          {pkg.description || `Complete ${vendor.category.toLowerCase()} package`}
+                        </div>
                       </div>
                       <ul className="space-y-3 mb-8">
-                        {pkg.features.map((feature, idx) => (
+                        {(pkg.features || []).map((feature, idx) => (
                           <li key={idx} className="flex items-center gap-3 text-gray-700">
                             <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                             <span className="text-sm font-medium">{feature}</span>

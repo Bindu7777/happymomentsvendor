@@ -17,6 +17,8 @@ type VendorEditForm = {
   spoc_name: string;
   category: string;
   subcategory?: string;
+  brand_logo_url?: string;
+  contact_person_image_url?: string;
   
   // Contact Information
   phone_number: string;
@@ -29,6 +31,9 @@ type VendorEditForm = {
   // Business Details
   description?: string;
   experience?: string;
+  quick_intro?: string;
+  caption?: string;
+  detailed_intro?: string;
   avatar_url?: string;
   cover_image_url?: string;
   
@@ -81,6 +86,7 @@ const VendorProfileEdit: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<string[]>([]);
+  const [forceRefresh, setForceRefresh] = useState(0);
   const navigate = useNavigate();
 
   const {
@@ -96,6 +102,8 @@ const VendorProfileEdit: React.FC = () => {
       spoc_name: '',
       category: '',
       subcategory: '',
+      brand_logo_url: '',
+      contact_person_image_url: '',
       phone_number: '',
       alternate_number: '',
       whatsapp_number: '',
@@ -104,6 +112,9 @@ const VendorProfileEdit: React.FC = () => {
       address: '',
       description: '',
       experience: '',
+      quick_intro: '',
+      caption: '',
+      detailed_intro: '',
       avatar_url: '',
       cover_image_url: '',
       specialties: [],
@@ -176,28 +187,64 @@ const VendorProfileEdit: React.FC = () => {
         // Always fetch fresh data from database to ensure we have the latest approved changes
         console.log('Refreshing vendor data for profile edit...');
         const freshVendorData = await refreshVendorSession();
-        const vendorToUse = freshVendorData || loggedInVendor;
         
-        console.log('Using vendor data:', vendorToUse);
-        setVendor(vendorToUse);
-        loadVendorData(vendorToUse);
-        loadPendingChanges(parseInt(vendorToUse.vendor_id));
-        loadCatalogImages(vendorToUse.vendor_id);
+        if (!freshVendorData) {
+          throw new Error('Failed to refresh vendor session');
+        }
+        
+        console.log('Using fresh vendor data:', freshVendorData);
+        setVendor(freshVendorData);
+        
+        // Load catalog images first, then populate form
+        const catalogImages = await loadCatalogImages(freshVendorData.vendor_id);
+        loadVendorData(freshVendorData, catalogImages);
+        loadPendingChanges(parseInt(freshVendorData.vendor_id));
       } catch (error) {
         console.error('Error refreshing vendor data:', error);
-        // Fallback to localStorage data
-        setVendor(loggedInVendor);
-        loadVendorData(loggedInVendor);
-        loadPendingChanges(parseInt(loggedInVendor.vendor_id));
-        loadCatalogImages(loggedInVendor.vendor_id);
+        // Fallback: fetch directly from database using vendor ID
+        try {
+          console.log('Falling back to direct database fetch...');
+          const directVendorData = await getVendorByFieldId(loggedInVendor.vendor_id);
+          
+          if (!directVendorData) {
+            throw new Error('Failed to fetch vendor data from database');
+          }
+          
+          console.log('Using direct vendor data:', directVendorData);
+          setVendor(directVendorData);
+          
+          const catalogImages = await loadCatalogImages(directVendorData.vendor_id);
+          loadVendorData(directVendorData, catalogImages);
+          loadPendingChanges(parseInt(directVendorData.vendor_id));
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+          // Last resort: use localStorage data (but warn about potential issues)
+          console.warn('Using localStorage data - JSON fields may not be properly parsed');
+          setVendor(loggedInVendor);
+          const catalogImages = await loadCatalogImages(loggedInVendor.vendor_id);
+          loadVendorData(loggedInVendor, catalogImages);
+          loadPendingChanges(parseInt(loggedInVendor.vendor_id));
+        }
       }
     };
 
     initializeVendorData();
-  }, [navigate]);
+  }, [navigate, forceRefresh]);
 
-  const loadVendorData = (vendorData: Vendor) => {
-    console.log('Loading vendor data:', vendorData);
+  const loadVendorData = (vendorData: Vendor, catalogImagesData?: string[]) => {
+    console.log('=== LOADING VENDOR DATA ===');
+    console.log('Full vendor data:', vendorData);
+    console.log('Description:', vendorData.description);
+    console.log('Services type:', typeof vendorData.services);
+    console.log('Services data:', vendorData.services);
+    console.log('Packages type:', typeof vendorData.packages);
+    console.log('Packages data:', vendorData.packages);
+    console.log('Booking policies type:', typeof vendorData.booking_policies);
+    console.log('Booking policies data:', vendorData.booking_policies);
+    console.log('Specialties type:', typeof vendorData.specialties);
+    console.log('Specialties data:', vendorData.specialties);
+    console.log('Catalog images from vendor:', vendorData.catalog_images?.length);
+    console.log('Catalog images from parameter:', catalogImagesData?.length);
     
     // Helper function to check if an object/array is effectively empty
     const isEffectivelyEmpty = (value: any): boolean => {
@@ -222,6 +269,8 @@ const VendorProfileEdit: React.FC = () => {
     setValue('spoc_name', vendorData.spoc_name || '');
     setValue('category', vendorData.category || '');
     setValue('subcategory', vendorData.subcategory || '');
+    setValue('brand_logo_url', vendorData.brand_logo_url || '');
+    setValue('contact_person_image_url', vendorData.contact_person_image_url || '');
     setValue('phone_number', vendorData.phone_number || '');
     setValue('alternate_number', vendorData.alternate_number || '');
     setValue('whatsapp_number', vendorData.whatsapp_number || '');
@@ -230,27 +279,79 @@ const VendorProfileEdit: React.FC = () => {
     setValue('address', vendorData.address || '');
     setValue('description', vendorData.description || '');
     setValue('experience', vendorData.experience || '');
+    setValue('quick_intro', vendorData.quick_intro || '');
+    setValue('caption', vendorData.caption || '');
+    setValue('detailed_intro', vendorData.detailed_intro || '');
     setValue('avatar_url', vendorData.avatar_url || '');
     setValue('cover_image_url', vendorData.cover_image_url || '');
     setValue('currently_available', vendorData.currently_available || false);
     
-    // Set booking policies - only if they exist
-    if (vendorData.booking_policies && !isEffectivelyEmpty(vendorData.booking_policies)) {
-      setValue('booking_policies.cancellation_policy', vendorData.booking_policies.cancellation_policy || '');
-      setValue('booking_policies.payment_terms', vendorData.booking_policies.payment_terms || '');
-      setValue('booking_policies.booking_requirements', vendorData.booking_policies.booking_requirements || '');
+    console.log('=== SETTING FORM VALUES ===');
+    console.log('Description set to:', vendorData.description);
+    console.log('Experience set to:', vendorData.experience);
+    
+    // Set booking policies - ALWAYS set, even if empty
+    console.log('=== BOOKING POLICIES CHECK ===');
+    console.log('Booking policies data:', vendorData.booking_policies);
+    
+    // Always set booking policies, even if they're empty or null
+    const bookingPolicies = vendorData.booking_policies || {};
+    setValue('booking_policies.cancellation_policy', bookingPolicies.cancellation_policy || '');
+    setValue('booking_policies.payment_terms', bookingPolicies.payment_terms || '');
+    setValue('booking_policies.booking_requirements', bookingPolicies.booking_requirements || '');
+    console.log('Booking policies set:', {
+      cancellation: bookingPolicies.cancellation_policy,
+      payment: bookingPolicies.payment_terms,
+      requirements: bookingPolicies.booking_requirements
+    });
+    
+    // Set additional info - ALWAYS set, even if empty
+    console.log('=== ADDITIONAL INFO CHECK ===');
+    console.log('Additional info data:', vendorData.additional_info);
+    
+    const additionalInfo = vendorData.additional_info || {};
+    setValue('additional_info.working_hours', additionalInfo.working_hours || '');
+    setValue('additional_info.languages', additionalInfo.languages || []);
+    setValue('additional_info.awards', additionalInfo.awards || []);
+    setValue('additional_info.certifications', additionalInfo.certifications || []);
+    console.log('Additional info set:', {
+      workingHours: additionalInfo.working_hours,
+      languages: additionalInfo.languages,
+      awards: additionalInfo.awards,
+      certifications: additionalInfo.certifications
+    });
+
+    // Handle array fields separately - CLEAR FIRST then populate
+    console.log('=== CLEARING AND POPULATING ARRAYS ===');
+    
+    // Clear all existing array fields first
+    while (specialtyFields.length > 0) {
+      removeSpecialty(0);
+    }
+    while (serviceFields.length > 0) {
+      removeService(0);
+    }
+    while (packageFields.length > 0) {
+      removePackage(0);
+    }
+    while (deliverableFields.length > 0) {
+      removeDeliverable(0);
+    }
+    while (catalogImageFields.length > 0) {
+      removeCatalogImage(0);
+    }
+    while (reviewFields.length > 0) {
+      removeReview(0);
+    }
+    while (customFields.length > 0) {
+      removeCustomField(0);
     }
     
-    // Set additional info - only if it exists
-    if (vendorData.additional_info && !isEffectivelyEmpty(vendorData.additional_info)) {
-      setValue('additional_info.working_hours', vendorData.additional_info.working_hours || '');
-      setValue('additional_info.languages', vendorData.additional_info.languages || []);
-      setValue('additional_info.awards', vendorData.additional_info.awards || []);
-      setValue('additional_info.certifications', vendorData.additional_info.certifications || []);
-    }
-
-    // Handle array fields separately - only append if data exists
+    console.log('All arrays cleared');
+    
+    // Now populate with vendor data
     if (vendorData.specialties && Array.isArray(vendorData.specialties) && vendorData.specialties.length > 0) {
+      console.log('Adding specialties:', vendorData.specialties);
       vendorData.specialties.forEach((specialty) => {
         if (specialty && specialty.trim() !== '') {
           appendSpecialty(specialty);
@@ -258,20 +359,79 @@ const VendorProfileEdit: React.FC = () => {
       });
     }
 
+    console.log('=== SERVICES CHECK ===');
+    console.log('Services exists:', !!vendorData.services);
+    console.log('Services is array:', Array.isArray(vendorData.services));
+    console.log('Services length:', vendorData.services?.length);
+    console.log('Services content:', vendorData.services);
+    
     if (vendorData.services && Array.isArray(vendorData.services) && vendorData.services.length > 0) {
-      vendorData.services.forEach((service) => {
+      console.log('Adding services to form...');
+      vendorData.services.forEach((service, index) => {
+        console.log(`Service ${index}:`, service);
         if (service && service.name) {
           appendService(service);
         }
       });
+    } else {
+      console.log('No services to load or services data is invalid');
+      console.log('Services type is:', typeof vendorData.services);
+      if (typeof vendorData.services === 'string') {
+        console.log('Services is a string, trying to parse...');
+        try {
+          const parsedServices = JSON.parse(vendorData.services);
+          console.log('Parsed services:', parsedServices);
+          if (Array.isArray(parsedServices) && parsedServices.length > 0) {
+            console.log('Adding parsed services to form...');
+            parsedServices.forEach((service, index) => {
+              console.log(`Parsed Service ${index}:`, service);
+              if (service && service.name) {
+                appendService(service);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Failed to parse services JSON:', e);
+        }
+      }
     }
 
+    console.log('=== PACKAGES CHECK ===');
+    console.log('Packages exists:', !!vendorData.packages);
+    console.log('Packages type:', typeof vendorData.packages);
+    console.log('Packages data:', vendorData.packages);
+    console.log('Is array:', Array.isArray(vendorData.packages));
+    console.log('Length:', vendorData.packages?.length);
+    
     if (vendorData.packages && Array.isArray(vendorData.packages) && vendorData.packages.length > 0) {
-      vendorData.packages.forEach((pkg) => {
+      console.log('Adding packages to form...');
+      vendorData.packages.forEach((pkg, index) => {
+        console.log(`Package ${index}:`, pkg);
         if (pkg && pkg.name) {
           appendPackage(pkg);
         }
       });
+    } else {
+      console.log('No packages to load or packages data is invalid');
+      console.log('Packages type is:', typeof vendorData.packages);
+      if (typeof vendorData.packages === 'string') {
+        console.log('Packages is a string, trying to parse...');
+        try {
+          const parsedPackages = JSON.parse(vendorData.packages);
+          console.log('Parsed packages:', parsedPackages);
+          if (Array.isArray(parsedPackages) && parsedPackages.length > 0) {
+            console.log('Adding parsed packages to form...');
+            parsedPackages.forEach((pkg, index) => {
+              console.log(`Parsed Package ${index}:`, pkg);
+              if (pkg && pkg.name) {
+                appendPackage(pkg);
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Failed to parse packages JSON:', e);
+        }
+      }
     }
 
     if (vendorData.deliverables && Array.isArray(vendorData.deliverables) && vendorData.deliverables.length > 0) {
@@ -298,6 +458,18 @@ const VendorProfileEdit: React.FC = () => {
       });
     }
 
+    // Add catalog images from the parameter (loaded separately)
+    const imagesToUse = catalogImagesData || catalogImages;
+    if (imagesToUse && imagesToUse.length > 0) {
+      console.log('Adding catalog images from parameter/state:', imagesToUse);
+      imagesToUse.forEach(url => {
+        if (url && url.trim() !== '') {
+          appendCatalogImage(url);
+        }
+      });
+    }
+
+    console.log('=== FORM POPULATION COMPLETE ===');
     console.log('Form populated with vendor data');
     setLoading(false);
   };
@@ -307,18 +479,22 @@ const VendorProfileEdit: React.FC = () => {
     setPendingChanges(pending);
   };
 
-  const loadCatalogImages = async (vendorId: string) => {
+  const loadCatalogImages = async (vendorId: string): Promise<string[]> => {
     try {
+      console.log('=== LOADING CATALOG IMAGES ===');
+      console.log('Vendor ID:', vendorId);
       const media = await getVendorMedia(vendorId, 'catalog');
+      console.log('Media data returned:', media);
       const imageUrls = media.map(item => item.media_url);
+      console.log('Image URLs:', imageUrls);
       setCatalogImages(imageUrls);
       
-      // Add existing catalog images to form
-      imageUrls.forEach(url => {
-        appendCatalogImage(url);
-      });
+      // Return the image URLs for immediate use
+      console.log('Catalog images loaded, returning:', imageUrls);
+      return imageUrls;
     } catch (error) {
       console.error('Error loading catalog images:', error);
+      return [];
     }
   };
 
@@ -343,8 +519,13 @@ const VendorProfileEdit: React.FC = () => {
         address: vendor.address || '',
         description: vendor.description || '',
         experience: vendor.experience || '',
+        quick_intro: vendor.quick_intro || '',
+        caption: vendor.caption || '',
+        detailed_intro: vendor.detailed_intro || '',
         avatar_url: vendor.avatar_url || '',
         cover_image_url: vendor.cover_image_url || '',
+        brand_logo_url: vendor.brand_logo_url || '',
+        contact_person_image_url: vendor.contact_person_image_url || '',
         specialties: vendor.specialties || [],
         services: vendor.services || [],
         packages: vendor.packages || [],
@@ -372,8 +553,13 @@ const VendorProfileEdit: React.FC = () => {
         address: data.address || '',
         description: data.description || '',
         experience: data.experience || '',
+        quick_intro: data.quick_intro || '',
+        caption: data.caption || '',
+        detailed_intro: data.detailed_intro || '',
         avatar_url: data.avatar_url || '',
         cover_image_url: data.cover_image_url || '',
+        brand_logo_url: data.brand_logo_url || '',
+        contact_person_image_url: data.contact_person_image_url || '',
         specialties: data.specialties?.filter(s => s && s.trim() !== '') || [],
         services: data.services?.filter(s => s.name && s.name.trim() !== '') || [],
         packages: data.packages?.filter(p => p.name && p.name.trim() !== '').map(pkg => ({
@@ -405,6 +591,15 @@ const VendorProfileEdit: React.FC = () => {
       };
 
       console.log('Processed form data:', processedFormData);
+      console.log('=== CONTENT FIELDS CHECK ===');
+      console.log('Form quick_intro:', data.quick_intro);
+      console.log('Form caption:', data.caption);
+      console.log('Form detailed_intro:', data.detailed_intro);
+      console.log('Form brand_logo_url:', data.brand_logo_url);
+      console.log('Form contact_person_image_url:', data.contact_person_image_url);
+      console.log('Processed quick_intro:', processedFormData.quick_intro);
+      console.log('Processed caption:', processedFormData.caption);
+      console.log('Processed detailed_intro:', processedFormData.detailed_intro);
 
       // Helper function to check if an object/array is effectively empty
       const isEffectivelyEmpty = (value: any): boolean => {
@@ -606,6 +801,25 @@ const VendorProfileEdit: React.FC = () => {
           </Card>
         )}
 
+        {/* Debug: Force Refresh Button */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-blue-800">Debug: Data Loading</h3>
+                <p className="text-sm text-blue-600">If data is not showing, try refreshing the data from database</p>
+              </div>
+              <Button 
+                onClick={() => setForceRefresh(prev => prev + 1)}
+                variant="outline"
+                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                🔄 Refresh Data
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Information */}
           <Card>
@@ -668,6 +882,124 @@ const VendorProfileEdit: React.FC = () => {
                     {...register("subcategory")}
                     placeholder="Enter subcategory (optional)"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Brand/Company Logo Image
+                  </label>
+                  <Input
+                    {...register("brand_logo_url")}
+                    type="url"
+                    placeholder="https://example.com/brand-logo.jpg"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Upload your brand/company logo</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Contact Person Image
+                  </label>
+                  <Input
+                    {...register("contact_person_image_url")}
+                    type="url"
+                    placeholder="https://example.com/contact-person.jpg"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Upload contact person's photo</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Content */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Content</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Preview Image */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+                <h4 className="text-lg font-semibold text-blue-800 mb-3">Preview: How your content will appear</h4>
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div className="space-y-4">
+                    <h2 className="text-3xl font-bold text-gray-800">
+                      Creative floral decorations with unique designs.
+                      <div className="w-16 h-1 bg-orange-400 mt-2"></div>
+                    </h2>
+                    <p className="text-lg text-amber-700 font-medium italic">
+                      "Namaskaram! Professional decorators services with South Indian expertise"
+                    </p>
+                    <p className="text-lg text-gray-700">
+                      Professional decorators services with 7+ years years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 text-sm text-blue-600">
+                  <p><strong>Top text</strong> = Quick Intro | <strong>Middle text (italic)</strong> = Caption | <strong>Bottom text</strong> = Detailed Intro</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quick Intro <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  {...register("quick_intro", { 
+                    required: "Quick intro is required",
+                    maxLength: { value: 60, message: "Quick intro must not exceed 60 characters" }
+                  })}
+                  maxLength={60}
+                  placeholder="e.g., Creative wedding photography with artistic vision"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-sm text-gray-500">Short catchy intro line for your services</p>
+                  <span className="text-xs text-gray-400">{watch("quick_intro")?.length || 0}/60</span>
+                </div>
+                {errors.quick_intro && (
+                  <p className="text-red-500 text-sm mt-1">{errors.quick_intro.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Caption <span className="text-sm text-gray-500">(Optional)</span>
+                  </label>
+                  <Input
+                    {...register("caption", {
+                      maxLength: { value: 60, message: "Caption must not exceed 60 characters" }
+                    })}
+                    maxLength={60}
+                    placeholder="e.g., Namaskaram! Capturing moments with expertise"
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm text-gray-500">Cultural greeting or tagline</p>
+                    <span className="text-xs text-gray-400">{watch("caption")?.length || 0}/60</span>
+                  </div>
+                  {errors.caption && (
+                    <p className="text-red-500 text-sm mt-1">{errors.caption.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Detailed Intro <span className="text-sm text-gray-500">(Optional)</span>
+                  </label>
+                  <Textarea
+                    {...register("detailed_intro", {
+                      maxLength: { value: 300, message: "Detailed intro must not exceed 300 characters" }
+                    })}
+                    maxLength={300}
+                    placeholder="Professional services with years of experience..."
+                    rows={3}
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm text-gray-500">Detailed description of your services</p>
+                    <span className="text-xs text-gray-400">{watch("detailed_intro")?.length || 0}/300</span>
+                  </div>
+                  {errors.detailed_intro && (
+                    <p className="text-red-500 text-sm mt-1">{errors.detailed_intro.message}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -784,6 +1116,7 @@ const VendorProfileEdit: React.FC = () => {
                   </label>
                 </div>
               </div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -734,14 +734,32 @@ const AdminDashboard = () => {
                               const isChanged = currentValue !== undefined && currentValue !== value;
                               const isNew = currentValue === undefined;
                               
+                              // Better field name mapping for display
+                              const getFieldDisplayName = (fieldKey: string) => {
+                                const fieldNames: Record<string, string> = {
+                                  'quick_intro': 'Quick Intro',
+                                  'caption': 'Caption',
+                                  'detailed_intro': 'Detailed Intro',
+                                  'brand_logo_url': 'Brand Logo',
+                                  'contact_person_image_url': 'Contact Person Image',
+                                  'brand_name': 'Brand Name',
+                                  'spoc_name': 'Contact Person Name',
+                                  'phone_number': 'Phone Number',
+                                  'whatsapp_number': 'WhatsApp Number',
+                                  'avatar_url': 'Avatar URL',
+                                  'cover_image_url': 'Cover Image URL'
+                                };
+                                return fieldNames[fieldKey] || fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                              };
+                              
                               return (
                                 <div key={key} className={`flex p-2 rounded ${
                                   isNew ? 'bg-blue-100 border-l-4 border-blue-500' :
                                   isChanged ? 'bg-yellow-100 border-l-4 border-yellow-500' :
                                   'bg-gray-50'
                                 }`}>
-                                  <span className="font-medium text-gray-700 w-32 capitalize">
-                                    {key.replace(/_/g, ' ')}:
+                                  <span className="font-medium text-gray-700 w-32">
+                                    {getFieldDisplayName(key)}:
                                   </span>
                                   <span className={`font-medium ${
                                     isNew ? 'text-blue-800' :

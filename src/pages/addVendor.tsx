@@ -14,6 +14,8 @@ type VendorFormInputs = {
   spoc_name?: string;
   category?: string;
   subcategory?: string;
+  brand_logo_url?: string;
+  contact_person_image_url?: string;
   
   // Contact Information
   phone_number?: string;
@@ -26,6 +28,9 @@ type VendorFormInputs = {
   // Business Details
   description?: string;
   experience?: string;
+  quick_intro?: string;
+  caption?: string;
+  detailed_intro?: string;
   avatar_url?: string;
   cover_image_url?: string;
   
@@ -91,6 +96,8 @@ export default function AddVendor() {
       spoc_name: "",
       category: "",
       subcategory: "",
+      brand_logo_url: "",
+      contact_person_image_url: "",
       
       // Contact Information
       phone_number: "",
@@ -103,6 +110,9 @@ export default function AddVendor() {
       // Business Details
       description: "",
       experience: "",
+      quick_intro: "",
+      caption: "",
+      detailed_intro: "",
       avatar_url: "",
       cover_image_url: "",
       
@@ -178,6 +188,8 @@ export default function AddVendor() {
       spoc_name: "Rajesh Kumar",
       category: "Photographers",
       subcategory: "Wedding Photography",
+      brand_logo_url: "https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=400&h=400&fit=crop",
+      contact_person_image_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
       phone_number: "+91 98765 43210",
       alternate_number: "+91 87654 32109",
       whatsapp_number: "+91 98765 43210",
@@ -186,6 +198,9 @@ export default function AddVendor() {
       address: "123 MG Road, Hyderabad, Telangana 500001",
       description: "Professional wedding photography services with 10+ years of experience. Specializing in candid, traditional, and modern wedding photography.",
       experience: "10+ Years",
+      quick_intro: "Creative wedding photography with artistic vision",
+      caption: "Namaskaram! Capturing your precious moments with expertise and passion",
+      detailed_intro: "Professional photography services with 10+ years of experience. We specialize in creating memorable visual stories for your special occasions with attention to detail and artistic excellence.",
       avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
       cover_image_url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&h=400&fit=crop",
       specialties: ["Wedding Photography", "Pre-wedding Shoots", "Candid Photography", "Traditional Photography"],
@@ -426,7 +441,7 @@ export default function AddVendor() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block font-medium mb-2 text-gray-700">Brand Name</label>
+                <label className="block font-medium mb-2 text-gray-700">Brand Name *</label>
                 <input
                   {...register("brand_name")}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -435,16 +450,16 @@ export default function AddVendor() {
               </div>
 
               <div>
-                <label className="block font-medium mb-2 text-gray-700">Contact Person Name</label>
+                <label className="block font-medium mb-2 text-gray-700">Contact Person Name *</label>
                 <input
                   {...register("spoc_name")}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter contact person name"
                 />
-            </div>
+              </div>
 
               <div>
-                <label className="block font-medium mb-2 text-gray-700">Category</label>
+                <label className="block font-medium mb-2 text-gray-700">Category *</label>
                 <select
                   {...register("category")}
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -465,6 +480,116 @@ export default function AddVendor() {
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter subcategory (optional)"
                 />
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Brand/Company Logo Image</label>
+                <input
+                  {...register("brand_logo_url")}
+                  type="url"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://example.com/brand-logo.jpg"
+                />
+                <p className="text-sm text-gray-500 mt-1">Upload your brand/company logo</p>
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Contact Person Image</label>
+                <input
+                  {...register("contact_person_image_url")}
+                  type="url"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://example.com/contact-person.jpg"
+                />
+                <p className="text-sm text-gray-500 mt-1">Upload contact person's photo</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Content */}
+          <section className="space-y-4">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Content</h3>
+            
+            {/* Preview Image */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200">
+              <h4 className="text-lg font-semibold text-blue-800 mb-3">Preview: How your content will appear</h4>
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-bold text-gray-800">
+                    Creative floral decorations with unique designs.
+                    <div className="w-16 h-1 bg-orange-400 mt-2"></div>
+                  </h2>
+                  <p className="text-lg text-amber-700 font-medium italic">
+                    "Namaskaram! Professional decorators services with South Indian expertise"
+                  </p>
+                  <p className="text-lg text-gray-700">
+                    Professional decorators services with 7+ years years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 text-sm text-blue-600">
+                <p><strong>Top text</strong> = Quick Intro | <strong>Middle text (italic)</strong> = Caption | <strong>Bottom text</strong> = Detailed Intro</p>
+              </div>
+            </div>
+            
+            <div>
+              <label className="block font-medium mb-2 text-gray-700">Quick Intro <span className="text-red-500">*</span></label>
+              <input
+                {...register("quick_intro", { 
+                  required: "Quick intro is required",
+                  maxLength: { value: 60, message: "Quick intro must not exceed 60 characters" }
+                })}
+                maxLength={60}
+                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., Creative wedding photography with artistic vision"
+              />
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-sm text-gray-500">Short catchy intro line for your services</p>
+                <span className="text-xs text-gray-400">{watch("quick_intro")?.length || 0}/60</span>
+              </div>
+              {errors.quick_intro && (
+                <p className="text-red-500 text-sm mt-1">{errors.quick_intro.message}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Caption <span className="text-sm text-gray-500">(Optional)</span></label>
+                <input
+                  {...register("caption", {
+                    maxLength: { value: 60, message: "Caption must not exceed 60 characters" }
+                  })}
+                  maxLength={60}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., Namaskaram! Capturing moments with expertise"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-sm text-gray-500">Cultural greeting or tagline</p>
+                  <span className="text-xs text-gray-400">{watch("caption")?.length || 0}/60</span>
+                </div>
+                {errors.caption && (
+                  <p className="text-red-500 text-sm mt-1">{errors.caption.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Detailed Intro <span className="text-sm text-gray-500">(Optional)</span></label>
+                <textarea
+                  {...register("detailed_intro", {
+                    maxLength: { value: 300, message: "Detailed intro must not exceed 300 characters" }
+                  })}
+                  maxLength={300}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Professional services with years of experience..."
+                  rows={3}
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-sm text-gray-500">Detailed description of your services</p>
+                  <span className="text-xs text-gray-400">{watch("detailed_intro")?.length || 0}/300</span>
+                </div>
+                {errors.detailed_intro && (
+                  <p className="text-red-500 text-sm mt-1">{errors.detailed_intro.message}</p>
+                )}
               </div>
             </div>
           </section>
@@ -585,6 +710,7 @@ export default function AddVendor() {
                 placeholder="https://example.com/cover.jpg (optional)"
               />
             </div>
+
 
             <div>
               <label className="block font-medium mb-2 text-gray-700">Description</label>

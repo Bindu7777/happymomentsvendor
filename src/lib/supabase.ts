@@ -38,6 +38,9 @@ export interface Vendor {
   // Business Details
   description?: string
   experience?: string
+  quick_intro?: string
+  caption?: string
+  detailed_intro?: string
   total_events?: number
   rating?: number
   review_count?: number
@@ -47,6 +50,8 @@ export interface Vendor {
   // Media URLs
   avatar_url?: string
   cover_image_url?: string
+  brand_logo_url?: string
+  contact_person_image_url?: string
   
   // JSON Data Fields
   specialties?: any
@@ -77,7 +82,7 @@ export interface VendorMedia {
   vendor_id: string
   media_url: string
   media_type: 'image' | 'video'
-  category: 'catalog' | 'highlights' | 'portfolio' | 'gallery' | 'avatar' | 'cover'
+  category: 'catalog' | 'highlights' | 'portfolio' | 'gallery' | 'avatar' | 'cover' | 'brand_logo' | 'contact_person'
   title?: string
   description?: string
   alt_text?: string

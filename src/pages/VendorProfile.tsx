@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -8,8 +9,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
+import { Vendor } from '../lib/supabase';
+import { getVendorByFieldId, getVendorMedia } from '../services/supabaseService';
 
 const VendorProfile = () => {
+  const { vendorId } = useParams<{ vendorId: string }>();
+  const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -24,8 +31,49 @@ const VendorProfile = () => {
   const [recentClaims, setRecentClaims] = useState(47);
   const [showRatingTooltip, setShowRatingTooltip] = useState(false);
 
-  // Enhanced photographer data with modern structure
-  const photographer = {
+  // Load vendor data if vendorId is provided
+  useEffect(() => {
+    const loadVendorData = async () => {
+      if (!vendorId) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        console.log('Loading vendor with ID:', vendorId);
+        
+        // Convert string vendorId to number
+        const vendorIdNum = parseInt(vendorId);
+        if (isNaN(vendorIdNum)) {
+          throw new Error('Invalid vendor ID');
+        }
+
+        // Fetch vendor data
+        const vendorData = await getVendorByFieldId(vendorIdNum.toString());
+        console.log('Fetched vendor data:', vendorData);
+        
+        if (!vendorData) {
+          throw new Error("Vendor not found");
+        }
+
+        setVendor(vendorData);
+
+      } catch (err) {
+        console.error("Failed to fetch vendor details:", err);
+        setError(err instanceof Error ? err.message : 'Failed to load vendor details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVendorData();
+  }, [vendorId]);
+
+  // Enhanced photographer data with modern structure (fallback for when no vendorId)
+  const defaultPhotographer = {
     name: "Rajesh Kumar Photography",
     tagline: "Capturing Moments That Last Forever",
     bio: "Award-winning wedding and event photographer with 10+ years of capturing candid, creative, and timeless moments. Passionate about telling stories through the lens.",
@@ -112,6 +160,43 @@ const VendorProfile = () => {
       whatsapp: "+91 95507 93699"
     }
   };
+
+  // Use vendor data if available, otherwise fall back to default photographer data
+  const photographer = vendor ? {
+    name: vendor.brand_name || "Vendor",
+    tagline: vendor.description || "Professional Services",
+    bio: vendor.description || "Professional vendor services",
+    avatar: vendor.brand_logo_url || vendor.avatar_url || "/images/vendor.jpeg",
+    coverImage: vendor.cover_image_url || "/images/wedding.webp",
+    rating: 4.8, // Default rating since it's not in vendor data
+    reviewCount: 128, // Default review count
+    location: vendor.address || "Location not specified",
+    category: vendor.category || "Services",
+    subcategory: vendor.subcategory || "All Events",
+    verified: true,
+    responseTime: "2 hours",
+    yearsActive: 10,
+    experience: vendor.experience || "Professional",
+    additionalInfo: vendor.specialties || [],
+    highlights: [
+      {
+        image: "/images/image1.jpeg",
+        title: "Our Work",
+        description: "Professional service delivery"
+      }
+    ],
+    services: vendor.services || [],
+    packages: vendor.packages || defaultPhotographer.packages,
+    portfolio: vendor.catalog_images || ["/images/image1.jpeg", "/images/image2.jpeg"],
+    reviews: vendor.customer_reviews || [],
+    contact: {
+      phone: vendor.phone_number || "",
+      email: vendor.email || "",
+      instagram: vendor.instagram || "",
+      website: "",
+      whatsapp: vendor.whatsapp_number || vendor.phone_number || ""
+    }
+  } : defaultPhotographer;
 
   const portfolioImages = photographer.portfolio;
 
@@ -200,6 +285,33 @@ I'm really excited to connect and explore working with you soon! ✨`;
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + photographer.highlights.length) % photographer.highlights.length);
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading vendor profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Error Loading Profile</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} className="bg-blue-600 hover:bg-blue-700">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -481,13 +593,13 @@ I'm really excited to connect and explore working with you soon! ✨`;
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
                   <img 
-                    src={photographer.avatar} 
-                    alt={photographer.name}
+                    src={vendor?.contact_person_image_url || photographer.avatar} 
+                    alt={vendor?.spoc_name || "Contact Person"}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
-                  <div className="font-bold text-gray-800">Rajesh</div>
+                  <div className="font-bold text-gray-800">{vendor?.spoc_name || "Contact Person"}</div>
                   <div className="text-sm text-blue-600 flex items-center gap-1">
                     <Users className="w-3 h-3" />
                     Contact Person
@@ -567,13 +679,13 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       <div className="flex flex-col items-center -ml-6">
                         <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-blue-500 flex-shrink-0 shadow-lg">
                           <img 
-                            src={photographer.avatar} 
-                            alt={photographer.name}
+                            src={vendor?.contact_person_image_url || photographer.avatar} 
+                            alt={vendor?.spoc_name || "Contact Person"}
                             className="w-full h-full object-cover rounded-full"
                           />
                         </div>
                         <div className="text-center mt-3 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl shadow-md border border-gray-200">
-                          <div className="text-lg font-bold text-gray-800">Rajesh</div>
+                          <div className="text-lg font-bold text-gray-800">{vendor?.spoc_name || "Contact Person"}</div>
                           <div className="text-sm font-semibold text-blue-600 flex items-center gap-1">
                             <Users className="w-3 h-3" />
                             Contact Person
@@ -596,18 +708,20 @@ I'm really excited to connect and explore working with you soon! ✨`;
 
                     {/* Tagline */}
                     <p className="text-4xl lg:text-5xl font-bold text-gray-800 mb-8 leading-relaxed relative">
-                      <span className="relative z-10">{photographer.tagline}</span>
+                      <span className="relative z-10">{vendor?.quick_intro || photographer.tagline}</span>
                       <div className="absolute -bottom-2 left-0 w-24 h-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"></div>
                     </p>
                     
                     {/* Cultural Greeting */}
-                    <p className="text-xl text-amber-700 font-medium mb-10 italic">
-                      "Namaskaram! Capturing your precious moments with South Indian wedding expertise"
-                    </p>
+                    {(vendor?.caption || photographer.name) && (
+                      <p className="text-xl text-amber-700 font-medium mb-10 italic">
+                        "{vendor?.caption || 'Namaskaram! Capturing your precious moments with expertise'}"
+                      </p>
+                    )}
 
                     {/* Bio */}
                     <p className="text-xl text-gray-700 mb-12 leading-relaxed">
-                      Award-winning wedding photographer specializing in South Indian ceremonies. 10+ years of experience capturing Telugu, Tamil, Malayali & Kannada weddings across Hyderabad, Chennai, Bangalore & Mumbai. Expert in traditional rituals like Mangalsutra tying, Oonjal, and Muhurtham ceremonies.
+                      {vendor?.detailed_intro || photographer.bio}
                     </p>
 
                     {/* Details Icons Row */}
@@ -809,49 +923,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 </h2>
                 <p className="text-gray-600 mb-8 text-lg">Complete packages designed for South Indian wedding traditions</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {[
-                    { 
-                      name: "Essential", 
-                      popular: false,
-                      features: [
-                        "8 hours coverage",
-                        "300+ edited photos",
-                        "Pre-wedding shoot",
-                        "Wedding day photography",
-                        "Basic editing",
-                        "Online gallery"
-                      ]
-                    },
-                    { 
-                      name: "Premium", 
-                      popular: true,
-                      features: [
-                        "12 hours coverage",
-                        "500+ edited photos",
-                        "Pre-wedding + Haldi",
-                        "Full wedding day",
-                        "Reception coverage",
-                        "Professional editing",
-                        "Drone shots included",
-                        "Same day preview"
-                      ]
-                    },
-                    { 
-                      name: "Luxury", 
-                      popular: false,
-                      features: [
-                        "16 hours coverage",
-                        "800+ edited photos",
-                        "All pre-wedding events",
-                        "Complete wedding day",
-                        "Reception + after-party",
-                        "Premium editing",
-                        "Drone + video highlights",
-                        "Same day preview",
-                        "Printed album included"
-                      ]
-                    }
-                  ].map((pkg, index) => (
+                  {photographer.packages.map((pkg, index) => (
                     <div 
                       key={index}
                       className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
@@ -867,10 +939,15 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       )}
                       <div className="text-center mb-6">
                         <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
-                        <div className="text-sm text-gray-500">Complete package for South Indian weddings</div>
+                        {pkg.price && (
+                          <div className="text-lg font-bold text-blue-600 mb-2">{pkg.price}</div>
+                        )}
+                        <div className="text-sm text-gray-500">
+                          {pkg.description || "Complete package for South Indian weddings"}
+                        </div>
                       </div>
                       <ul className="space-y-3 mb-8">
-                        {pkg.features.map((feature, idx) => (
+                        {(pkg.features || []).map((feature, idx) => (
                           <li key={idx} className="flex items-center gap-3 text-gray-700">
                             <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                             <span className="text-sm font-medium">{feature}</span>

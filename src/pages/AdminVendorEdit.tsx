@@ -20,6 +20,8 @@ type VendorEditForm = {
   spoc_name: string;
   category: string;
   subcategory?: string;
+  brand_logo_url?: string;
+  contact_person_image_url?: string;
   phone_number: string;
   whatsapp_number?: string;
   email?: string;
@@ -27,6 +29,9 @@ type VendorEditForm = {
   address?: string;
   description?: string;
   experience?: string;
+  quick_intro?: string;
+  caption?: string;
+  detailed_intro?: string;
   avatar_url?: string;
   cover_image_url?: string;
   deliverables?: string[];
@@ -282,6 +287,128 @@ const AdminVendorEdit = () => {
                   placeholder="Enter subcategory (optional)"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Brand/Company Logo Image
+                </label>
+                <input
+                  {...register("brand_logo_url")}
+                  type="url"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://example.com/brand-logo.jpg"
+                />
+                <p className="text-sm text-gray-500 mt-1">Upload your brand/company logo</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contact Person Image
+                </label>
+                <input
+                  {...register("contact_person_image_url")}
+                  type="url"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://example.com/contact-person.jpg"
+                />
+                <p className="text-sm text-gray-500 mt-1">Upload contact person's photo</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-6">Content</h3>
+            
+            {/* Preview Image */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border-2 border-blue-200 mb-6">
+              <h4 className="text-lg font-semibold text-blue-800 mb-3">Preview: How your content will appear</h4>
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-bold text-gray-800">
+                    Creative floral decorations with unique designs.
+                    <div className="w-16 h-1 bg-orange-400 mt-2"></div>
+                  </h2>
+                  <p className="text-lg text-amber-700 font-medium italic">
+                    "Namaskaram! Professional decorators services with South Indian expertise"
+                  </p>
+                  <p className="text-lg text-gray-700">
+                    Professional decorators services with 7+ years years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-3 text-sm text-blue-600">
+                <p><strong>Top text</strong> = Quick Intro | <strong>Middle text (italic)</strong> = Caption | <strong>Bottom text</strong> = Detailed Intro</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quick Intro <span className="text-red-500">*</span>
+                </label>
+                <input
+                  {...register("quick_intro", { 
+                    required: "Quick intro is required",
+                    maxLength: { value: 60, message: "Quick intro must not exceed 60 characters" }
+                  })}
+                  maxLength={60}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Creative wedding photography with artistic vision"
+                />
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-sm text-gray-500">Short catchy intro line for services</p>
+                  <span className="text-xs text-gray-400">{watch("quick_intro")?.length || 0}/60</span>
+                </div>
+                {errors.quick_intro && (
+                  <p className="text-red-500 text-sm mt-1">{errors.quick_intro.message}</p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Caption <span className="text-sm text-gray-500">(Optional)</span>
+                  </label>
+                  <input
+                    {...register("caption", {
+                      maxLength: { value: 60, message: "Caption must not exceed 60 characters" }
+                    })}
+                    maxLength={60}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="e.g., Namaskaram! Capturing moments with expertise"
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm text-gray-500">Cultural greeting or tagline</p>
+                    <span className="text-xs text-gray-400">{watch("caption")?.length || 0}/60</span>
+                  </div>
+                  {errors.caption && (
+                    <p className="text-red-500 text-sm mt-1">{errors.caption.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Detailed Intro <span className="text-sm text-gray-500">(Optional)</span>
+                  </label>
+                  <textarea
+                    {...register("detailed_intro", {
+                      maxLength: { value: 300, message: "Detailed intro must not exceed 300 characters" }
+                    })}
+                    maxLength={300}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Professional services with years of experience..."
+                  />
+                  <div className="flex justify-between items-center mt-1">
+                    <p className="text-sm text-gray-500">Detailed description of services</p>
+                    <span className="text-xs text-gray-400">{watch("detailed_intro")?.length || 0}/300</span>
+                  </div>
+                  {errors.detailed_intro && (
+                    <p className="text-red-500 text-sm mt-1">{errors.detailed_intro.message}</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -419,6 +546,7 @@ const AdminVendorEdit = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
+
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">

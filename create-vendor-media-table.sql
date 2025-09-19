@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS vendor_media (
   vendor_id TEXT NOT NULL,
   media_url TEXT NOT NULL,
   media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('image', 'video')),
-  category VARCHAR(50) NOT NULL CHECK (category IN ('catalog', 'highlights', 'portfolio', 'gallery', 'avatar', 'cover')),
+  category VARCHAR(50) NOT NULL CHECK (category IN ('catalog', 'highlights', 'portfolio', 'gallery', 'avatar', 'cover', 'brand_logo', 'contact_person')),
   title TEXT,
   description TEXT,
   alt_text TEXT,
@@ -59,7 +59,7 @@ END $$;
 COMMENT ON TABLE vendor_media IS 'Stores media files (images/videos) for vendors including catalog images, portfolio, gallery, etc.';
 COMMENT ON COLUMN vendor_media.vendor_id IS 'Reference to the vendor who owns this media';
 COMMENT ON COLUMN vendor_media.media_type IS 'Type of media: image or video';
-COMMENT ON COLUMN vendor_media.category IS 'Category of media: catalog, highlights, portfolio, gallery, avatar, cover';
+COMMENT ON COLUMN vendor_media.category IS 'Category of media: catalog, highlights, portfolio, gallery, avatar, cover, brand_logo, contact_person';
 COMMENT ON COLUMN vendor_media.order_index IS 'Order of display within the category';
 COMMENT ON COLUMN vendor_media.featured IS 'Whether this media is featured/highlighted';
 COMMENT ON COLUMN vendor_media.public IS 'Whether this media is publicly visible';

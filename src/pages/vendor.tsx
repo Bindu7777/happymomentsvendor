@@ -902,44 +902,10 @@ const VendorProfile = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {/* Placeholder images when no catalog images are available */}
-                    {[
-                      "/images/image1.jpeg",
-                      "/images/image2.jpeg",
-                      "/images/image1.jpeg",
-                      "/images/image2.jpeg"
-                    ].map((image, index) => (
-                      <Dialog key={index}>
-                        <DialogTrigger asChild>
-                          <div 
-                            className="relative group cursor-pointer overflow-hidden rounded-xl"
-                            onClick={(e) => { e.stopPropagation(); }}
-                          >
-                            <img 
-                              src={image} 
-                              alt={`Sample work ${index + 1}`}
-                              className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                              <div className="text-white text-center">
-                                <Camera className="w-8 h-8 mx-auto mb-2" />
-                                <span className="text-sm font-medium">View Full Size</span>
-                              </div>
-                            </div>
-                          </div>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-6xl">
-                          <div className="relative">
-                            <img 
-                              src={image} 
-                              alt={`Sample work ${index + 1}`}
-                              className="w-full h-auto rounded-lg"
-                            />
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    ))}
+                  <div className="text-center py-12 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                    <Camera className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-medium text-gray-600 mb-2">No Catalog Images</h3>
+                    <p className="text-gray-500">This vendor hasn't added any catalog images yet.</p>
                   </div>
                 )}
               </CardContent>

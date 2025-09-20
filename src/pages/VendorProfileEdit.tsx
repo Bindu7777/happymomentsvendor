@@ -216,6 +216,7 @@ const VendorProfileEdit: React.FC = () => {
         // Load catalog images
         try {
           catalogImages = await loadCatalogImages(finalVendorData.vendor_id);
+          console.log('Catalog images loaded successfully:', catalogImages);
         } catch (catalogError) {
           console.error('Error loading catalog images:', catalogError);
           catalogImages = [];
@@ -223,6 +224,7 @@ const VendorProfileEdit: React.FC = () => {
         
         // Load form with final data - SINGLE CALL ONLY
         console.log('Loading form with final vendor data (single call)');
+        console.log('Passing catalogImages to loadVendorData:', catalogImages);
         loadVendorData(finalVendorData, catalogImages);
         
         // Load pending changes
@@ -358,9 +360,11 @@ const VendorProfileEdit: React.FC = () => {
     }
     
     // Clear catalog images
+    console.log('Clearing catalog images - current count:', catalogImageFields.length);
     while (catalogImageFields.length > 0) {
       removeCatalogImage(0);
     }
+    console.log('Catalog images cleared - new count:', catalogImageFields.length);
     
     // Clear reviews
     while (reviewFields.length > 0) {
@@ -543,15 +547,31 @@ const VendorProfileEdit: React.FC = () => {
 
     // Add catalog images from the parameter (loaded separately)
     const imagesToUse = catalogImagesData || catalogImages;
+    console.log('=== CATALOG IMAGES PROCESSING ===');
+    console.log('catalogImagesData (parameter):', catalogImagesData);
+    console.log('catalogImages (state):', catalogImages);
+    console.log('imagesToUse (final):', imagesToUse);
+    console.log('imagesToUse length:', imagesToUse ? imagesToUse.length : 'undefined');
+    
     if (imagesToUse && imagesToUse.length > 0) {
       console.log('Adding catalog images from parameter/state:', imagesToUse);
       
       const uniqueImages = deduplicateStringArray(imagesToUse);
       console.log('Unique catalog images after deduplication:', uniqueImages);
       
-      uniqueImages.forEach(url => {
+      uniqueImages.forEach((url, index) => {
+        console.log(`Adding catalog image ${index + 1}:`, url);
         appendCatalogImage(url);
       });
+      console.log(`Successfully added ${uniqueImages.length} catalog images to form`);
+      
+      // Force a small delay to ensure form updates
+      setTimeout(() => {
+        console.log('Current catalogImageFields length after adding:', catalogImageFields.length);
+      }, 100);
+    } else {
+      console.log('No catalog images to add - imagesToUse is empty or undefined');
+      console.log('Current catalogImageFields length (should be 0):', catalogImageFields.length);
     }
 
     console.log('=== FORM POPULATION COMPLETE ===');
@@ -569,10 +589,36 @@ const VendorProfileEdit: React.FC = () => {
     try {
       console.log('=== LOADING CATALOG IMAGES ===');
       console.log('Vendor ID:', vendorId);
+      console.log('Vendor ID type:', typeof vendorId);
+      
+      // Test the getVendorMedia function directly
+      console.log('Calling getVendorMedia...');
       const media = await getVendorMedia(vendorId, 'catalog');
-      console.log('Media data returned:', media);
-      const imageUrls = media.map(item => item.media_url);
-      console.log('Image URLs:', imageUrls);
+      console.log('Raw media data returned:', media);
+      console.log('Media data type:', typeof media);
+      console.log('Media data length:', media ? media.length : 'undefined');
+      console.log('Is media an array?', Array.isArray(media));
+      
+      if (!media || !Array.isArray(media)) {
+        console.warn('Media data is not an array:', typeof media);
+        console.warn('Media value:', media);
+        return [];
+      }
+      
+      if (media.length === 0) {
+        console.warn('Media array is empty - no catalog images found for vendor:', vendorId);
+        return [];
+      }
+      
+      const imageUrls = media.map((item, index) => {
+        console.log(`Processing media item ${index + 1}:`, item);
+        console.log(`Media URL ${index + 1}:`, item.media_url);
+        return item.media_url;
+      });
+      console.log('Extracted image URLs:', imageUrls);
+      console.log('Image URLs length:', imageUrls.length);
+      console.log('Image URLs array:', JSON.stringify(imageUrls, null, 2));
+      
       setCatalogImages(imageUrls);
       
       // Return the image URLs for immediate use
@@ -580,6 +626,8 @@ const VendorProfileEdit: React.FC = () => {
       return imageUrls;
     } catch (error) {
       console.error('Error loading catalog images:', error);
+      console.error('Error details:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       return [];
     }
   };

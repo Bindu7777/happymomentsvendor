@@ -58,10 +58,10 @@ const heroBackgrounds = [
   {
     id: 3,
     url: "images/corporate.jpg",
-    alt: "Beautiful wedding floral arrangements"
+    alt: "Beautiful corporate event arrangements"
   },
   {
-    id: 3,
+    id: 4,
     url: "images/wedding.webp",
     alt: "Beautiful wedding floral arrangements"
   },

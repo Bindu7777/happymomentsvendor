@@ -187,7 +187,7 @@ const VendorProfile = () => {
     ],
     services: vendor.specialties || vendor.services || [],
     packages: vendor.packages || defaultPhotographer.packages,
-    portfolio: vendor.catalog_images || ["/images/image1.jpeg", "/images/image2.jpeg"],
+    portfolio: vendor.catalog_images || [],
     reviews: vendor.customer_reviews || [],
     contact: {
       phone: vendor.phone_number || "",

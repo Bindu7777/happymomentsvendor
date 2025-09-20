@@ -75,6 +75,17 @@ type VendorEditForm = {
   currently_available: boolean;
 };
 
+// Utility function to remove duplicates from string arrays (case-insensitive)
+const deduplicateStringArray = (array: string[]): string[] => {
+  if (!Array.isArray(array)) return [];
+  
+  return array.filter((item, index, arr) => {
+    if (!item || typeof item !== 'string' || item.trim() === '') return false;
+    const trimmedLower = item.trim().toLowerCase();
+    return arr.findIndex(arrItem => arrItem && typeof arrItem === 'string' && arrItem.trim().toLowerCase() === trimmedLower) === index;
+  }).map(item => item.trim());
+};
+
 const VendorProfileEdit: React.FC = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,6 +95,7 @@ const VendorProfileEdit: React.FC = () => {
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<string[]>([]);
   const [forceRefresh, setForceRefresh] = useState(0);
+  const [isLoadingFormData, setIsLoadingFormData] = useState(false);
   const navigate = useNavigate();
 
   const {
@@ -168,17 +180,7 @@ const VendorProfileEdit: React.FC = () => {
     name: "highlight_features" as any
   });
 
-  // Simplified services loading
-  useEffect(() => {
-    if (vendor && vendor.specialties && Array.isArray(vendor.specialties) && serviceFields.length === 0) {
-      // Only load if services are empty to avoid infinite loops
-      vendor.specialties.forEach((specialty) => {
-        if (specialty && specialty.trim() !== '') {
-          appendService({ name: specialty, description: '', price: '' });
-        }
-      });
-    }
-  }, [vendor?.specialties]);
+  // Removed duplicate services loading - now handled in loadVendorData function
 
   useEffect(() => {
     const initializeVendorData = async () => {
@@ -192,48 +194,47 @@ const VendorProfileEdit: React.FC = () => {
       try {
         console.log('Loading vendor data for profile edit...');
         
-        // Use cached data first for faster loading
+        // Set vendor first
         setVendor(loggedInVendor);
         
-        // Load form with cached data immediately
-        loadVendorData(loggedInVendor, []);
+        // Try to get fresh data from database first
+        let finalVendorData = loggedInVendor;
+        let catalogImages: string[] = [];
         
-        // Load additional data in background
-        Promise.all([
-          loadCatalogImages(loggedInVendor.vendor_id),
-          loadPendingChanges(parseInt(loggedInVendor.vendor_id))
-        ]).then(([catalogImages, _]) => {
-          setCatalogImages(catalogImages);
-          console.log('Background data loaded');
-        }).catch(error => {
-          console.error('Error loading background data:', error);
-        });
-      } catch (error) {
-        console.error('Error refreshing vendor data:', error);
-        // Fallback: fetch directly from database using vendor ID
         try {
-          console.log('Falling back to direct database fetch...');
-          const directVendorData = await getVendorByFieldId(loggedInVendor.vendor_id);
-          
-          if (!directVendorData) {
-            throw new Error('Failed to fetch vendor data from database');
+          console.log('Attempting to fetch fresh vendor data...');
+          const freshVendorData = await getVendorByFieldId(loggedInVendor.vendor_id);
+          if (freshVendorData) {
+            console.log('Using fresh vendor data:', freshVendorData);
+            finalVendorData = freshVendorData;
+            setVendor(freshVendorData);
           }
-          
-          console.log('Using direct vendor data:', directVendorData);
-          setVendor(directVendorData);
-          
-          const catalogImages = await loadCatalogImages(directVendorData.vendor_id);
-          loadVendorData(directVendorData, catalogImages);
-          loadPendingChanges(parseInt(directVendorData.vendor_id));
-        } catch (fallbackError) {
-          console.error('Fallback also failed:', fallbackError);
-          // Last resort: use localStorage data (but warn about potential issues)
-          console.warn('Using localStorage data - JSON fields may not be properly parsed');
-          setVendor(loggedInVendor);
-          const catalogImages = await loadCatalogImages(loggedInVendor.vendor_id);
-          loadVendorData(loggedInVendor, catalogImages);
-          loadPendingChanges(parseInt(loggedInVendor.vendor_id));
+        } catch (freshDataError) {
+          console.log('Could not fetch fresh data, using cached data:', freshDataError);
         }
+        
+        // Load catalog images
+        try {
+          catalogImages = await loadCatalogImages(finalVendorData.vendor_id);
+        } catch (catalogError) {
+          console.error('Error loading catalog images:', catalogError);
+          catalogImages = [];
+        }
+        
+        // Load form with final data - SINGLE CALL ONLY
+        console.log('Loading form with final vendor data (single call)');
+        loadVendorData(finalVendorData, catalogImages);
+        
+        // Load pending changes
+        loadPendingChanges(parseInt(finalVendorData.vendor_id));
+        
+      } catch (error) {
+        console.error('Error in initializeVendorData:', error);
+        // Last resort: use localStorage data only
+        console.warn('Using localStorage data as last resort');
+        setVendor(loggedInVendor);
+        loadVendorData(loggedInVendor, []);
+        loadPendingChanges(parseInt(loggedInVendor.vendor_id));
       }
     };
 
@@ -241,6 +242,13 @@ const VendorProfileEdit: React.FC = () => {
   }, [navigate, forceRefresh]);
 
   const loadVendorData = (vendorData: Vendor, catalogImagesData?: string[]) => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingFormData) {
+      console.log('Form data is already loading, skipping duplicate call');
+      return;
+    }
+    
+    setIsLoadingFormData(true);
     console.log('Loading vendor data...');
     
     // Helper function to check if an object/array is effectively empty
@@ -278,8 +286,10 @@ const VendorProfileEdit: React.FC = () => {
     setValue('quick_intro', vendorData.quick_intro || '');
     setValue('caption', vendorData.caption || '');
     setValue('detailed_intro', vendorData.detailed_intro || '');
-    setValue('highlight_features', vendorData.highlight_features || []);
-    setValue('services', vendorData.services || []);
+    // Don't set highlight_features here - we'll handle them in the array population section to avoid duplicates
+    // setValue('highlight_features', vendorData.highlight_features || []);
+    // Don't set services here - we'll handle them in the array population section to avoid duplicates
+    // setValue('services', vendorData.services || []);
     setValue('currently_available', vendorData.currently_available || false);
     
     console.log('=== SETTING FORM VALUES ===');
@@ -320,71 +330,214 @@ const VendorProfileEdit: React.FC = () => {
     // Handle array fields separately - CLEAR FIRST then populate
     console.log('=== CLEARING AND POPULATING ARRAYS ===');
     
-    // Clear all existing array fields first
-    // Reset form to prevent duplicates
+    // Clear all existing array fields first to prevent duplicates
+    console.log('Clearing existing array fields...');
+    console.log('Current field counts before clearing:', {
+      services: serviceFields.length,
+      packages: packageFields.length,
+      deliverables: deliverableFields.length,
+      catalogImages: catalogImageFields.length,
+      reviews: reviewFields.length,
+      customFields: customFields.length,
+      highlights: highlightFields.length
+    });
+    
+    // Clear services
+    while (serviceFields.length > 0) {
+      removeService(0);
+    }
+    
+    // Clear packages
+    while (packageFields.length > 0) {
+      removePackage(0);
+    }
+    
+    // Clear deliverables
+    while (deliverableFields.length > 0) {
+      removeDeliverable(0);
+    }
+    
+    // Clear catalog images
+    while (catalogImageFields.length > 0) {
+      removeCatalogImage(0);
+    }
+    
+    // Clear reviews
+    while (reviewFields.length > 0) {
+      removeReview(0);
+    }
+    
+    // Clear custom fields
+    while (customFields.length > 0) {
+      removeCustomField(0);
+    }
+    
+    // Clear highlight features
+    while (highlightFields.length > 0) {
+      removeHighlight(0);
+    }
+    
+    console.log('All arrays cleared. Current field counts after clearing:', {
+      services: serviceFields.length,
+      packages: packageFields.length,
+      deliverables: deliverableFields.length,
+      catalogImages: catalogImageFields.length,
+      reviews: reviewFields.length,
+      customFields: customFields.length,
+      highlights: highlightFields.length
+    });
+    console.log('Now populating with fresh data...');
     
     // Now populate with vendor data
+    
+    // Handle services - combine both vendorData.services and vendorData.specialties
+    console.log('=== PROCESSING SERVICES ===');
+    console.log('vendorData.services:', vendorData.services);
+    console.log('vendorData.specialties:', vendorData.specialties);
+    
+    const allServices: Array<{name: string, description: string, price?: string}> = [];
+    
+    // Add services from vendorData.services
+    if (vendorData.services && Array.isArray(vendorData.services) && vendorData.services.length > 0) {
+      console.log('Adding services from vendorData.services:', vendorData.services);
+      vendorData.services.forEach((service) => {
+        if (service && service.name && service.name.trim() !== '') {
+          allServices.push({
+            name: service.name.trim(),
+            description: service.description || '',
+            price: service.price || ''
+          });
+        }
+      });
+    }
+    
+    // Add services from specialties (convert to service format)
     if (vendorData.specialties && Array.isArray(vendorData.specialties) && vendorData.specialties.length > 0) {
       console.log('Adding specialties as services:', vendorData.specialties);
       vendorData.specialties.forEach((specialty) => {
         if (specialty && specialty.trim() !== '') {
-          appendService({ name: specialty, description: '', price: '' });
+          allServices.push({
+            name: specialty.trim(),
+            description: '',
+            price: ''
+          });
         }
       });
     }
-
-    // Services will be loaded by the useEffect hook above
+    
+    // Remove duplicates based on service name (case-insensitive)
+    const uniqueServices = allServices.filter((service, index, array) => {
+      const trimmedLowerName = service.name.toLowerCase();
+      return array.findIndex(item => item.name.toLowerCase() === trimmedLowerName) === index;
+    });
+    
+    console.log('All services before deduplication:', allServices);
+    console.log('Unique services after deduplication:', uniqueServices);
+    
+    // Add unique services to form
+    uniqueServices.forEach((service) => {
+      appendService(service);
+    });
 
     if (vendorData.packages && Array.isArray(vendorData.packages) && vendorData.packages.length > 0) {
-      vendorData.packages.forEach((pkg) => {
-        if (pkg && pkg.name) {
-          appendPackage(pkg);
-        }
+      console.log('Adding packages:', vendorData.packages);
+      
+      // Remove duplicates from packages array based on package name (case-insensitive)
+      const uniquePackages = vendorData.packages.filter((pkg, index, array) => {
+        if (!pkg || !pkg.name || pkg.name.trim() === '') return false;
+        const trimmedLowerName = pkg.name.trim().toLowerCase();
+        return array.findIndex(item => item && item.name && item.name.trim().toLowerCase() === trimmedLowerName) === index;
       });
-    } else {
-      console.log('No packages to load or packages data is invalid');
-      console.log('Packages type is:', typeof vendorData.packages);
-      if (typeof vendorData.packages === 'string') {
-        console.log('Packages is a string, trying to parse...');
-        try {
-          const parsedPackages = JSON.parse(vendorData.packages);
-          console.log('Parsed packages:', parsedPackages);
-          if (Array.isArray(parsedPackages) && parsedPackages.length > 0) {
-            console.log('Adding parsed packages to form...');
-            parsedPackages.forEach((pkg, index) => {
-              console.log(`Parsed Package ${index}:`, pkg);
-              if (pkg && pkg.name) {
-                appendPackage(pkg);
-              }
-            });
-          }
-        } catch (e) {
-          console.error('Failed to parse packages JSON:', e);
+      
+      console.log('Unique packages after deduplication:', uniquePackages);
+      
+      uniquePackages.forEach((pkg) => {
+        appendPackage(pkg);
+      });
+    } else if (typeof vendorData.packages === 'string') {
+      console.log('Packages is a string, trying to parse...');
+      try {
+        const parsedPackages = JSON.parse(vendorData.packages);
+        console.log('Parsed packages:', parsedPackages);
+        if (Array.isArray(parsedPackages) && parsedPackages.length > 0) {
+          console.log('Adding parsed packages to form...');
+          
+          // Remove duplicates from parsed packages based on package name (case-insensitive)
+          const uniqueParsedPackages = parsedPackages.filter((pkg, index, array) => {
+            if (!pkg || !pkg.name || pkg.name.trim() === '') return false;
+            const trimmedLowerName = pkg.name.trim().toLowerCase();
+            return array.findIndex(item => item && item.name && item.name.trim().toLowerCase() === trimmedLowerName) === index;
+          });
+          
+          console.log('Unique parsed packages after deduplication:', uniqueParsedPackages);
+          
+          uniqueParsedPackages.forEach((pkg, index) => {
+            console.log(`Unique Parsed Package ${index}:`, pkg);
+            appendPackage(pkg);
+          });
         }
+      } catch (e) {
+        console.error('Failed to parse packages JSON:', e);
       }
     }
 
     if (vendorData.deliverables && Array.isArray(vendorData.deliverables) && vendorData.deliverables.length > 0) {
-      vendorData.deliverables.forEach((deliverable) => {
-        if (deliverable && deliverable.trim() !== '') {
-          appendDeliverable(deliverable);
-        }
+      console.log('Adding deliverables:', vendorData.deliverables);
+      
+      const uniqueDeliverables = deduplicateStringArray(vendorData.deliverables);
+      console.log('Unique deliverables after deduplication:', uniqueDeliverables);
+      
+      uniqueDeliverables.forEach((deliverable) => {
+        appendDeliverable(deliverable);
       });
     }
 
     if (vendorData.customer_reviews && Array.isArray(vendorData.customer_reviews) && vendorData.customer_reviews.length > 0) {
-      vendorData.customer_reviews.forEach((review) => {
-        if (review && review.customer_name) {
-          appendReview(review);
-        }
+      console.log('Adding customer reviews:', vendorData.customer_reviews);
+      
+      // Remove duplicates from customer reviews based on customer name and review content (case-insensitive)
+      const uniqueReviews = vendorData.customer_reviews.filter((review, index, array) => {
+        if (!review || !review.customer_name || !review.review) return false;
+        const reviewKey = `${review.customer_name.trim().toLowerCase()}-${review.review.trim().toLowerCase()}`;
+        return array.findIndex(item => {
+          if (!item || !item.customer_name || !item.review) return false;
+          const itemKey = `${item.customer_name.trim().toLowerCase()}-${item.review.trim().toLowerCase()}`;
+          return itemKey === reviewKey;
+        }) === index;
+      });
+      
+      console.log('Unique customer reviews after deduplication:', uniqueReviews);
+      
+      uniqueReviews.forEach((review) => {
+        appendReview(review);
       });
     }
 
     if (vendorData.additional_info?.custom_fields && Array.isArray(vendorData.additional_info.custom_fields) && vendorData.additional_info.custom_fields.length > 0) {
-      vendorData.additional_info.custom_fields.forEach((field) => {
-        if (field && field.field_name && field.field_value) {
-          appendCustomField(field);
-        }
+      console.log('Adding custom fields:', vendorData.additional_info.custom_fields);
+      
+      // Remove duplicates from custom fields based on field name (case-insensitive)
+      const uniqueCustomFields = vendorData.additional_info.custom_fields.filter((field, index, array) => {
+        if (!field || !field.field_name || !field.field_value) return false;
+        const trimmedLowerName = field.field_name.trim().toLowerCase();
+        return array.findIndex(item => item && item.field_name && item.field_name.trim().toLowerCase() === trimmedLowerName) === index;
+      });
+      
+      console.log('Unique custom fields after deduplication:', uniqueCustomFields);
+      
+      uniqueCustomFields.forEach((field) => {
+        appendCustomField(field);
+      });
+    }
+
+    if (vendorData.highlight_features && Array.isArray(vendorData.highlight_features) && vendorData.highlight_features.length > 0) {
+      console.log('Adding highlight features:', vendorData.highlight_features);
+      
+      const uniqueFeatures = deduplicateStringArray(vendorData.highlight_features);
+      console.log('Unique features after deduplication:', uniqueFeatures);
+      
+      uniqueFeatures.forEach((feature) => {
+        appendHighlight(feature);
       });
     }
 
@@ -392,16 +545,19 @@ const VendorProfileEdit: React.FC = () => {
     const imagesToUse = catalogImagesData || catalogImages;
     if (imagesToUse && imagesToUse.length > 0) {
       console.log('Adding catalog images from parameter/state:', imagesToUse);
-      imagesToUse.forEach(url => {
-        if (url && url.trim() !== '') {
-          appendCatalogImage(url);
-        }
+      
+      const uniqueImages = deduplicateStringArray(imagesToUse);
+      console.log('Unique catalog images after deduplication:', uniqueImages);
+      
+      uniqueImages.forEach(url => {
+        appendCatalogImage(url);
       });
     }
 
     console.log('=== FORM POPULATION COMPLETE ===');
     console.log('Form populated with vendor data');
     setLoading(false);
+    setIsLoadingFormData(false);
   };
 
   const loadPendingChanges = async (vendorId: number) => {
@@ -721,24 +877,6 @@ const VendorProfileEdit: React.FC = () => {
           </Card>
         )}
 
-        {/* Debug: Force Refresh Button */}
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-blue-800">Debug: Data Loading</h3>
-                <p className="text-sm text-blue-600">If data is not showing, try refreshing the data from database</p>
-              </div>
-              <Button 
-                onClick={() => setForceRefresh(prev => prev + 1)}
-                variant="outline"
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
-              >
-                🔄 Refresh Data
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Information */}
@@ -1069,41 +1207,14 @@ const VendorProfileEdit: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
                 <span>Services</span>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      // Force reload services from specialties
-                      if (vendor && vendor.specialties && Array.isArray(vendor.specialties)) {
-                        console.log('Manual reload services from specialties:', vendor.specialties);
-                        
-                        // Clear existing services first
-                        while (serviceFields.length > 0) {
-                          removeService(0);
-                        }
-                        
-                        // Add services from specialties
-                        vendor.specialties.forEach((specialty) => {
-                          if (specialty && specialty.trim() !== '') {
-                            appendService({ name: specialty, description: '', price: '' });
-                          }
-                        });
-                      }
-                    }}
-                    variant="secondary"
-                    size="sm"
-                  >
-                    Load Existing
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => appendService({ name: "", description: "", price: "" })}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Add Service
-                  </Button>
-                </div>
+                <Button
+                  type="button"
+                  onClick={() => appendService({ name: "", description: "", price: "" })}
+                  variant="outline"
+                  size="sm"
+                >
+                  Add Service
+                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>

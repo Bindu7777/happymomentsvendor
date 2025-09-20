@@ -25,6 +25,7 @@ import PhotographyVendors from "./pages/PhotographyVendors";
 import CategoryVendors from "./pages/CategoryVendors";
 import VendorDashboard from "./pages/VendorDashboard";
 import VendorProfileEdit from "./pages/VendorProfileEdit";
+import ImageUploadTestPage from "./pages/ImageUploadTestPage";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -49,6 +50,9 @@ const App = () => {
               {/* Vendor Routes */}
               <Route path="/vendor-dashboard" element={<VendorDashboard />} />
               <Route path="/vendor-profile-edit" element={<VendorProfileEdit />} />
+              
+              {/* Test Routes (remove in production) */}
+              <Route path="/test/image-upload" element={<ImageUploadTestPage />} />
               
               {/* Category pages */}
               <Route

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorMedia, updateVendorCatalogImages, getVendorByFieldId, saveVendorSession, refreshVendorSession, toggleImageHighlight } from '../services/supabaseService';
+import ImageUpload from '../components/ImageUpload';
 import { Vendor } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
 
@@ -98,6 +99,7 @@ const VendorProfileEdit: React.FC = () => {
   const [forceRefresh, setForceRefresh] = useState(0);
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState<string>('');
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
   const navigate = useNavigate();
 
   const {
@@ -662,7 +664,7 @@ const VendorProfileEdit: React.FC = () => {
         services: vendor.services || [],
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
-        catalog_images: catalogImages || [],
+        catalog_images: [...(catalogImages || []), ...uploadedImageUrls],
         customer_reviews: vendor.customer_reviews || [],
         booking_policies: vendor.booking_policies || undefined,
         additional_info: vendor.additional_info || undefined,
@@ -696,7 +698,7 @@ const VendorProfileEdit: React.FC = () => {
             : pkg.features || []
         })) || [],
         deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
-        catalog_images: data.catalog_images?.filter(img => img && img.trim() !== '') || [],
+        catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls],
         customer_reviews: data.customer_reviews?.filter(r => 
           r.customer_name && r.customer_name.trim() !== '' && r.review && r.review.trim() !== ''
         ) || [],
@@ -816,12 +818,19 @@ const VendorProfileEdit: React.FC = () => {
 
       if (result.success) {
         // Update catalog images in VendorMedia table if they changed
-        const newCatalogImages = data.catalog_images?.filter(img => img && img.trim() !== '') || [];
-        if (JSON.stringify(newCatalogImages) !== JSON.stringify(catalogImages)) {
-          const catalogUpdateResult = await updateVendorCatalogImages(vendor.vendor_id, newCatalogImages);
+        // Combine both URL inputs and uploaded images
+        const urlImages = data.catalog_images?.filter(img => img && img.trim() !== '') || [];
+        const allCatalogImages = [...urlImages, ...uploadedImageUrls];
+        
+        console.log('Form URL images:', urlImages);
+        console.log('Uploaded images:', uploadedImageUrls);
+        console.log('All catalog images to save:', allCatalogImages);
+        
+        if (JSON.stringify(allCatalogImages) !== JSON.stringify(catalogImages)) {
+          const catalogUpdateResult = await updateVendorCatalogImages(vendor.vendor_id, allCatalogImages);
           if (catalogUpdateResult) {
-            setCatalogImages(newCatalogImages);
-            console.log('Catalog images updated successfully');
+            setCatalogImages(allCatalogImages);
+            console.log('Catalog images updated successfully with both URLs and uploads');
           } else {
             console.error('Failed to update catalog images');
           }
@@ -1487,47 +1496,104 @@ const VendorProfileEdit: React.FC = () => {
                   </div>
                 )}
 
-                {/* Form fields for adding new images */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-gray-700">Add New Images</h4>
-                  {catalogImageFields.map((field, index) => (
-                    <div key={field.id} className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          {...register(`catalog_images.${index}` as const)}
-                          placeholder="Enter image URL (https://...)"
-                          type="url"
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          onClick={() => removeCatalogImage(index)}
-                          variant="outline"
-                          size="sm"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                      {/* Image Preview */}
-                      {watch(`catalog_images.${index}`) && (
-                        <div className="border rounded-lg p-2 bg-gray-50">
-                          <img
-                            src={watch(`catalog_images.${index}`)}
-                            alt={`Catalog preview ${index + 1}`}
-                            className="w-full h-32 object-cover rounded"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {catalogImageFields.length === 0 && catalogImagesWithMeta.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">
-                      No catalog images added yet. Click "Add Image URL" to showcase your work.
+                {/* Image Upload Section */}
+                <div className="space-y-4">
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-3">Upload New Images</h4>
+                    <p className="text-xs text-gray-500 mb-4">
+                      Upload images directly to secure Google Drive storage. Images will be automatically compressed and optimized.
                     </p>
-                  )}
+                    <ImageUpload
+                      vendorId={vendor?.vendor_id || ''}
+                      category="catalog"
+                      maxImages={13}
+                      existingImages={[...catalogImages, ...uploadedImageUrls]}
+                      onUploadComplete={(urls) => {
+                        console.log('Upload completed, new URLs:', urls);
+                        setUploadedImageUrls(prev => [...prev, ...urls]);
+                        setHighlightMessage(`✅ Successfully uploaded ${urls.length} image(s) to Google Drive!`);
+                        setTimeout(() => setHighlightMessage(''), 3000);
+                        
+                        // Refresh the catalog images to show newly uploaded ones
+                        if (vendor?.vendor_id) {
+                          loadCatalogImages(vendor.vendor_id).then(refreshedUrls => {
+                            console.log('Refreshed catalog images after upload:', refreshedUrls);
+                          });
+                        }
+                      }}
+                      onUploadError={(error) => {
+                        console.error('Upload error:', error);
+                        setHighlightMessage(`❌ Upload failed: ${error}`);
+                      }}
+                      allowHighlight={true}
+                    />
+                  </div>
+                  
+                  {/* OR Divider */}
+                  <div className="flex items-center gap-4 py-2">
+                    <div className="flex-1 border-t border-gray-300"></div>
+                    <span className="text-sm text-gray-500 bg-white px-3">OR</span>
+                    <div className="flex-1 border-t border-gray-300"></div>
+                  </div>
+                  
+                  {/* URL Input Section */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-medium text-gray-700">Add Image URLs</h4>
+                      <Button
+                        type="button"
+                        onClick={() => appendCatalogImage("")}
+                        variant="outline"
+                        size="sm"
+                      >
+                        Add URL Field
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Alternatively, you can provide direct image URLs if you have images hosted elsewhere.
+                    </p>
+                    
+                    {catalogImageFields.map((field, index) => (
+                      <div key={field.id} className="space-y-2">
+                        <div className="flex gap-2">
+                          <Input
+                            {...register(`catalog_images.${index}` as const)}
+                            placeholder="Enter image URL (https://...)"
+                            type="url"
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => removeCatalogImage(index)}
+                            variant="outline"
+                            size="sm"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                        {/* Image Preview */}
+                        {watch(`catalog_images.${index}`) && (
+                          <div className="border rounded-lg p-2 bg-gray-50">
+                            <img
+                              src={watch(`catalog_images.${index}`)}
+                              alt={`Catalog preview ${index + 1}`}
+                              className="w-full h-32 object-cover rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                            <div className="text-xs text-gray-500 mt-1">External URL</div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {catalogImageFields.length === 0 && catalogImagesWithMeta.length === 0 && uploadedImageUrls.length === 0 && (
+                      <p className="text-gray-500 text-center py-4">
+                        No catalog images added yet. Upload images or add URLs to showcase your work.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -242,6 +242,112 @@ export const getVendorMedia = async (vendorId: string, category?: string): Promi
   }
 };
 
+// Get highlighted catalog images (up to 3) or first 3 if none highlighted
+export const getHighlightedCatalogImages = async (vendorId: string): Promise<VendorMedia[]> => {
+  try {
+    // First, try to get highlighted images
+    let { data: highlightedImages, error: highlightedError } = await supabase
+      .from('vendor_media')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .eq('category', 'catalog')
+      .eq('public', true)
+      .eq('is_highlighted', true)
+      .order('order_index', { ascending: true })
+      .order('uploaded_at', { ascending: true })
+      .limit(3);
+
+    if (highlightedError) {
+      console.error('Error fetching highlighted catalog images:', highlightedError);
+    }
+
+    // If we have highlighted images, return them
+    if (highlightedImages && highlightedImages.length > 0) {
+      console.log(`Found ${highlightedImages.length} highlighted catalog images for vendor ${vendorId}`);
+      return highlightedImages as VendorMedia[];
+    }
+
+    // If no highlighted images, get first 3 catalog images
+    console.log(`No highlighted images found for vendor ${vendorId}, getting first 3 catalog images`);
+    let { data: catalogImages, error: catalogError } = await supabase
+      .from('vendor_media')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .eq('category', 'catalog')
+      .eq('public', true)
+      .order('order_index', { ascending: true })
+      .order('uploaded_at', { ascending: true })
+      .limit(3);
+
+    if (catalogError) {
+      console.error('Error fetching catalog images:', catalogError);
+      return [];
+    }
+
+    console.log(`Found ${catalogImages?.length || 0} catalog images for vendor ${vendorId}`);
+    return (catalogImages as VendorMedia[]) || [];
+
+  } catch (error) {
+    console.error('Error fetching highlighted catalog images:', error);
+    return [];
+  }
+};
+
+// Toggle highlight status for a catalog image
+export const toggleImageHighlight = async (imageId: string, isHighlighted: boolean): Promise<boolean> => {
+  try {
+    console.log(`Toggling highlight for image ${imageId} to ${isHighlighted}`);
+    
+    // If trying to highlight, check if vendor already has 3 highlighted images
+    if (isHighlighted) {
+      const { data: image, error: imageError } = await supabase
+        .from('vendor_media')
+        .select('vendor_id')
+        .eq('id', imageId)
+        .single();
+
+      if (imageError) {
+        console.error('Error fetching image:', imageError);
+        throw new Error('Failed to fetch image information');
+      }
+
+      if (image) {
+        const { data: highlightedImages, error: highlightedError } = await supabase
+          .from('vendor_media')
+          .select('id')
+          .eq('vendor_id', image.vendor_id)
+          .eq('category', 'catalog')
+          .eq('is_highlighted', true);
+
+        if (highlightedError) {
+          console.error('Error fetching highlighted images:', highlightedError);
+          throw new Error('Failed to check highlighted images count');
+        }
+
+        if (highlightedImages && highlightedImages.length >= 3) {
+          throw new Error('Cannot highlight more than 3 catalog images. Please unhighlight another image first.');
+        }
+      }
+    }
+
+    const { error } = await supabase
+      .from('vendor_media')
+      .update({ is_highlighted: isHighlighted })
+      .eq('id', imageId);
+
+    if (error) {
+      console.error('Error updating image highlight:', error);
+      throw new Error('Failed to update highlight status: ' + error.message);
+    }
+
+    console.log(`Successfully toggled highlight for image ${imageId}`);
+    return true;
+  } catch (error) {
+    console.error('Error toggling image highlight:', error);
+    throw error; // Re-throw to let the UI handle the error
+  }
+};
+
 // Update vendor
 export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>): Promise<boolean> => {
   try {

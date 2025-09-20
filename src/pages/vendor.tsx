@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Vendor } from '@/lib/supabase';
-import { getVendorByFieldId, getVendorMedia } from '../services/supabaseService';
+import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages } from '../services/supabaseService';
 import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -66,10 +66,13 @@ const VendorProfile = () => {
 
         // Categorize media
         const highlights = mediaData.filter(m => m.category === 'highlights');
-        const catalog = mediaData.filter(m => m.category === 'catalog');
+        
+        // Get highlighted catalog images (up to 3) or first 3 if none highlighted
+        const highlightedCatalog = await getHighlightedCatalogImages(vendorIdNum.toString());
+        console.log('Fetched highlighted catalog images:', highlightedCatalog);
         
         setHighlightImages(highlights);
-        setCatalogImages(catalog);
+        setCatalogImages(highlightedCatalog);
 
       } catch (err) {
         console.error("Failed to fetch vendor details:", err);
@@ -864,7 +867,10 @@ const VendorProfile = () => {
               <CardContent className="p-8">
                 <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                   <Video className="w-8 h-8 text-blue-600" />
-                  Catalog
+                  Featured Catalog
+                  <Badge className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-200">
+                    Highlighted
+                  </Badge>
                 </h2>
                 
                 {catalogImages.length > 0 ? (

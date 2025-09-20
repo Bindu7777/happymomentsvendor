@@ -89,5 +89,6 @@ export interface VendorMedia {
   order_index?: number
   featured?: boolean
   public?: boolean
+  is_highlighted?: boolean  // New field for highlighting catalog images
   uploaded_at?: string
 }

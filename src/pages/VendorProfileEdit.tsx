@@ -7,7 +7,7 @@ import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react';
-import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorMedia, updateVendorCatalogImages, getVendorByFieldId, saveVendorSession, refreshVendorSession } from '../services/supabaseService';
+import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorMedia, updateVendorCatalogImages, getVendorByFieldId, saveVendorSession, refreshVendorSession, toggleImageHighlight } from '../services/supabaseService';
 import { Vendor } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
 
@@ -94,8 +94,10 @@ const VendorProfileEdit: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<string[]>([]);
+  const [catalogImagesWithMeta, setCatalogImagesWithMeta] = useState<any[]>([]);
   const [forceRefresh, setForceRefresh] = useState(0);
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
+  const [highlightMessage, setHighlightMessage] = useState<string>('');
   const navigate = useNavigate();
 
   const {
@@ -620,6 +622,7 @@ const VendorProfileEdit: React.FC = () => {
       console.log('Image URLs array:', JSON.stringify(imageUrls, null, 2));
       
       setCatalogImages(imageUrls);
+      setCatalogImagesWithMeta(media); // Store full media objects for highlighting
       
       // Return the image URLs for immediate use
       console.log('Catalog images loaded, returning:', imageUrls);
@@ -1347,7 +1350,12 @@ const VendorProfileEdit: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
-                <span>Catalog Images</span>
+                <div>
+                  <span>Catalog Images</span>
+                  <p className="text-sm font-normal text-gray-600 mt-1">
+                    Highlight up to 3 images to feature them prominently in your profile
+                  </p>
+                </div>
                 <Button
                   type="button"
                   onClick={() => appendCatalogImage("")}
@@ -1359,45 +1367,168 @@ const VendorProfileEdit: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {catalogImageFields.map((field, index) => (
-                  <div key={field.id} className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        {...register(`catalog_images.${index}` as const)}
-                        placeholder="Enter image URL (https://...)"
-                        type="url"
-                        className="flex-1"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => removeCatalogImage(index)}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    {/* Image Preview */}
-                    {watch(`catalog_images.${index}`) && (
-                      <div className="border rounded-lg p-2 bg-gray-50">
-                        <img
-                          src={watch(`catalog_images.${index}`)}
-                          alt={`Catalog preview ${index + 1}`}
-                          className="w-full h-32 object-cover rounded"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
+              <div className="space-y-4">
+                {/* Highlight message */}
+                {highlightMessage && (
+                  <div className={`p-3 rounded-lg text-sm ${
+                    highlightMessage.includes('❌') 
+                      ? 'bg-red-50 text-red-700 border border-red-200' 
+                      : highlightMessage.includes('✅')
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                  }`}>
+                    {highlightMessage}
                   </div>
-                ))}
-                {catalogImageFields.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No catalog images added yet. Click "Add Image URL" to showcase your work.
-                  </p>
                 )}
+                
+                {/* Show existing catalog images with highlight functionality */}
+                {catalogImagesWithMeta.length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">Existing Catalog Images</h4>
+                      <Badge variant="outline" className="text-xs">
+                        {catalogImagesWithMeta.filter(img => img.is_highlighted).length}/3 Highlighted
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {catalogImagesWithMeta.map((image, index) => (
+                        <div key={image.id} className="relative border rounded-lg p-3 bg-gray-50">
+                          <div className="aspect-video mb-3">
+                            <img
+                              src={image.media_url}
+                              alt={image.title || `Catalog image ${index + 1}`}
+                              className="w-full h-full object-cover rounded"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`highlight-${image.id}`}
+                                checked={image.is_highlighted || false}
+                                onChange={async (e) => {
+                                  const isChecking = e.target.checked;
+                                  
+                                  // Clear any previous messages
+                                  setHighlightMessage('');
+                                  
+                                  // If trying to highlight, check current count
+                                  if (isChecking) {
+                                    const currentHighlighted = catalogImagesWithMeta.filter(img => img.is_highlighted).length;
+                                    if (currentHighlighted >= 3) {
+                                      setHighlightMessage('You can only highlight up to 3 catalog images. Please unhighlight another image first.');
+                                      e.target.checked = false;
+                                      return;
+                                    }
+                                  }
+                                  
+                                  try {
+                                    const success = await toggleImageHighlight(image.id, isChecking);
+                                    if (success) {
+                                      // Update local state
+                                      setCatalogImagesWithMeta(prev => 
+                                        prev.map(img => 
+                                          img.id === image.id 
+                                            ? { ...img, is_highlighted: isChecking }
+                                            : img
+                                        )
+                                      );
+                                      setHighlightMessage(
+                                        isChecking 
+                                          ? `✅ Image highlighted successfully!` 
+                                          : `✅ Image unhighlighted successfully!`
+                                      );
+                                      // Clear success message after 3 seconds
+                                      setTimeout(() => setHighlightMessage(''), 3000);
+                                      
+                                      // Refresh the catalog images to ensure UI is in sync
+                                      try {
+                                        const refreshedImages = await getVendorMedia(vendor?.vendor_id || '', 'catalog');
+                                        setCatalogImagesWithMeta(refreshedImages);
+                                      } catch (refreshError) {
+                                        console.error('Error refreshing catalog images:', refreshError);
+                                      }
+                                      console.log(`Successfully ${isChecking ? 'highlighted' : 'unhighlighted'} image:`, image.id);
+                                    } else {
+                                      // Revert checkbox if failed
+                                      e.target.checked = !isChecking;
+                                      setHighlightMessage('❌ Failed to update highlight status. Please try again.');
+                                    }
+                                  } catch (error) {
+                                    console.error('Error toggling highlight:', error);
+                                    e.target.checked = !isChecking;
+                                    setHighlightMessage('❌ Error: ' + (error as Error).message);
+                                  }
+                                }}
+                                className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                              />
+                              <label 
+                                htmlFor={`highlight-${image.id}`}
+                                className="text-sm text-gray-700 cursor-pointer"
+                              >
+                                Highlight
+                              </label>
+                            </div>
+                            {image.is_highlighted && (
+                              <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                ⭐ Featured
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2 truncate">
+                            {image.title || 'Untitled'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Form fields for adding new images */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-gray-700">Add New Images</h4>
+                  {catalogImageFields.map((field, index) => (
+                    <div key={field.id} className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          {...register(`catalog_images.${index}` as const)}
+                          placeholder="Enter image URL (https://...)"
+                          type="url"
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => removeCatalogImage(index)}
+                          variant="outline"
+                          size="sm"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                      {/* Image Preview */}
+                      {watch(`catalog_images.${index}`) && (
+                        <div className="border rounded-lg p-2 bg-gray-50">
+                          <img
+                            src={watch(`catalog_images.${index}`)}
+                            alt={`Catalog preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {catalogImageFields.length === 0 && catalogImagesWithMeta.length === 0 && (
+                    <p className="text-gray-500 text-center py-4">
+                      No catalog images added yet. Click "Add Image URL" to showcase your work.
+                    </p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

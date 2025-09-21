@@ -10,11 +10,12 @@ import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Vendor } from '../lib/supabase';
-import { getVendorByFieldId, getVendorMedia } from '../services/supabaseService';
+import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages } from '../services/supabaseService';
 
 const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const [vendor, setVendor] = useState<Vendor | null>(null);
+  const [highlightedImages, setHighlightedImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -60,6 +61,16 @@ const VendorProfile = () => {
         }
 
         setVendor(vendorData);
+        
+        // Load highlighted catalog images
+        try {
+          const highlighted = await getHighlightedCatalogImages(vendorData.vendor_id);
+          console.log('Loaded highlighted images:', highlighted);
+          setHighlightedImages(highlighted);
+        } catch (imgError) {
+          console.error('Error loading highlighted images:', imgError);
+          setHighlightedImages([]);
+        }
 
       } catch (err) {
         console.error("Failed to fetch vendor details:", err);
@@ -164,30 +175,34 @@ const VendorProfile = () => {
   // Use vendor data if available, otherwise fall back to default photographer data
   const photographer = vendor ? {
     name: vendor.brand_name || "Vendor",
-    tagline: vendor.description || "Professional Services",
-    bio: vendor.description || "Professional vendor services",
+    tagline: vendor.quick_intro || "Professional Services",
+    bio: vendor.detailed_intro || "Professional vendor services",
     avatar: vendor.brand_logo_url || vendor.avatar_url || "/images/vendor.jpeg",
     coverImage: vendor.cover_image_url || "/images/wedding.webp",
-    rating: 4.8, // Default rating since it's not in vendor data
-    reviewCount: 128, // Default review count
+    rating: vendor.rating || 4.8,
+    reviewCount: vendor.review_count || 128,
     location: vendor.address || "Location not specified",
     category: vendor.category || "Services",
     subcategory: vendor.subcategory || "All Events",
-    verified: true,
+    verified: vendor.verified || true,
     responseTime: "2 hours",
     yearsActive: 10,
     experience: vendor.experience || "Professional",
-    additionalInfo: vendor.specialties || [],
-    highlights: [
+    additionalInfo: vendor.highlight_features || [],
+    highlights: highlightedImages.length > 0 ? highlightedImages.map(img => ({
+      image: img.media_url,
+      title: img.title || "Our Work",
+      description: img.description || "Professional service delivery"
+    })) : [
       {
         image: "/images/image1.jpeg",
         title: "Our Work",
         description: "Professional service delivery"
       }
     ],
-    services: vendor.specialties || vendor.services || [],
-    packages: vendor.packages || defaultPhotographer.packages,
-    portfolio: vendor.catalog_images || [],
+    services: vendor.services || [],
+    packages: vendor.packages || [],
+    portfolio: highlightedImages.map(img => img.media_url) || [],
     reviews: vendor.customer_reviews || [],
     contact: {
       phone: vendor.phone_number || "",

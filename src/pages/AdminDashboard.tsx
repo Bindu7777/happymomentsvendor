@@ -348,7 +348,10 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div 
+            className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => setActiveTab("approvals")}
+          >
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -359,8 +362,13 @@ const AdminDashboard = () => {
                     <dt className="text-sm font-medium text-gray-500 truncate">
                       Pending Approvals
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-lg font-medium text-gray-900 flex items-center">
                       {pendingChanges.length}
+                      {pendingChanges.length > 0 && (
+                        <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                          Action Required
+                        </span>
+                      )}
                     </dd>
                   </dl>
                 </div>
@@ -386,7 +394,7 @@ const AdminDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab("approvals")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm relative ${
                   activeTab === "approvals"
                     ? "border-blue-500 text-blue-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -394,6 +402,11 @@ const AdminDashboard = () => {
               >
                 <AlertTriangle className="w-4 h-4 inline-block mr-2" />
                 Pending Approvals ({pendingChanges.length})
+                {pendingChanges.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                    {pendingChanges.length > 9 ? '9+' : pendingChanges.length}
+                  </span>
+                )}
               </button>
             </nav>
           </div>
@@ -700,19 +713,19 @@ const AdminDashboard = () => {
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-gray-200 relative">
                 {pendingChanges.map((change) => (
-                  <div key={change.id} className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3">
+                  <div key={change.id} className="p-6 border-l-4 border-yellow-400">
+                    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-3 mb-4">
                           <div className="flex-shrink-0">
                             <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
                               <AlertTriangle className="w-5 h-5 text-yellow-600" />
                             </div>
                           </div>
                           <div>
-                            <h4 className="text-sm font-medium text-gray-900">
+                            <h4 className="text-lg font-semibold text-gray-900">
                               {change.vendor_brand_name || `Vendor ID: ${change.vendor_id}`}
                             </h4>
                             <p className="text-sm text-gray-500">
@@ -722,96 +735,200 @@ const AdminDashboard = () => {
                           </div>
                         </div>
 
-                        {/* Changes Preview */}
-                        <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                          <h5 className="text-sm font-medium text-green-800 mb-2 flex items-center">
-                            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                            Proposed Changes:
-                          </h5>
-                          <div className="space-y-2 text-sm">
-                            {Object.entries(change.proposed_changes).map(([key, value]) => {
+                        {/* Clean Side-by-Side Changes Comparison */}
+                        <div className="mt-4 space-y-4">
+                          {Object.entries(change.proposed_changes)
+                            .map(([key, newValue]) => {
                               const currentValue = change.current_data?.[key];
-                              const isChanged = currentValue !== undefined && currentValue !== value;
+                            const isChanged = currentValue !== undefined && JSON.stringify(currentValue) !== JSON.stringify(newValue);
                               const isNew = currentValue === undefined;
                               
                               // Better field name mapping for display
                               const getFieldDisplayName = (fieldKey: string) => {
                                 const fieldNames: Record<string, string> = {
-                                  'quick_intro': 'Quick Intro',
-                                  'caption': 'Caption',
-                                  'detailed_intro': 'Detailed Intro',
-                                  'highlight_features': 'Highlight Features',
-                                  'brand_logo_url': 'Brand Logo',
-                                  'contact_person_image_url': 'Contact Person Image',
                                   'brand_name': 'Brand Name',
                                   'spoc_name': 'Contact Person Name',
+                                'category': 'Category',
+                                'subcategory': 'Subcategory',
+                                'brand_logo_url': 'Brand Logo',
+                                'contact_person_image_url': 'Contact Person Image',
                                   'phone_number': 'Phone Number',
+                                'alternate_number': 'Alternate Number',
                                   'whatsapp_number': 'WhatsApp Number',
-                                  'avatar_url': 'Avatar URL',
-                                  'cover_image_url': 'Cover Image URL'
+                                'email': 'Email Address',
+                                'instagram': 'Instagram Handle',
+                                'address': 'Address',
+                                'experience': 'Experience',
+                                'quick_intro': 'Quick Intro',
+                                'caption': 'Caption',
+                                'detailed_intro': 'Detailed Intro',
+                                'highlight_features': 'Highlight Features',
+                                'services': 'Services',
+                                'packages': 'Packages',
+                                'deliverables': 'Deliverables',
+                                'customer_reviews': 'Customer Reviews',
+                                'booking_policies': 'Booking Policies',
+                                'additional_info': 'Additional Information',
+                                'currently_available': 'Currently Available',
+                                'catalog_images': 'Catalog Images'
                                 };
                                 return fieldNames[fieldKey] || fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                               };
                               
-                              return (
-                                <div key={key} className={`flex p-2 rounded ${
-                                  isNew ? 'bg-blue-100 border-l-4 border-blue-500' :
-                                  isChanged ? 'bg-yellow-100 border-l-4 border-yellow-500' :
-                                  'bg-gray-50'
-                                }`}>
-                                  <span className="font-medium text-gray-700 w-32">
-                                    {getFieldDisplayName(key)}:
+                            const formatValue = (value: any, fieldKey: string) => {
+                              if (!value && value !== false) return <span className="text-gray-400 italic">Empty</span>;
+                              
+                              if (fieldKey.includes('_url') && value) {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <img src={value} alt="Preview" className="w-12 h-12 object-cover rounded border" 
+                                         onError={(e) => (e.target as HTMLElement).style.display = 'none'} />
+                                    <span className="text-xs text-gray-600 break-all">{value}</span>
+                                  </div>
+                                );
+                              }
+                              
+                              if (fieldKey === 'catalog_images' && Array.isArray(value)) {
+                                return (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {value.slice(0, 4).map((imgUrl, i) => (
+                                      <div key={i} className="relative">
+                                        <img 
+                                          src={imgUrl} 
+                                          alt={`Catalog ${i + 1}`} 
+                                          className="w-full h-20 object-cover rounded border"
+                                          onError={(e) => (e.target as HTMLElement).style.display = 'none'}
+                                        />
+                                      </div>
+                                    ))}
+                                    {value.length > 4 && (
+                                      <div className="flex items-center justify-center bg-gray-100 rounded border text-xs text-gray-600">
+                                        +{value.length - 4} more
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              
+                              if (Array.isArray(value)) {
+                                if (value.length === 0) return <span className="text-gray-400 italic">No items</span>;
+                                
+                                if (value.length > 0 && typeof value[0] === 'object') {
+                                  if (fieldKey === 'services') {
+                                    return (
+                                      <div className="space-y-1">
+                                        {value.map((item, i) => (
+                                          <div key={i} className="text-sm bg-gray-50 p-2 rounded">
+                                            <strong>{item.name}</strong>
+                                            {item.price && <span className="text-green-600 ml-2">₹{item.price}</span>}
+                                            {item.description && <div className="text-xs text-gray-600 mt-1">{item.description}</div>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  } else if (fieldKey === 'packages') {
+                                    return (
+                                      <div className="space-y-1">
+                                        {value.map((item, i) => (
+                                          <div key={i} className="text-sm bg-gray-50 p-2 rounded">
+                                            <strong>{item.name}</strong>
+                                            {item.price && <span className="text-green-600 ml-2">₹{item.price}</span>}
+                                            {item.description && <div className="text-xs text-gray-600 mt-1">{item.description}</div>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  } else if (fieldKey === 'customer_reviews') {
+                                    return (
+                                      <div className="space-y-1">
+                                        {value.map((item, i) => (
+                                          <div key={i} className="text-sm bg-gray-50 p-2 rounded">
+                                            <strong>{item.customer_name}</strong>
+                                            <span className="text-yellow-600 ml-2">{'★'.repeat(item.rating || 0)}</span>
+                                            {item.review && <div className="text-xs text-gray-600 mt-1 italic">"{item.review}"</div>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  }
+                                }
+                                return (
+                                  <div className="flex flex-wrap gap-1">
+                                    {value.map((item, i) => (
+                                      <span key={i} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs">
+                                        {typeof item === 'string' ? item : JSON.stringify(item)}
                                   </span>
-                                  <span className={`font-medium ${
-                                    isNew ? 'text-blue-800' :
-                                    isChanged ? 'text-yellow-800' :
-                                    'text-gray-900'
-                                  }`}>
-                                    {Array.isArray(value) ? value.join(', ') : String(value)}
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              
+                              if (typeof value === 'object' && value !== null) {
+                                return (
+                                  <div className="bg-gray-50 p-2 rounded text-xs space-y-1">
+                                    {Object.entries(value).map(([k, v]) => (
+                                      <div key={k}>
+                                        <strong className="capitalize">{k.replace(/_/g, ' ')}:</strong> {Array.isArray(v) ? v.join(', ') : String(v)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              
+                              if (typeof value === 'boolean') {
+                                return <span className={`px-2 py-1 rounded text-xs ${value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{value ? 'Yes' : 'No'}</span>;
+                              }
+                              
+                              return <span className="text-sm">{String(value)}</span>;
+                            };
+                            
+                            return (
+                              <div key={key} className="border rounded-lg overflow-hidden">
+                                <div className="bg-gray-100 px-3 py-2 border-b">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-semibold text-gray-800 text-sm">
+                                      {getFieldDisplayName(key)}
                                   </span>
+                                    <div className="flex gap-1">
                                   {isNew && (
-                                    <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">NEW</span>
+                                        <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">NEW</span>
                                   )}
                                   {isChanged && (
-                                    <span className="ml-2 px-2 py-0.5 bg-yellow-500 text-white text-xs rounded-full">CHANGED</span>
-                                  )}
+                                        <span className="px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full">CHANGED</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 divide-x divide-gray-200">
+                                  {/* Current Value */}
+                                  <div className="p-3 bg-red-50">
+                                    <div className="text-xs font-medium text-red-700 mb-2 flex items-center">
+                                      <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                      CURRENT
+                                    </div>
+                                    <div className="text-sm">
+                                      {formatValue(currentValue, key)}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* New Value */}
+                                  <div className="p-3 bg-green-50">
+                                    <div className="text-xs font-medium text-green-700 mb-2 flex items-center">
+                                      <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                      PROPOSED
+                                    </div>
+                                    <div className="text-sm">
+                                      {formatValue(newValue, key)}
+                                    </div>
+                                  </div>
+                                </div>
                                 </div>
                               );
                             })}
                           </div>
-                        </div>
 
-                        {/* Current Data Preview (if available) */}
-                        {change.current_data && (
-                          <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-4">
-                            <h5 className="text-sm font-medium text-red-800 mb-2 flex items-center">
-                              <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
-                              Current Data (Before Changes):
-                            </h5>
-                            <div className="space-y-2 text-sm">
-                              {Object.entries(change.current_data).map(([key, value]) => {
-                                const proposedValue = change.proposed_changes[key];
-                                const willBeChanged = proposedValue !== undefined && proposedValue !== value;
-                                
-                                return (
-                                  <div key={key} className={`flex p-2 rounded ${
-                                    willBeChanged ? 'bg-red-100 border-l-4 border-red-500' : 'bg-gray-50'
-                                  }`}>
-                                    <span className="font-medium text-gray-700 w-32 capitalize">
-                                      {key.replace(/_/g, ' ')}:
-                                    </span>
-                                    <span className={`${willBeChanged ? 'line-through text-red-700' : 'text-gray-900'}`}>
-                                      {Array.isArray(value) ? value.join(', ') : String(value)}
-                                    </span>
-                                    {willBeChanged && (
-                                      <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">WILL CHANGE</span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+
 
                         {change.admin_comments && (
                           <div className="mt-3 bg-red-50 rounded-lg p-4">
@@ -821,12 +938,15 @@ const AdminDashboard = () => {
                         )}
                       </div>
 
-                      <div className="flex-shrink-0 ml-6">
-                        <div className="flex space-x-2">
+                      {/* Action Buttons - Always Visible */}
+                      <div className="flex-shrink-0 lg:ml-6">
+                        <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
+                          <h6 className="text-sm font-medium text-gray-700 mb-3 text-center">Actions</h6>
+                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
                           <button
                             onClick={() => handleApproveChange(change.id, change.vendor_id, change.proposed_changes)}
                             disabled={reviewingChange === change.id}
-                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             {reviewingChange === change.id ? 'Approving...' : 'Approve'}
@@ -834,20 +954,19 @@ const AdminDashboard = () => {
                           <button
                             onClick={() => handleRejectChange(change.id)}
                             disabled={reviewingChange === change.id}
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                              className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
                           >
                             <XCircle className="w-4 h-4 mr-2" />
                             Reject
                           </button>
-                        </div>
-                        <div className="mt-2 text-right">
                           <button
                             onClick={() => window.open(`/vendor/${change.vendor_id}`, '_blank')}
-                            className="text-blue-600 hover:text-blue-900 text-sm font-medium flex items-center"
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center min-w-[120px]"
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             View Profile
                           </button>
+                          </div>
                         </div>
                       </div>
                     </div>

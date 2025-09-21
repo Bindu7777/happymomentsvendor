@@ -615,6 +615,49 @@ export const getVendorPendingChanges = async (vendorId: number): Promise<any[]> 
   }
 };
 
+// Clear hardcoded services from vendor (admin function)
+export const clearVendorHardcodedServices = async (vendorId: string): Promise<{success: boolean, message?: string}> => {
+  try {
+    console.log('Clearing hardcoded services for vendor:', vendorId);
+    
+    // Get current vendor data
+    const { data: currentVendor, error: fetchError } = await supabase
+      .from('vendors')
+      .select('services, specialties')
+      .eq('vendor_id', vendorId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching vendor for services clearing:', fetchError);
+      return { success: false, message: 'Vendor not found' };
+    }
+
+    console.log('Current vendor services:', currentVendor.services);
+    console.log('Current vendor specialties:', currentVendor.specialties);
+
+    // Clear both services and specialties fields
+    const { error: updateError } = await supabase
+      .from('vendors')
+      .update({
+        services: null,
+        specialties: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('vendor_id', vendorId);
+
+    if (updateError) {
+      console.error('Error clearing services:', updateError);
+      return { success: false, message: `Failed to clear services: ${updateError.message}` };
+    }
+
+    console.log('Successfully cleared hardcoded services for vendor:', vendorId);
+    return { success: true, message: 'Hardcoded services cleared successfully' };
+  } catch (error) {
+    console.error('Error clearing hardcoded services:', error);
+    return { success: false, message: 'Failed to clear services' };
+  }
+};
+
 // Get vendor notifications (approved/rejected changes)
 export const getVendorNotifications = async (vendorId: number, unreadOnly: boolean = false): Promise<any[]> => {
   try {
@@ -772,30 +815,55 @@ export const reviewVendorProfileChange = async (
       // Clean and validate the proposed changes
       const cleanedChanges = { ...proposedChanges };
       
-      // Remove any fields that shouldn't be updated or don't exist
+      // Remove any fields that shouldn't be updated or don't exist in vendors table
       delete cleanedChanges.id;
       delete cleanedChanges.vendor_id;
       delete cleanedChanges.created_at;
+      
+      // Handle catalog_images separately - don't try to update in vendors table
+      const catalogImages = cleanedChanges.catalog_images;
+      delete cleanedChanges.catalog_images;
       
       // Convert arrays to proper format if needed
       if (cleanedChanges.deliverables && Array.isArray(cleanedChanges.deliverables)) {
         cleanedChanges.deliverables = cleanedChanges.deliverables.filter(item => item && item.trim() !== '');
       }
 
-      console.log('Cleaned changes to apply:', cleanedChanges);
+      console.log('Cleaned changes to apply (without catalog_images):', cleanedChanges);
 
+      // Update vendor profile (excluding catalog_images)
       const { error: vendorUpdateError } = await supabase
         .from('vendors')
         .update({
           ...cleanedChanges,
           updated_at: new Date().toISOString()
         })
-        .eq('vendor_id', changeRecord.vendor_id); // Use 'vendor_id' as the primary key
+        .eq('vendor_id', changeRecord.vendor_id);
 
       if (vendorUpdateError) {
         console.error('Error applying approved changes:', vendorUpdateError);
-        console.error('Update payload:', { ...proposedChanges, updated_at: new Date().toISOString() });
+        console.error('Update payload:', { ...cleanedChanges, updated_at: new Date().toISOString() });
         return { success: false, message: `Failed to apply approved changes: ${vendorUpdateError.message}` };
+      }
+
+      // Handle catalog images separately through vendor_media table
+      if (catalogImages && Array.isArray(catalogImages)) {
+        console.log('Updating catalog images through vendor_media table:', catalogImages);
+        
+        try {
+          const catalogUpdateResult = await updateVendorCatalogImages(changeRecord.vendor_id, catalogImages);
+          if (!catalogUpdateResult) {
+            console.error('Failed to update catalog images in vendor_media table');
+            // Don't fail the entire approval, just log the error
+            console.warn('Vendor profile updated but catalog images update failed');
+          } else {
+            console.log('Catalog images updated successfully in vendor_media table');
+          }
+        } catch (catalogError) {
+          console.error('Error updating catalog images:', catalogError);
+          // Don't fail the entire approval, just log the error
+          console.warn('Vendor profile updated but catalog images update failed:', catalogError);
+        }
       }
 
       console.log('Vendor profile updated successfully');

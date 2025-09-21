@@ -29,12 +29,21 @@ class SupabaseImageService {
       console.log(`🚀 Uploading to Supabase Storage...`);
       console.log(`Vendor: ${vendorId}, Category: ${category}, File: ${file.name}`);
 
-      // Create organized file path
+      // Create organized file path based on category
       const timestamp = Date.now();
       const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${vendorId}/${category}/${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      
+      // For single-image categories (brand_logo, contact_person), use simpler naming
+      let fileName: string;
+      if (category === 'brand_logo' || category === 'contact_person') {
+        fileName = `${vendorId}/${category}/${category}_${timestamp}.${extension}`;
+      } else {
+        fileName = `${vendorId}/${category}/${timestamp}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      }
 
       console.log('Upload path:', fileName);
+      console.log('Category:', category);
+      console.log('Vendor folder structure will be:', `${vendorId}/${category}/`);
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage

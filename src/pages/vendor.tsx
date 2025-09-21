@@ -183,17 +183,16 @@ const VendorProfile = () => {
   // Debug services data
   console.log('=== VENDOR SERVICES DEBUG ===');
   console.log('vendor.services:', vendor.services);
-  console.log('vendor.specialties:', vendor.specialties);
-  console.log('services type:', typeof vendor.services);
-  console.log('specialties type:', typeof vendor.specialties);
+  console.log('vendor.services type:', typeof vendor.services);
+  console.log('vendor.services array check:', Array.isArray(vendor.services));
   
-  const services = vendor.specialties && Array.isArray(vendor.specialties) 
-    ? vendor.specialties 
-    : vendor.services && Array.isArray(vendor.services) 
-    ? vendor.services.map(service => typeof service === 'string' ? service : service.name)
-    : [vendor.category || "General"];
+  // ONLY use vendor.services - no fallback to hardcoded data
+  const services = vendor.services && Array.isArray(vendor.services) && vendor.services.length > 0
+    ? vendor.services
+    : [];
     
   console.log('Final services to display:', services);
+  console.log('Services count:', services.length);
 
   // Get category icon
   const getCategoryIcon = (category: string) => {
@@ -707,34 +706,45 @@ const VendorProfile = () => {
               </Card>
             )}
 
-            {/* Services Section */}
-            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
-              <CardContent className="p-8">
-                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                  <CategoryIcon className="w-8 h-8 text-amber-600" />
-                  Our Services
-                </h2>
-                <p className="text-gray-600 mb-8 text-lg">Specialized in professional {vendor.category.toLowerCase()} services</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {services.slice(0, 6).map((service, index) => (
-                    <div 
-                      key={index}
-                      className={`group p-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 border-transparent hover:border-white/50 shadow-lg`}
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className={`p-4 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-all duration-300 shadow-lg`}>
-                          <CategoryIcon className="w-8 h-8 text-white" />
+            {/* Services Section - Only show if services exist */}
+            {services.length > 0 && (
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <CategoryIcon className="w-8 h-8 text-amber-600" />
+                    Our Services
+                  </h2>
+                  <p className="text-gray-600 mb-8 text-lg">Specialized in professional {vendor.category.toLowerCase()} services</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {services.slice(0, 6).map((service, index) => (
+                      <div 
+                        key={index}
+                        className={`group p-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 border-transparent hover:border-white/50 shadow-lg`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`p-4 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-all duration-300 shadow-lg`}>
+                            <CategoryIcon className="w-8 h-8 text-white" />
+                            </div>
+                          <div className="flex-1">
+                            <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">
+                              {typeof service === 'string' ? service : service.name}
+                            </h3>
+                            <p className="text-gray-600 text-base leading-relaxed">
+                              {typeof service === 'object' && service.description 
+                                ? service.description 
+                                : 'Professional service with expertise and quality.'}
+                            </p>
+                            {typeof service === 'object' && service.price && (
+                              <p className="text-green-600 font-semibold mt-2">₹{service.price}</p>
+                            )}
                           </div>
-                        <div className="flex-1">
-                          <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">{service}</h3>
-                          <p className="text-gray-600 text-base leading-relaxed">Professional {service.toLowerCase()} services with attention to detail and quality.</p>
-                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Deliverables Section */}
             {vendor.deliverables && vendor.deliverables.length > 0 && (

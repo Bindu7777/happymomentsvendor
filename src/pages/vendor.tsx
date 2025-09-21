@@ -81,6 +81,9 @@ const VendorProfile = () => {
         setHighlightImages(highlights);
         setHighlightedCatalogImages(highlightedCatalog);
         setCatalogImages(allCatalogImages);
+        
+        // Reset slide index when images change
+        setCurrentSlide(0);
 
       } catch (err) {
         console.error("Failed to fetch vendor details:", err);
@@ -113,13 +116,13 @@ const VendorProfile = () => {
 
   // Auto-play carousel
   useEffect(() => {
-    if (isAutoPlaying && highlightImages.length > 0) {
+    if (isAutoPlaying && highlightedCatalogImages.length > 0) {
       const interval = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % highlightImages.length);
+        setCurrentSlide((prev) => (prev + 1) % highlightedCatalogImages.length);
       }, 4000);
       return () => clearInterval(interval);
     }
-  }, [isAutoPlaying, highlightImages.length]);
+  }, [isAutoPlaying, highlightedCatalogImages.length]);
 
   // WhatsApp integration
   const openWhatsApp = () => {
@@ -483,17 +486,23 @@ const VendorProfile = () => {
             </div>
 
             {/* Mobile Gallery */}
-            {highlightImages.length > 0 && (
+            {highlightedCatalogImages.length > 0 && (
               <div className="relative rounded-2xl overflow-hidden shadow-lg h-64 mb-6">
                 <img 
-                  src={highlightImages[currentSlide]?.media_url || "/images/vendor.jpeg"} 
-                  alt={highlightImages[currentSlide]?.title || "Highlight"}
+                  src={highlightedCatalogImages[currentSlide]?.media_url || "/images/vendor.jpeg"} 
+                  alt={highlightedCatalogImages[currentSlide]?.title || "Highlighted Work"}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <h3 className="font-bold mb-1">{highlightImages[currentSlide]?.title || "Our Work"}</h3>
-                  <p className="text-sm opacity-90">{highlightImages[currentSlide]?.description || "Professional services"}</p>
+                  <h3 className="font-bold mb-1">{highlightedCatalogImages[currentSlide]?.title || "Our Featured Work"}</h3>
+                  <p className="text-sm opacity-90">Highlighted Images</p>
+                </div>
+                <div className="absolute top-4 right-4">
+                  <Badge className="bg-yellow-500 text-white">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Featured
+                  </Badge>
                 </div>
               </div>
             )}
@@ -614,34 +623,54 @@ const VendorProfile = () => {
                 <div className="w-full max-w-[600px] h-full flex flex-col animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
                   <div className="relative rounded-3xl overflow-hidden shadow-2xl flex-1 bg-gradient-to-br from-gray-100 to-gray-200">
                     <img 
-                      src={highlightImages.length > 0 ? highlightImages[currentSlide]?.media_url : vendor.avatar_url || "/images/vendor.jpeg"} 
+                      src={highlightedCatalogImages.length > 0 ? highlightedCatalogImages[currentSlide]?.media_url : vendor.avatar_url || "/images/vendor.jpeg"} 
                       alt={vendor.brand_name}
                       className="w-full h-full object-cover transition-all duration-1000 hover:scale-105"
                         style={{ imageRendering: 'crisp-edges' }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
                     
+                    {/* Featured Badge */}
+                    {highlightedCatalogImages.length > 0 && (
+                      <div className="absolute top-6 right-6">
+                        <Badge className="bg-yellow-500 text-white text-sm px-3 py-1">
+                          <Sparkles className="w-4 h-4 mr-1" />
+                          Featured Work
+                        </Badge>
+                      </div>
+                    )}
+                    
                     {/* Image Info Overlay */}
                     <div className="absolute bottom-6 left-6 right-6 text-white">
                       <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
-                        <h3 className="text-2xl font-bold mb-2 text-white drop-shadow-lg">{highlightImages[currentSlide]?.title || "Our Work"}</h3>
-                        <p className="text-base text-white/95 font-medium drop-shadow-md">{highlightImages[currentSlide]?.description || "Professional services"}</p>
+                        <h3 className="text-2xl font-bold mb-2 text-white drop-shadow-lg">
+                          {highlightedCatalogImages.length > 0 
+                            ? (highlightedCatalogImages[currentSlide]?.title || "Our Featured Work")
+                            : "Our Work"
+                          }
+                        </h3>
+                        <p className="text-base text-white/95 font-medium drop-shadow-md">
+                          {highlightedCatalogImages.length > 0 
+                            ? "Highlighted Images"
+                            : "Professional services for your special day"
+                          }
+                        </p>
                       </div>
                     </div>
                   </div>
                   
                   {/* Image Navigation */}
-                  {highlightImages.length > 1 && (
+                  {highlightedCatalogImages.length > 1 && (
                     <div className="flex justify-center mt-6 gap-3">
-                      {highlightImages.map((_, index) => (
+                      {highlightedCatalogImages.map((_, index) => (
                         <button
                           key={index}
                           onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
                           className={`w-4 h-4 rounded-full transition-all duration-300 ${
-                            index === currentSlide ? 'bg-blue-600 scale-125 shadow-lg' : 'bg-gray-300 hover:bg-gray-400'
+                            index === currentSlide ? 'bg-yellow-500 scale-125 shadow-lg' : 'bg-gray-300 hover:bg-gray-400'
                           }`}
-                    />
-                  ))}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

@@ -770,7 +770,8 @@ const AdminDashboard = () => {
                                 'booking_policies': 'Booking Policies',
                                 'additional_info': 'Additional Information',
                                 'currently_available': 'Currently Available',
-                                'catalog_images': 'Catalog Images'
+                                'catalog_images': 'Catalog Images',
+                                'highlight_status_changes': 'Image Highlight Changes'
                                 };
                                 return fieldNames[fieldKey] || fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                               };
@@ -806,6 +807,39 @@ const AdminDashboard = () => {
                                         +{value.length - 4} more
                                       </div>
                                     )}
+                                  </div>
+                                );
+                              }
+
+                              if (fieldKey === 'highlight_status_changes' && value?.changed_images) {
+                                return (
+                                  <div className="space-y-2">
+                                    <div className="text-sm font-medium text-blue-600">
+                                      {value.changed_images.length} image(s) highlight status changed
+                                    </div>
+                                    {value.changed_images.map((img: any, i: number) => (
+                                      <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                                        <img 
+                                          src={img.media_url} 
+                                          alt={`Changed image ${i + 1}`} 
+                                          className="w-12 h-12 object-cover rounded border"
+                                          onError={(e) => (e.target as HTMLElement).style.display = 'none'}
+                                        />
+                                        <div className="flex-1">
+                                          <div className="text-sm">
+                                            {img.is_highlighted ? (
+                                              <span className="text-yellow-600 font-medium">
+                                                ⭐ Now Highlighted
+                                              </span>
+                                            ) : (
+                                              <span className="text-gray-600">
+                                                Highlight Removed
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
                                 );
                               }

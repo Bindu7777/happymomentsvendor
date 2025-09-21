@@ -911,6 +911,50 @@ export const reviewVendorProfileChange = async (
         console.log('catalogImages type:', typeof catalogImages);
       }
 
+      // Handle highlight status changes
+      if (proposedChanges.highlight_status_changes && proposedChanges.highlight_status_changes.changed_images) {
+        console.log('=== APPLYING HIGHLIGHT STATUS CHANGES ===');
+        console.log('Highlight changes:', proposedChanges.highlight_status_changes);
+        
+        try {
+          for (const changedImg of proposedChanges.highlight_status_changes.changed_images) {
+            console.log(`Updating highlight status for image: ${changedImg.media_url} to ${changedImg.is_highlighted}`);
+            
+            // Find the image in vendor_media table by media_url and vendor_id
+            const { data: imageRecord, error: findError } = await supabase
+              .from('vendor_media')
+              .select('id')
+              .eq('vendor_id', changeRecord.vendor_id)
+              .eq('media_url', changedImg.media_url)
+              .eq('category', 'catalog')
+              .single();
+
+            if (findError || !imageRecord) {
+              console.error(`Failed to find image record for ${changedImg.media_url}:`, findError);
+              continue;
+            }
+
+            // Update the highlight status
+            const { error: updateError } = await supabase
+              .from('vendor_media')
+              .update({ is_highlighted: changedImg.is_highlighted })
+              .eq('id', imageRecord.id);
+
+            if (updateError) {
+              console.error(`Failed to update highlight status for image ${imageRecord.id}:`, updateError);
+            } else {
+              console.log(`✅ Successfully updated highlight status for image ${imageRecord.id}`);
+            }
+          }
+          
+          console.log('✅ All highlight status changes applied successfully');
+        } catch (highlightError) {
+          console.error('❌ Error applying highlight status changes:', highlightError);
+          // Don't fail the entire approval, just log the error
+          console.warn('Vendor profile updated but highlight status changes failed:', highlightError);
+        }
+      }
+
       console.log('Vendor profile updated successfully');
     }
 

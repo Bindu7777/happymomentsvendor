@@ -101,6 +101,7 @@ const VendorProfileEdit: React.FC = () => {
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState<string>('');
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  const [currentHighlightStatus, setCurrentHighlightStatus] = useState<Array<{id: string, media_url: string, is_highlighted: boolean}>>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteConfirmType, setDeleteConfirmType] = useState<'brand_logo' | 'contact_person' | 'catalog'>('brand_logo');
   const [deleteConfirmData, setDeleteConfirmData] = useState<any>(null);
@@ -396,41 +397,41 @@ const VendorProfileEdit: React.FC = () => {
       }
       
       try {
-        while (serviceFields.length > 0) {
-          removeService(0);
+    while (serviceFields.length > 0) {
+      removeService(0);
         }
       } catch (e) {
         console.log('Error clearing services:', e);
-      }
-      
+    }
+    
       try {
-        while (packageFields.length > 0) {
-          removePackage(0);
+    while (packageFields.length > 0) {
+      removePackage(0);
         }
       } catch (e) {
         console.log('Error clearing packages:', e);
-      }
-      
+    }
+    
       try {
-        while (deliverableFields.length > 0) {
-          removeDeliverable(0);
-        }
+    while (deliverableFields.length > 0) {
+      removeDeliverable(0);
+    }
       } catch (e) {
         console.log('Error clearing deliverables:', e);
       }
       
       try {
-        while (reviewFields.length > 0) {
-          removeReview(0);
+    while (reviewFields.length > 0) {
+      removeReview(0);
         }
       } catch (e) {
         console.log('Error clearing reviews:', e);
-      }
-      
+    }
+    
       try {
-        while (customFields.length > 0) {
-          removeCustomField(0);
-        }
+    while (customFields.length > 0) {
+      removeCustomField(0);
+    }
       } catch (e) {
         console.log('Error clearing custom fields:', e);
       }
@@ -477,8 +478,8 @@ const VendorProfileEdit: React.FC = () => {
       ];
       sampleServices.forEach((service, index) => {
         console.log(`Adding service ${index + 1}:`, service);
-        appendService(service);
-      });
+      appendService(service);
+    });
 
     // Add sample packages
     const samplePackages = [
@@ -502,8 +503,8 @@ const VendorProfileEdit: React.FC = () => {
       }
     ];
     samplePackages.forEach(pkg => {
-      appendPackage(pkg);
-    });
+        appendPackage(pkg);
+      });
 
     // Add sample deliverables
     const sampleDeliverables = [
@@ -515,8 +516,8 @@ const VendorProfileEdit: React.FC = () => {
       "Social media ready images"
     ];
     sampleDeliverables.forEach(deliverable => {
-      appendDeliverable(deliverable);
-    });
+        appendDeliverable(deliverable);
+      });
 
     // Add sample catalog images
     const sampleCatalogImages = [
@@ -550,8 +551,8 @@ const VendorProfileEdit: React.FC = () => {
       }
     ];
     sampleReviews.forEach(review => {
-      appendReview(review);
-    });
+        appendReview(review);
+      });
 
     // Set sample booking policies
     setValue('booking_policies.cancellation_policy', 'Cancellation allowed up to 30 days before the event with 50% refund. No refund for cancellations within 30 days.');
@@ -576,8 +577,8 @@ const VendorProfileEdit: React.FC = () => {
       }
     ];
     sampleCustomFields.forEach(field => {
-      appendCustomField(field);
-    });
+        appendCustomField(field);
+      });
 
       console.log('Sample data filling completed successfully!');
       setHighlightMessage('✅ Sample data filled successfully! You can now edit or submit this data.');
@@ -600,28 +601,56 @@ const VendorProfileEdit: React.FC = () => {
         setHighlightMessage('✅ Contact person image removed successfully!');
         setTimeout(() => setHighlightMessage(''), 3000);
       } else if (deleteConfirmType === 'catalog' && deleteConfirmData) {
+        console.log('Deleting catalog image:', deleteConfirmData.id);
         const success = await deleteVendorMedia(deleteConfirmData.id);
+        console.log('Delete result:', success);
         
         if (success) {
           // Remove from local state
-          setCatalogImagesWithMeta(prev => prev.filter(img => img.id !== deleteConfirmData.id));
-          setCatalogImages(prev => prev.filter(url => url !== deleteConfirmData.media_url));
+          console.log('Removing from local state...');
+          setCatalogImagesWithMeta(prev => {
+            const newImages = prev.filter(img => img.id !== deleteConfirmData.id);
+            console.log('Updated catalogImagesWithMeta:', newImages);
+            return newImages;
+          });
+          setCatalogImages(prev => {
+            const newUrls = prev.filter(url => url !== deleteConfirmData.media_url);
+            console.log('Updated catalogImages:', newUrls);
+            return newUrls;
+          });
+          
+          // Update current highlight status to remove deleted image
+          setCurrentHighlightStatus(prev => 
+            prev.filter(img => img.id !== deleteConfirmData.id)
+          );
+          
           setHighlightMessage('✅ Image deleted successfully!');
           setTimeout(() => setHighlightMessage(''), 3000);
           
           // Refresh catalog images to ensure consistency
           if (vendor?.vendor_id) {
             try {
+              console.log('Refreshing catalog images...');
               const refreshedImages = await getVendorMedia(vendor.vendor_id, 'catalog');
               setCatalogImagesWithMeta(refreshedImages);
               const refreshedUrls = refreshedImages.map(img => img.media_url);
               setCatalogImages(refreshedUrls);
+              
+              // Update current highlight status with refreshed data
+              setCurrentHighlightStatus(refreshedImages.map(img => ({
+                id: img.id,
+                media_url: img.media_url,
+                is_highlighted: img.is_highlighted || false
+              })));
+              
+              console.log('Catalog images refreshed successfully');
             } catch (refreshError) {
               console.error('Error refreshing after delete:', refreshError);
             }
           }
-    } else {
+        } else {
           setHighlightMessage('❌ Failed to delete image. Please try again.');
+          setTimeout(() => setHighlightMessage(''), 5000);
         }
       }
     } catch (error) {
@@ -630,6 +659,8 @@ const VendorProfileEdit: React.FC = () => {
     } finally {
       setDeleteConfirmOpen(false);
       setDeleteConfirmData(null);
+      setDeleteConfirmType('brand_logo');
+      console.log('Delete confirmation dialog closed');
     }
   };
 
@@ -669,6 +700,13 @@ const VendorProfileEdit: React.FC = () => {
       
       setCatalogImages(imageUrls);
       setCatalogImagesWithMeta(media); // Store full media objects for highlighting
+      
+      // Store current highlight status for comparison during submission
+      setCurrentHighlightStatus(media.map(img => ({
+        id: img.id,
+        media_url: img.media_url,
+        is_highlighted: img.is_highlighted || false
+      })));
       
       // Return the image URLs for immediate use
       console.log('Catalog images loaded, returning:', imageUrls);
@@ -823,7 +861,13 @@ const VendorProfileEdit: React.FC = () => {
         // Normalize values for comparison (sort object keys, handle null/undefined)
         const normalizeForComparison = (val: any): any => {
           if (val === null || val === undefined) return null;
-          if (Array.isArray(val)) return val.sort();
+          if (Array.isArray(val)) {
+            // Special handling for services array - sort by name for consistent comparison
+            if (key === 'services' && val.length > 0 && val[0]?.name) {
+              return val.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            }
+            return val.sort();
+          }
           if (typeof val === 'object') {
             const sorted: any = {};
             Object.keys(val).sort().forEach(k => {
@@ -847,6 +891,44 @@ const VendorProfileEdit: React.FC = () => {
       });
 
       console.log('Only changed fields:', proposedChanges);
+
+      // Check for highlight status changes
+      console.log('=== CHECKING HIGHLIGHT STATUS CHANGES ===');
+      console.log('Current highlight status:', currentHighlightStatus);
+      console.log('Current catalog images with meta:', catalogImagesWithMeta);
+      
+      const currentHighlights = currentHighlightStatus.map(img => ({
+        media_url: img.media_url,
+        is_highlighted: img.is_highlighted
+      }));
+      
+      const newHighlights = catalogImagesWithMeta.map(img => ({
+        media_url: img.media_url,
+        is_highlighted: img.is_highlighted || false
+      }));
+      
+      console.log('Current highlights for comparison:', currentHighlights);
+      console.log('New highlights for comparison:', newHighlights);
+      
+      // Compare highlight status
+      const highlightsChanged = JSON.stringify(currentHighlights.sort((a, b) => a.media_url.localeCompare(b.media_url))) !== 
+                                JSON.stringify(newHighlights.sort((a, b) => a.media_url.localeCompare(b.media_url)));
+      
+      console.log('Highlights changed:', highlightsChanged);
+      
+      if (highlightsChanged) {
+        console.log('Adding highlight_status_changes to proposed changes');
+        proposedChanges.highlight_status_changes = {
+          current: currentHighlights,
+          proposed: newHighlights,
+          changed_images: newHighlights.filter((newImg, index) => {
+            const currentImg = currentHighlights.find(curr => curr.media_url === newImg.media_url);
+            return currentImg && currentImg.is_highlighted !== newImg.is_highlighted;
+          })
+        };
+      }
+
+      console.log('Final proposed changes with highlights:', proposedChanges);
 
       // If no changes detected, don't submit
       if (Object.keys(proposedChanges).length === 0) {
@@ -1661,12 +1743,15 @@ const VendorProfileEdit: React.FC = () => {
                             type="button"
                             variant="destructive"
                             size="sm"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Delete button clicked for image:', image.id);
                               setDeleteConfirmType('catalog');
                               setDeleteConfirmData(image);
                               setDeleteConfirmOpen(true);
                             }}
-                            className="absolute top-1 right-1 z-10 w-8 h-8 p-0"
+                            className="absolute top-1 right-1 z-10 w-8 h-8 p-0 hover:bg-red-600"
                           >
                             <X className="w-4 h-4" />
                           </Button>

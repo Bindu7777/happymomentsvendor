@@ -281,19 +281,7 @@ const VendorProfileEdit: React.FC = () => {
       });
     }
     
-    // Add services from specialties (convert to service format) - only if specialties exist
-    const vendorSpecialties = (vendorData as any).specialties;
-    if (vendorSpecialties && Array.isArray(vendorSpecialties) && vendorSpecialties.length > 0) {
-      vendorSpecialties.forEach((specialty: string) => {
-        if (specialty && specialty.trim() !== '') {
-          allServices.push({
-            name: specialty.trim(),
-            description: '',
-            price: ''
-          });
-        }
-      });
-    }
+    // Don't load from specialties - only use services field to avoid hardcoded data
     
     // Remove duplicates based on service name (case-insensitive)
     const uniqueServices = allServices.filter((service, index, array) => {
@@ -722,7 +710,7 @@ const VendorProfileEdit: React.FC = () => {
         services: vendor.services || [],
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
-        // catalog_images: [...(catalogImages || []), ...uploadedImageUrls], // Removed - handled separately
+        catalog_images: [...(catalogImages || []), ...uploadedImageUrls], // Re-added for comparison
         customer_reviews: vendor.customer_reviews || [],
         booking_policies: vendor.booking_policies || undefined,
         additional_info: vendor.additional_info || undefined,
@@ -758,7 +746,7 @@ const VendorProfileEdit: React.FC = () => {
             : pkg.features || []
         })) || [],
         deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
-        // catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls], // Removed - handled separately
+        catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls], // Re-added to main approval
         customer_reviews: data.customer_reviews?.filter(r => 
           r.customer_name && r.customer_name.trim() !== '' && r.review && r.review.trim() !== ''
         ) || [],
@@ -877,51 +865,8 @@ const VendorProfileEdit: React.FC = () => {
       );
 
       if (result.success) {
-        // Handle catalog images separately - include in approval workflow
-        const urlImages = data.catalog_images?.filter(img => img && img.trim() !== '') || [];
-        const allCatalogImages = [...urlImages, ...uploadedImageUrls];
-        
-        console.log('Form URL images:', urlImages);
-        console.log('Uploaded images:', uploadedImageUrls);
-        console.log('All catalog images to save:', allCatalogImages);
-        
-        // Check if catalog images changed and submit for approval if needed
-        if (JSON.stringify(allCatalogImages) !== JSON.stringify(catalogImages)) {
-          console.log('Catalog images changed, submitting for approval...');
-          
-          // Submit catalog images changes for approval
-          const catalogChanges = {
-            catalog_images: allCatalogImages
-          };
-          
-          const catalogCurrentData = {
-            catalog_images: catalogImages || []
-          };
-          
-          try {
-            const catalogResult = await submitVendorProfileChange(
-              parseInt(vendor.vendor_id),
-              'catalog_update',
-              catalogCurrentData,
-              catalogChanges
-            );
-            
-            if (catalogResult.success) {
-              console.log('Catalog images changes submitted for approval');
-          } else {
-              console.error('Failed to submit catalog images for approval:', catalogResult.message);
-            }
-          } catch (catalogError) {
-            console.error('Error submitting catalog images for approval:', catalogError);
-          }
-        }
-        
-        // Store the submitted changes for the summary dialog (include catalog if changed)
-        const allSubmittedChanges = { ...proposedChanges };
-        if (JSON.stringify(allCatalogImages) !== JSON.stringify(catalogImages)) {
-          allSubmittedChanges.catalog_images = allCatalogImages;
-        }
-        setSubmittedChanges(allSubmittedChanges);
+        // Store the submitted changes for the summary dialog
+        setSubmittedChanges(proposedChanges);
         
         setSubmitSuccess(true);
         setSubmitMessage(result.message || 'Changes submitted successfully');

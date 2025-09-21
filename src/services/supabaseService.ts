@@ -245,7 +245,8 @@ export const getVendorMedia = async (vendorId: string, category?: string): Promi
 // Get highlighted catalog images (up to 3) or first 3 if none highlighted
 export const getHighlightedCatalogImages = async (vendorId: string): Promise<VendorMedia[]> => {
   try {
-    // First, try to get highlighted images
+    console.log(`Getting ONLY highlighted catalog images for vendor ${vendorId}`);
+    
     let { data: highlightedImages, error: highlightedError } = await supabase
       .from('vendor_media')
       .select('*')
@@ -259,16 +260,23 @@ export const getHighlightedCatalogImages = async (vendorId: string): Promise<Ven
 
     if (highlightedError) {
       console.error('Error fetching highlighted catalog images:', highlightedError);
+      return [];
     }
 
-    // If we have highlighted images, return them
-    if (highlightedImages && highlightedImages.length > 0) {
-      console.log(`Found ${highlightedImages.length} highlighted catalog images for vendor ${vendorId}`);
-      return highlightedImages as VendorMedia[];
-    }
+    console.log(`Found ${highlightedImages?.length || 0} highlighted catalog images for vendor ${vendorId}`);
+    return (highlightedImages as VendorMedia[]) || [];
 
-    // If no highlighted images, get first 3 catalog images
-    console.log(`No highlighted images found for vendor ${vendorId}, getting first 3 catalog images`);
+  } catch (error) {
+    console.error('Error fetching highlighted catalog images:', error);
+    return [];
+  }
+};
+
+// Get all catalog images (max 10 for display)
+export const getAllCatalogImages = async (vendorId: string): Promise<VendorMedia[]> => {
+  try {
+    console.log(`Getting all catalog images for vendor ${vendorId}`);
+    
     let { data: catalogImages, error: catalogError } = await supabase
       .from('vendor_media')
       .select('*')
@@ -277,18 +285,18 @@ export const getHighlightedCatalogImages = async (vendorId: string): Promise<Ven
       .eq('public', true)
       .order('order_index', { ascending: true })
       .order('uploaded_at', { ascending: true })
-      .limit(3);
+      .limit(10); // Max 10 images for catalog display
 
     if (catalogError) {
-      console.error('Error fetching catalog images:', catalogError);
+      console.error('Error fetching all catalog images:', catalogError);
       return [];
     }
 
-    console.log(`Found ${catalogImages?.length || 0} catalog images for vendor ${vendorId}`);
+    console.log(`Found ${catalogImages?.length || 0} total catalog images for vendor ${vendorId}`);
     return (catalogImages as VendorMedia[]) || [];
 
   } catch (error) {
-    console.error('Error fetching highlighted catalog images:', error);
+    console.error('Error in getAllCatalogImages:', error);
     return [];
   }
 };
@@ -429,10 +437,33 @@ export const deleteVendorMedia = async (mediaId: string): Promise<boolean> => {
   }
 };
 
-// Update vendor catalog images
+// Update vendor catalog images (preserving highlight status)
 export const updateVendorCatalogImages = async (vendorId: string, imageUrls: string[]): Promise<boolean> => {
   try {
-    // First, delete existing catalog images
+    console.log('Updating catalog images for vendor:', vendorId);
+    console.log('New image URLs:', imageUrls);
+    
+    // First, get existing catalog images to preserve highlight status
+    const { data: existingImages, error: fetchError } = await supabase
+      .from('vendor_media')
+      .select('media_url, is_highlighted')
+      .eq('vendor_id', vendorId)
+      .eq('category', 'catalog');
+
+    if (fetchError) {
+      console.error('Error fetching existing catalog images:', fetchError);
+    }
+
+    const existingHighlights = existingImages?.reduce((acc, img) => {
+      if (img.is_highlighted) {
+        acc[img.media_url] = true;
+      }
+      return acc;
+    }, {} as Record<string, boolean>) || {};
+
+    console.log('Existing highlights to preserve:', existingHighlights);
+
+    // Delete existing catalog images
     const { error: deleteError } = await supabase
       .from('vendor_media')
       .delete()
@@ -444,7 +475,7 @@ export const updateVendorCatalogImages = async (vendorId: string, imageUrls: str
       return false;
     }
 
-    // Then, add new catalog images
+    // Then, add new catalog images with preserved highlight status
     if (imageUrls.length > 0) {
       const mediaData = imageUrls.map((url, index) => ({
         vendor_id: vendorId,
@@ -452,8 +483,12 @@ export const updateVendorCatalogImages = async (vendorId: string, imageUrls: str
         media_type: 'image' as const,
         category: 'catalog' as const,
         order_index: index,
-        public: true
+        public: true,
+        is_highlighted: existingHighlights[url] || false, // Preserve highlight status
+        title: `Catalog Image ${index + 1}`
       }));
+
+      console.log('Inserting new catalog images with data:', mediaData);
 
       const { error: insertError } = await supabase
         .from('vendor_media')
@@ -463,6 +498,8 @@ export const updateVendorCatalogImages = async (vendorId: string, imageUrls: str
         console.error('Error adding new catalog images:', insertError);
         return false;
       }
+
+      console.log('Successfully updated catalog images in vendor_media table');
     }
 
     return true;
@@ -635,11 +672,11 @@ export const clearVendorHardcodedServices = async (vendorId: string): Promise<{s
     console.log('Current vendor services:', currentVendor.services);
     console.log('Current vendor specialties:', currentVendor.specialties);
 
-    // Clear both services and specialties fields
+    // Clear both services and specialties fields, and any other potential hardcoded fields
     const { error: updateError } = await supabase
       .from('vendors')
       .update({
-        services: null,
+        services: [],
         specialties: null,
         updated_at: new Date().toISOString()
       })
@@ -846,24 +883,32 @@ export const reviewVendorProfileChange = async (
         return { success: false, message: `Failed to apply approved changes: ${vendorUpdateError.message}` };
       }
 
-      // Handle catalog images separately through vendor_media table
+      // Handle catalog_images through vendor_media table if they were included in changes
       if (catalogImages && Array.isArray(catalogImages)) {
-        console.log('Updating catalog images through vendor_media table:', catalogImages);
+        console.log('=== UPDATING CATALOG IMAGES IN VENDOR_MEDIA ===');
+        console.log('Vendor ID:', changeRecord.vendor_id);
+        console.log('Catalog images to update:', catalogImages);
+        console.log('Catalog images count:', catalogImages.length);
         
         try {
           const catalogUpdateResult = await updateVendorCatalogImages(changeRecord.vendor_id, catalogImages);
           if (!catalogUpdateResult) {
-            console.error('Failed to update catalog images in vendor_media table');
+            console.error('❌ Failed to update catalog images in vendor_media table');
             // Don't fail the entire approval, just log the error
             console.warn('Vendor profile updated but catalog images update failed');
           } else {
-            console.log('Catalog images updated successfully in vendor_media table');
+            console.log('✅ Catalog images updated successfully in vendor_media table');
+            console.log('Catalog images should now be visible in public profile');
           }
         } catch (catalogError) {
-          console.error('Error updating catalog images:', catalogError);
+          console.error('❌ Error updating catalog images:', catalogError);
           // Don't fail the entire approval, just log the error
           console.warn('Vendor profile updated but catalog images update failed:', catalogError);
         }
+      } else {
+        console.log('No catalog images to update or catalog images is not an array');
+        console.log('catalogImages value:', catalogImages);
+        console.log('catalogImages type:', typeof catalogImages);
       }
 
       console.log('Vendor profile updated successfully');

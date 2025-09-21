@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Vendor } from '@/lib/supabase';
-import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages } from '../services/supabaseService';
+import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
 import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -19,6 +19,7 @@ const VendorProfile = () => {
   const [error, setError] = useState<string | null>(null);
   const [highlightImages, setHighlightImages] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<any[]>([]);
+  const [highlightedCatalogImages, setHighlightedCatalogImages] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -67,12 +68,19 @@ const VendorProfile = () => {
         // Categorize media
         const highlights = mediaData.filter(m => m.category === 'highlights');
         
-        // Get highlighted catalog images (up to 3) or first 3 if none highlighted
+        // Get highlighted catalog images (max 3)
         const highlightedCatalog = await getHighlightedCatalogImages(vendorIdNum.toString());
         console.log('Fetched highlighted catalog images:', highlightedCatalog);
+        console.log('Highlighted catalog count:', highlightedCatalog.length);
+        
+        // Get all catalog images (max 10)
+        const allCatalogImages = await getAllCatalogImages(vendorIdNum.toString());
+        console.log('All catalog images from vendor_media:', allCatalogImages);
+        console.log('All catalog images count:', allCatalogImages.length);
         
         setHighlightImages(highlights);
-        setCatalogImages(highlightedCatalog);
+        setHighlightedCatalogImages(highlightedCatalog);
+        setCatalogImages(allCatalogImages);
 
       } catch (err) {
         console.error("Failed to fetch vendor details:", err);
@@ -872,21 +880,76 @@ const VendorProfile = () => {
               </CardContent>
             </Card>
 
-            {/* Portfolio Gallery */}
+            {/* Highlighted Catalog Images */}
+            {highlightedCatalogImages.length > 0 && (
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-yellow-200">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <Sparkles className="w-8 h-8 text-yellow-600" />
+                    Featured Highlights
+                    <Badge className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-200">
+                      ⭐ Top Picks
+                    </Badge>
+                  </h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {highlightedCatalogImages.map((image, index) => (
+                      <Dialog key={`highlight-${index}`}>
+                        <DialogTrigger asChild>
+                          <div 
+                            className="relative group cursor-pointer overflow-hidden rounded-xl border-3 border-yellow-300 shadow-lg"
+                            onClick={(e) => { e.stopPropagation(); setSelectedImage(image); }}
+                          >
+                            <img 
+                              src={image.media_url} 
+                              alt={image.title || `Highlighted ${index + 1}`}
+                              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                            <div className="absolute top-2 right-2">
+                              <Badge className="bg-yellow-500 text-white">
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                Featured
+                              </Badge>
+                            </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                              <div className="text-white text-center">
+                                <Camera className="w-8 h-8 mx-auto mb-2" />
+                                <span className="text-sm font-medium">View Full Size</span>
+                              </div>
+                            </div>
+                          </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-6xl">
+                          <div className="relative">
+                            <img 
+                              src={image.media_url} 
+                              alt={image.title || `Highlighted ${index + 1}`}
+                              className="w-full h-auto rounded-lg"
+                            />
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Complete Catalog Gallery */}
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
               <CardContent className="p-8">
                 <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                   <Video className="w-8 h-8 text-blue-600" />
-                  Featured Catalog
-                  <Badge className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-200">
-                    Highlighted
+                  Complete Catalog
+                  <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
+                    {catalogImages.length} Images
                   </Badge>
                 </h2>
                 
                 {catalogImages.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {catalogImages.map((image, index) => (
-                      <Dialog key={index}>
+                      <Dialog key={`catalog-${index}`}>
                         <DialogTrigger asChild>
                           <div 
                             className="relative group cursor-pointer overflow-hidden rounded-xl"
@@ -897,6 +960,14 @@ const VendorProfile = () => {
                               alt={image.title || `Catalog ${index + 1}`}
                               className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
                             />
+                            {image.is_highlighted && (
+                              <div className="absolute top-2 right-2">
+                                <Badge className="bg-yellow-500 text-white text-xs">
+                                  <Sparkles className="w-2 h-2 mr-1" />
+                                  ⭐
+                                </Badge>
+                              </div>
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                               <div className="text-white text-center">
                                 <Camera className="w-8 h-8 mx-auto mb-2" />
@@ -922,6 +993,12 @@ const VendorProfile = () => {
                     <Camera className="w-12 h-12 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-lg font-medium text-gray-600 mb-2">No Catalog Images</h3>
                     <p className="text-gray-500">This vendor hasn't added any catalog images yet.</p>
+                    <Button 
+                      onClick={() => window.location.reload()} 
+                      className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Refresh Page
+                    </Button>
                   </div>
                 )}
               </CardContent>

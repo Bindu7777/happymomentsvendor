@@ -13,9 +13,17 @@ import {
   Shield,
   CheckCircle,
   XCircle,
-  AlertTriangle,
+  Heart,
   Download,
-  Upload
+  Upload,
+  Zap,
+  Sparkles,
+  Sword,
+  Flower2,
+  Crown,
+  Rainbow,
+  Sun,
+  RefreshCw
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Vendor } from "@/lib/supabase";
@@ -40,7 +48,43 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("vendors");
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [reviewingChange, setReviewingChange] = useState<number | null>(null);
+  const [currentGreeting, setCurrentGreeting] = useState("");
+  const [demonControlLevel, setDemonControlLevel] = useState(0);
+  const [adminName, setAdminName] = useState("");
+  const [countUpValues, setCountUpValues] = useState({
+    totalVendors: 0,
+    verifiedVendors: 0,
+    activeVendors: 0,
+    featuredVendors: 0
+  });
   const navigate = useNavigate();
+
+  // Demon-themed admin names and greetings
+  const demonNames = [
+    "Muzan Kibutsuji 👹", 
+    "Lord of Event Chaos 🦹‍♂️", 
+    "Supreme Event Overlord 👑", 
+    "Demon of Vendor Control 🔥", 
+    "Master of Event Realms 🌟"
+  ];
+  
+  const demonGreetings = [
+    "Ready to control your event demons today?",
+    "Time to summon some vendor magic! ✨",
+    "Let's make events legendary! 🎉",
+    "Ready to slay some event challenges? 🗡️",
+    "Time to rule the event kingdom! 👑",
+    "Let's create some chaos... organized chaos! 😈"
+  ];
+
+  const getRandomGreeting = () => {
+    const randomGreeting = demonGreetings[Math.floor(Math.random() * demonGreetings.length)];
+    setCurrentGreeting(randomGreeting);
+  };
+
+  const setRandomAdminName = () => {
+    setAdminName("Muichiro Tokito");
+  };
 
   useEffect(() => {
     // Check admin authentication
@@ -52,11 +96,63 @@ const AdminDashboard = () => {
 
     fetchVendors();
     fetchPendingChanges();
-  }, [navigate]);
+    getRandomGreeting();
+    setRandomAdminName();
+    
+    // Calculate demon control level based on completed tasks
+    const completedTasks = vendors.filter(v => v.verified).length + 
+                          vendors.filter(v => v.currently_available).length;
+    setDemonControlLevel(Math.min(completedTasks * 5, 100));
+  }, [navigate, vendors]);
 
   useEffect(() => {
     filterVendors();
   }, [vendors, searchTerm, filterStatus, filterCategory]);
+
+  // Count-up animation effect
+  useEffect(() => {
+    const stats = {
+      totalVendors: vendors.length,
+      verifiedVendors: vendors.filter(v => v.verified).length,
+      activeVendors: vendors.filter(v => v.currently_available).length,
+      featuredVendors: vendors.filter(v => v.verified && v.currently_available).length,
+    };
+
+    const animateCountUp = () => {
+      const duration = 1000; // 1 second
+      const steps = 60;
+      const stepDuration = duration / steps;
+      
+      Object.keys(stats).forEach(key => {
+        const targetValue = stats[key as keyof typeof stats];
+        const startValue = countUpValues[key as keyof typeof countUpValues];
+        const increment = (targetValue - startValue) / steps;
+        
+        let currentStep = 0;
+        const timer = setInterval(() => {
+          currentStep++;
+          const newValue = Math.round(startValue + (increment * currentStep));
+          
+          setCountUpValues(prev => ({
+            ...prev,
+            [key]: newValue
+          }));
+          
+          if (currentStep >= steps) {
+            clearInterval(timer);
+            setCountUpValues(prev => ({
+              ...prev,
+              [key]: targetValue
+            }));
+          }
+        }, stepDuration);
+      });
+    };
+
+    if (vendors.length > 0) {
+      animateCountUp();
+    }
+  }, [vendors.length]);
 
   const fetchVendors = async () => {
     try {
@@ -256,51 +352,167 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-wedding-light via-wedding-orange-light to-wedding-navy-light relative overflow-hidden">
+      {/* Mist Falling Animation */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Mist particles */}
+        {[...Array(15)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-white/20 rounded-full blur-sm animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              opacity: 0.3 + Math.random() * 0.4
+            }}
+          />
+        ))}
+        {/* Larger mist particles */}
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={`large-${i}`}
+            className="absolute w-4 h-4 bg-white/15 rounded-full blur-md animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 8}s`,
+              opacity: 0.2 + Math.random() * 0.3
+            }}
+          />
+        ))}
+        {/* Floating mist clouds */}
+        {[...Array(4)].map((_, i) => (
+          <div
+            key={`cloud-${i}`}
+            className="absolute w-16 h-16 bg-white/10 rounded-full blur-xl animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 10}s`,
+              opacity: 0.1 + Math.random() * 0.2
+            }}
+          />
+        ))}
+      </div>
+      
+      {/* Floating Pleasant Mascot */}
+      <div className="fixed bottom-8 right-8 z-50 group">
+        <div className="bg-gradient-to-br from-wedding-orange to-wedding-navy rounded-full p-4 shadow-2xl hover:shadow-wedding-orange/50 transition-all duration-300 hover:scale-110 cursor-pointer">
+          <Heart className="h-6 w-6 text-white" />
+        </div>
+        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-wedding-navy/90 text-white text-xs px-3 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+          🌸 Peaceful vibes! 🌸
+        </div>
+      </div>
+      
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-wedding-orange/20 relative z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <Shield className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+              <div>
+                <h1 
+                  className="text-3xl font-bold text-wedding-navy"
+                >
+                  Welcome back, {adminName}
+                </h1>
+              </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Demon Control Level Progress Bar */}
+              <div className="hidden md:block bg-white/80 rounded-full p-2 mr-4 shadow-lg">
+                <div className="flex items-center space-x-2">
+                  <Sword className="h-4 w-4 text-wedding-orange" />
+                  <div className="w-20 bg-wedding-gray-light rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-wedding-orange to-wedding-navy h-2 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${demonControlLevel}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-xs text-wedding-gray">{demonControlLevel}%</span>
+                </div>
+                <p className="text-xs text-wedding-gray text-center mt-1">Demon Control</p>
+              </div>
+              
               <button
                 onClick={() => navigate("/admin/vendor/new")}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center"
+                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-6 py-3 rounded-lg flex items-center shadow-lg hover:shadow-wedding-orange/25 hover:scale-105 transition-all duration-200"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Vendor
+                Summon Vendor
               </button>
               <button
                 onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md flex items-center"
+                className="bg-wedding-navy hover:bg-wedding-navy-hover text-white px-6 py-3 rounded-lg flex items-center shadow-lg hover:shadow-wedding-navy/25 hover:scale-105 transition-all duration-200"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Logout
+                Banish Session
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Layout with Vertical Sidebar */}
+      <div className="flex h-screen">
+        {/* Left Vertical Sidebar with Muichiro Tokito Image */}
+        <div className="w-96 flex-shrink-0 bg-gradient-to-b from-white/90 to-white/70 backdrop-blur-md shadow-lg border-r border-wedding-orange/20 h-screen overflow-hidden">
+          <div className="h-full flex flex-col">
+            <div className="p-2 border-b border-wedding-orange/20">
+              <h2 className="text-lg font-bold text-wedding-navy text-center">Muichiro Tokito</h2>
+              <p className="text-wedding-gray text-xs text-center">Mist Hashira</p>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-2">
+              <img 
+                src="/images/tokito-hq.png" 
+                alt="Muichiro Tokito - Mist Hashira" 
+                className="w-full h-full object-contain rounded-lg shadow-lg border-2 border-wedding-orange"
+                style={{
+                  imageRendering: 'high-quality',
+                  imageRendering: '-webkit-optimize-contrast'
+                }}
+                onError={(e) => {
+                  // Fallback to a placeholder or existing image if tokito.png is not found
+                  e.currentTarget.src = "/one.jpg";
+                  e.currentTarget.alt = "Muichiro Tokito - Mist Hashira (Placeholder)";
+                }}
+              />
+            </div>
+            <div className="p-2 border-t border-wedding-orange/20">
+              <div className="text-center">
+                <p className="text-xs text-wedding-gray italic mb-2">
+                  "I'll cut through any demon that stands in my way."
+                </p>
+                <div className="p-2 bg-wedding-orange-light rounded-lg border border-wedding-orange/30">
+                  <h3 className="font-bold text-wedding-navy text-xs mb-1">⚔️ Slayer Corps Leader</h3>
+                  <p className="text-xs text-wedding-gray">
+                    Commanding with precision.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-none px-3 sm:px-4 lg:px-6 py-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white/80 backdrop-blur-sm border border-wedding-orange/20 overflow-hidden shadow-lg rounded-xl hover:shadow-wedding-orange/25 hover:scale-105 transition-all duration-300">
+            <div className="p-4">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <Users className="h-6 w-6 text-gray-400" />
+                <div className="flex-shrink-0 relative">
+                  <Flower2 className="h-8 w-8 text-wedding-orange" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Total Vendors
+                    <dt className="text-sm font-medium text-wedding-gray truncate">
+                      Your Slayer Corps Today ⚔️
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {stats.totalVendors}
+                    <dd className="text-2xl font-bold text-wedding-navy">
+                      {countUpValues.totalVendors}
                     </dd>
                   </dl>
                 </div>
@@ -308,19 +520,19 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/80 backdrop-blur-sm border border-green-500/20 overflow-hidden shadow-lg rounded-xl hover:shadow-green-500/25 hover:scale-105 transition-all duration-300">
+            <div className="p-6">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <CheckCircle className="h-6 w-6 text-green-400" />
+                <div className="flex-shrink-0 relative">
+                  <Sun className="h-8 w-8 text-green-600" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Verified
+                    <dt className="text-sm font-medium text-wedding-gray truncate">
+                      Blessed Slayer Corps ✨
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {stats.verifiedVendors}
+                    <dd className="text-2xl font-bold text-wedding-navy">
+                      {countUpValues.verifiedVendors}
                     </dd>
                   </dl>
                 </div>
@@ -328,19 +540,19 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
+          <div className="bg-white/80 backdrop-blur-sm border border-wedding-navy/20 overflow-hidden shadow-lg rounded-xl hover:shadow-wedding-navy/25 hover:scale-105 transition-all duration-300">
+            <div className="p-6">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <TrendingUp className="h-6 w-6 text-blue-400" />
+                <div className="flex-shrink-0 relative">
+                  <Rainbow className="h-8 w-8 text-wedding-navy" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Active
+                    <dt className="text-sm font-medium text-wedding-gray truncate">
+                      Active Warriors ⚡
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
-                      {stats.activeVendors}
+                    <dd className="text-2xl font-bold text-wedding-navy">
+                      {countUpValues.activeVendors}
                     </dd>
                   </dl>
                 </div>
@@ -349,24 +561,24 @@ const AdminDashboard = () => {
           </div>
 
           <div 
-            className="bg-white overflow-hidden shadow rounded-lg cursor-pointer hover:shadow-lg transition-shadow"
+            className="bg-white/80 backdrop-blur-sm border border-red-500/20 overflow-hidden shadow-lg rounded-xl hover:shadow-red-500/25 hover:scale-105 transition-all duration-300 cursor-pointer"
             onClick={() => setActiveTab("approvals")}
           >
-            <div className="p-5">
+            <div className="p-6">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-6 w-6 text-yellow-400" />
+                <div className="flex-shrink-0 relative">
+                  <Heart className="h-8 w-8 text-red-500" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      Pending Approvals
+                    <dt className="text-sm font-medium text-wedding-gray truncate">
+                      Chaos Controlled 🎯
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900 flex items-center">
+                    <dd className="text-2xl font-bold text-wedding-navy flex items-center">
                       {pendingChanges.length}
                       {pendingChanges.length > 0 && (
-                        <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
-                          Action Required
+                        <span className="ml-3 bg-wedding-orange text-white text-xs px-3 py-1 rounded-full shadow-lg">
+                          ⚡ Action Required
                         </span>
                       )}
                     </dd>
@@ -378,32 +590,32 @@ const AdminDashboard = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white shadow rounded-lg mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-white/80 backdrop-blur-md border border-wedding-orange/20 shadow-lg rounded-xl mb-6 overflow-hidden">
+          <div className="border-b border-wedding-orange/20">
             <nav className="flex space-x-8 px-6">
               <button
                 onClick={() => setActiveTab("vendors")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-all duration-200 ${
                   activeTab === "vendors"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-wedding-orange text-wedding-navy bg-wedding-orange/10"
+                    : "border-transparent text-wedding-gray hover:text-wedding-navy hover:border-wedding-orange/50"
                 }`}
               >
                 <Users className="w-4 h-4 inline-block mr-2" />
-                Vendors ({vendors.length})
+                Slayer Corps Army ({vendors.length}) ⚔️
               </button>
               <button
                 onClick={() => setActiveTab("approvals")}
-                className={`py-4 px-1 border-b-2 font-medium text-sm relative ${
+                className={`py-4 px-1 border-b-2 font-medium text-sm relative transition-all duration-200 ${
                   activeTab === "approvals"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-red-500 text-wedding-navy bg-red-500/10"
+                    : "border-transparent text-wedding-gray hover:text-wedding-navy hover:border-red-500/50"
                 }`}
               >
-                <AlertTriangle className="w-4 h-4 inline-block mr-2" />
-                Pending Approvals ({pendingChanges.length})
+                <Sparkles className="w-4 h-4 inline-block mr-2" />
+                Chaos Queue ({pendingChanges.length}) ⚡
                 {pendingChanges.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-wedding-orange text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-lg">
                     {pendingChanges.length > 9 ? '9+' : pendingChanges.length}
                   </span>
                 )}
@@ -415,37 +627,37 @@ const AdminDashboard = () => {
         {/* Search and Filters */}
         {activeTab === "vendors" && (
         <>
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white/80 backdrop-blur-md border border-wedding-orange/20 shadow-lg rounded-xl p-6 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-wedding-orange" />
               <input
                 type="text"
-                placeholder="Search vendors..."
+                placeholder="🔍 Hunt for slayer corps..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md w-full focus:ring-blue-500 focus:border-blue-500"
+                className="pl-10 pr-4 py-3 bg-white border border-wedding-orange/50 rounded-lg w-full focus:ring-wedding-orange focus:border-wedding-orange text-wedding-navy placeholder-wedding-gray transition-all duration-200"
               />
             </div>
 
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="px-3 py-3 bg-white border border-wedding-orange/50 rounded-lg focus:ring-wedding-orange focus:border-wedding-orange text-wedding-navy transition-all duration-200"
             >
-              <option value="all">All Status</option>
-              <option value="verified">Verified</option>
-              <option value="unverified">Unverified</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">⚡ All Slayer Corps Powers</option>
+              <option value="verified">✨ Blessed Slayer Corps</option>
+              <option value="unverified">👻 Unblessed Souls</option>
+              <option value="active">🔥 Active Warriors</option>
+              <option value="inactive">💤 Sleeping Demons</option>
             </select>
 
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="px-3 py-3 bg-white border border-wedding-orange/50 rounded-lg focus:ring-wedding-orange focus:border-wedding-orange text-wedding-navy transition-all duration-200"
             >
-              <option value="all">All Categories</option>
+              <option value="all">🎭 All Slayer Corps Types</option>
               {categories.map(category => (
                 <option key={category} value={category}>{category}</option>
               ))}
@@ -454,45 +666,50 @@ const AdminDashboard = () => {
             <button
               onClick={() => setShowBulkActions(!showBulkActions)}
               disabled={selectedVendors.length === 0}
-              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-3 bg-wedding-orange hover:bg-wedding-orange-hover text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-wedding-orange/25 hover:scale-105 transition-all duration-200"
             >
-              Bulk Actions ({selectedVendors.length})
+              <Zap className="w-4 h-4 inline mr-2" />
+              Mass Rituals ({selectedVendors.length})
             </button>
           </div>
 
           {/* Bulk Actions */}
           {showBulkActions && selectedVendors.length > 0 && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <div className="flex flex-wrap gap-2">
+            <div className="mt-6 p-4 bg-wedding-orange-light border border-wedding-orange/30 rounded-lg">
+              <div className="flex items-center mb-3">
+                <Zap className="w-5 h-5 text-wedding-orange mr-2" />
+                <span className="text-wedding-navy font-medium">Mass Ritual Powers - {selectedVendors.length} Slayer Corps Selected</span>
+              </div>
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => handleBulkAction("verify")}
-                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm shadow-lg hover:scale-105 transition-all duration-200"
                 >
-                  Verify Selected
+                  ✨ Bless Selected
                 </button>
                 <button
                   onClick={() => handleBulkAction("unverify")}
-                  className="px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm shadow-lg hover:scale-105 transition-all duration-200"
                 >
-                  Unverify Selected
+                  👻 Unbless Selected
                 </button>
                 <button
                   onClick={() => handleBulkAction("activate")}
-                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                  className="px-4 py-2 bg-wedding-navy hover:bg-wedding-navy-hover text-white rounded-lg text-sm shadow-lg hover:scale-105 transition-all duration-200"
                 >
-                  Activate Selected
+                  ⚡ Awaken Selected
                 </button>
                 <button
                   onClick={() => handleBulkAction("deactivate")}
-                  className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm shadow-lg hover:scale-105 transition-all duration-200"
                 >
-                  Deactivate Selected
+                  💤 Put to Sleep
                 </button>
                 <button
                   onClick={() => handleBulkAction("delete")}
-                  className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm shadow-lg hover:scale-105 transition-all duration-200"
                 >
-                  Delete Selected
+                  🗡️ Banish Selected
                 </button>
               </div>
             </div>
@@ -500,118 +717,122 @@ const AdminDashboard = () => {
         </div>
 
         {/* Vendors Table */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+        <div className="bg-white/80 backdrop-blur-md border border-wedding-orange/20 shadow-lg overflow-hidden rounded-xl">
+          <div className="px-6 py-5 border-b border-wedding-orange/20">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Vendors ({filteredVendors.length})
+              <div className="flex items-center">
+                <Crown className="h-6 w-6 text-wedding-orange mr-3" />
+                <h3 className="text-xl leading-6 font-bold text-wedding-navy">
+                  Slayer Corps Army Roster ({filteredVendors.length})
               </h3>
+              </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
                   checked={selectedVendors.length === filteredVendors.length && filteredVendors.length > 0}
                   onChange={handleSelectAll}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-5 w-5 text-wedding-orange focus:ring-wedding-orange border-wedding-orange/50 rounded bg-white"
                 />
-                <label className="ml-2 text-sm text-gray-700">Select All</label>
+                <label className="ml-2 text-sm text-wedding-gray">Select All Slayer Corps</label>
               </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto max-w-full">
+            <table className="min-w-full divide-y divide-wedding-orange/20">
+              <thead className="bg-wedding-orange-light">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Select
+                  <th className="px-6 py-4 text-left text-xs font-bold text-wedding-navy uppercase tracking-wider">
+                    ⚡ Select
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Vendor
+                  <th className="px-6 py-4 text-left text-xs font-bold text-wedding-navy uppercase tracking-wider">
+                    ⚔️ Slayer Corps
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Category
+                  <th className="px-6 py-4 text-left text-xs font-bold text-wedding-navy uppercase tracking-wider">
+                    🎭 Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
+                  <th className="px-6 py-4 text-left text-xs font-bold text-wedding-navy uppercase tracking-wider">
+                    🏰 Location
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                  <th className="px-6 py-4 text-left text-xs font-bold text-wedding-navy uppercase tracking-wider">
+                    ✨ Powers
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Rating
+                  <th className="px-6 py-4 text-left text-xs font-bold text-wedding-navy uppercase tracking-wider">
+                    ⭐ Rating
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                  <th className="px-6 py-4 text-left text-xs font-bold text-wedding-navy uppercase tracking-wider">
+                    🗡️ Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-wedding-orange/20">
                 {filteredVendors.map((vendor) => (
-                  <tr key={vendor.vendor_id} className="hover:bg-gray-50">
+                  <tr key={vendor.vendor_id} className="hover:bg-wedding-orange-light transition-all duration-200">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <input
                         type="checkbox"
                         checked={selectedVendors.includes(vendor.vendor_id)}
                         onChange={() => handleVendorSelection(vendor.vendor_id)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-5 w-5 text-wedding-orange focus:ring-wedding-orange border-wedding-orange/50 rounded bg-white"
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
+                        <div className="flex-shrink-0 h-12 w-12 relative">
                           <img
-                            className="h-10 w-10 rounded-full"
+                            className="h-12 w-12 rounded-full border-2 border-wedding-orange/50"
                             src={vendor.avatar_url || "/images/vendor-placeholder.jpg"}
                             alt={vendor.brand_name}
                           />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-wedding-orange rounded-full border-2 border-white"></div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-bold text-wedding-navy">
                             {vendor.brand_name}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {vendor.spoc_name}
+                          <div className="text-sm text-wedding-gray">
+                            {vendor.spoc_name} • ID: {vendor.vendor_id}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-wedding-navy text-white shadow-lg">
                         {vendor.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-wedding-gray">
                       {vendor.address}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex flex-col space-y-1">
+                      <div className="flex flex-col space-y-2">
                         {vendor.verified ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-green-600 text-white shadow-lg">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Verified
+                            ✨ Blessed
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-red-600 text-white shadow-lg">
                             <XCircle className="h-3 w-3 mr-1" />
-                            Unverified
+                            👻 Unblessed
                           </span>
                         )}
                         {vendor.currently_available ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Active
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-wedding-navy text-white shadow-lg">
+                            ⚡ Awake
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Inactive
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-gray-600 text-white shadow-lg">
+                            💤 Sleeping
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-wedding-gray">
                       <div className="flex items-center">
                         <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                        {vendor.rating || "N/A"}
-                        <span className="text-gray-500 ml-1">
+                        <span className="font-bold text-wedding-navy">{vendor.rating || "N/A"}</span>
+                        <span className="text-wedding-gray ml-1">
                           ({vendor.review_count || 0})
                         </span>
                       </div>
@@ -620,19 +841,22 @@ const AdminDashboard = () => {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => navigate(`/admin/vendor/${vendor.vendor_id}`)}
-                          className="text-blue-600 hover:text-blue-900"
+                          className="p-2 bg-wedding-navy hover:bg-wedding-navy-hover text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
+                          title="👁️ Inspect Slayer Corps"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => navigate(`/admin/vendor/${vendor.vendor_id}/edit`)}
-                          className="text-indigo-600 hover:text-indigo-900"
+                          className="p-2 bg-wedding-orange hover:bg-wedding-orange-hover text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
+                          title="✏️ Modify Slayer Corps"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteVendor(vendor.vendor_id, vendor.brand_name)}
-                          className="text-red-600 hover:text-red-900"
+                          className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
+                          title="🗡️ Banish Slayer Corps"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -646,12 +870,14 @@ const AdminDashboard = () => {
 
           {filteredVendors.length === 0 && (
             <div className="text-center py-12">
-              <Users className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No vendors found</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <Crown className="mx-auto h-16 w-16 text-wedding-orange" />
+              <h3 className="mt-4 text-xl font-bold text-wedding-navy">
+                No Slayer Corps Found 👻
+              </h3>
+              <p className="mt-2 text-sm text-wedding-gray">
                 {searchTerm || filterStatus !== "all" || filterCategory !== "all"
-                  ? "Try adjusting your search or filter criteria."
-                  : "Get started by adding a new vendor."}
+                  ? "🔍 Your hunt came up empty! Try different search criteria."
+                  : "⚡ Ready to summon your first slayer corps?"}
               </p>
             </div>
           )}
@@ -661,44 +887,47 @@ const AdminDashboard = () => {
 
         {/* Approvals Tab */}
         {activeTab === "approvals" && (
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div className="bg-white/80 backdrop-blur-md border border-red-500/30 shadow-lg rounded-xl">
+            <div className="px-6 py-4 border-b border-red-500/30">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Pending Vendor Profile Changes
+                <div className="flex items-center">
+                  <Sparkles className="h-6 w-6 text-red-500 mr-3" />
+                  <h3 className="text-xl font-bold text-wedding-navy">
+                    Chaos Queue - Pending Slayer Corps Transformations
                 </h3>
-                <div className="flex items-center space-x-2">
-                  <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                    {pendingChanges.length} Pending
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                    {pendingChanges.length} ⚡ Awaiting Judgment
                   </span>
                   <button
                     onClick={fetchPendingChanges}
-                    className="text-blue-600 hover:text-blue-900 text-sm font-medium"
+                    className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:scale-105 transition-all duration-200"
                   >
-                    Refresh
+                    🔄 Refresh Chaos
                   </button>
                 </div>
               </div>
               
               {/* Color Legend */}
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-xs font-medium text-gray-700 mb-2">Legend:</h4>
-                <div className="flex flex-wrap gap-4 text-xs">
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-800/30 to-blue-800/30 border border-purple-500/30 rounded-lg">
+                <h4 className="text-sm font-bold text-purple-200 mb-3">🎭 Transformation Legend:</h4>
+                <div className="flex flex-wrap gap-6 text-sm">
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                    <span>Proposed Changes</span>
+                    <div className="w-4 h-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mr-3 shadow-lg"></div>
+                    <span className="text-purple-200">✨ Proposed Transformations</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-blue-500 rounded mr-2"></div>
-                    <span>New Fields</span>
+                    <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full mr-3 shadow-lg"></div>
+                    <span className="text-purple-200">🆕 New Powers</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                    <span>Modified Fields</span>
+                    <div className="w-4 h-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mr-3 shadow-lg"></div>
+                    <span className="text-purple-200">⚡ Modified Abilities</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                    <span>Current Data</span>
+                    <div className="w-4 h-4 bg-gradient-to-r from-red-500 to-pink-500 rounded-full mr-3 shadow-lg"></div>
+                    <span className="text-purple-200">🔥 Current State</span>
                   </div>
                 </div>
               </div>
@@ -706,31 +935,33 @@ const AdminDashboard = () => {
 
             {pendingChanges.length === 0 ? (
               <div className="text-center py-12">
-                <CheckCircle className="mx-auto h-12 w-12 text-green-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No pending approvals</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  All vendor profile changes have been reviewed.
+                <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
+                <h3 className="mt-4 text-xl font-bold text-wedding-navy">
+                  ✨ All Chaos Controlled!
+                </h3>
+                <p className="mt-2 text-sm text-wedding-gray">
+                  🎉 No slayer corps transformations pending your divine judgment!
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200 relative">
+              <div className="divide-y divide-red-500/20 relative">
                 {pendingChanges.map((change) => (
-                  <div key={change.id} className="p-6 border-l-4 border-yellow-400">
+                  <div key={change.id} className="p-6 border-l-4 border-gradient-to-b from-red-500 to-pink-500 bg-gradient-to-r from-red-900/20 to-pink-900/20">
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-3 mb-4">
-                          <div className="flex-shrink-0">
-                            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div className="flex-shrink-0 relative">
+                            <div className="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+                              <Sparkles className="w-6 h-6 text-white" />
                             </div>
                           </div>
                           <div>
-                            <h4 className="text-lg font-semibold text-gray-900">
-                              {change.vendor_brand_name || `Vendor ID: ${change.vendor_id}`}
+                            <h4 className="text-xl font-bold text-wedding-navy">
+                              {change.vendor_brand_name || `Slayer Corps ID: ${change.vendor_id}`} 👹
                             </h4>
-                            <p className="text-sm text-gray-500">
-                              {change.change_type === 'profile_update' ? 'Profile Update' : change.change_type} • 
-                              Submitted {new Date(change.submitted_at).toLocaleDateString()}
+                            <p className="text-sm text-wedding-gray">
+                              {change.change_type === 'profile_update' ? '🔄 Slayer Corps Transformation Request' : change.change_type} • 
+                              ⏰ Submitted {new Date(change.submitted_at).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
@@ -974,31 +1205,31 @@ const AdminDashboard = () => {
 
                       {/* Action Buttons - Always Visible */}
                       <div className="flex-shrink-0 lg:ml-6">
-                        <div className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm">
-                          <h6 className="text-sm font-medium text-gray-700 mb-3 text-center">Actions</h6>
-                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
+                        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border-2 border-wedding-orange/30 shadow-lg">
+                          <h6 className="text-sm font-bold text-wedding-navy mb-4 text-center">⚡ Divine Judgment</h6>
+                          <div className="flex flex-col sm:flex-row lg:flex-col gap-3">
                           <button
                             onClick={() => handleApproveChange(change.id, change.vendor_id, change.proposed_changes)}
                             disabled={reviewingChange === change.id}
-                              className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
+                              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[140px] shadow-lg hover:scale-105 transition-all duration-200"
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            {reviewingChange === change.id ? 'Approving...' : 'Approve'}
+                            {reviewingChange === change.id ? '✨ Blessing...' : '✨ Bless'}
                           </button>
                           <button
                             onClick={() => handleRejectChange(change.id)}
                             disabled={reviewingChange === change.id}
-                              className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-md text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
+                              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[140px] shadow-lg hover:scale-105 transition-all duration-200"
                           >
                             <XCircle className="w-4 h-4 mr-2" />
-                            Reject
+                            🗡️ Banish
                           </button>
                           <button
                             onClick={() => window.open(`/vendor/${change.vendor_id}`, '_blank')}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center min-w-[120px]"
+                              className="bg-wedding-navy hover:bg-wedding-navy-hover text-white px-6 py-3 rounded-lg text-sm font-bold flex items-center justify-center min-w-[140px] shadow-lg hover:scale-105 transition-all duration-200"
                           >
-                            <Eye className="w-4 h-4 mr-1" />
-                            View Profile
+                            <Eye className="w-4 h-4 mr-2" />
+                            👁️ Inspect
                           </button>
                           </div>
                         </div>
@@ -1010,6 +1241,8 @@ const AdminDashboard = () => {
             )}
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -861,12 +861,16 @@ export const reviewVendorProfileChange = async (
       const catalogImages = cleanedChanges.catalog_images;
       delete cleanedChanges.catalog_images;
       
+      // Handle highlight_status_changes separately - don't try to update in vendors table
+      const highlightStatusChanges = cleanedChanges.highlight_status_changes;
+      delete cleanedChanges.highlight_status_changes;
+      
       // Convert arrays to proper format if needed
       if (cleanedChanges.deliverables && Array.isArray(cleanedChanges.deliverables)) {
         cleanedChanges.deliverables = cleanedChanges.deliverables.filter(item => item && item.trim() !== '');
       }
 
-      console.log('Cleaned changes to apply (without catalog_images):', cleanedChanges);
+      console.log('Cleaned changes to apply (without catalog_images and highlight_status_changes):', cleanedChanges);
 
       // Update vendor profile (excluding catalog_images)
       const { error: vendorUpdateError } = await supabase
@@ -912,12 +916,12 @@ export const reviewVendorProfileChange = async (
       }
 
       // Handle highlight status changes
-      if (proposedChanges.highlight_status_changes && proposedChanges.highlight_status_changes.changed_images) {
+      if (highlightStatusChanges && highlightStatusChanges.changed_images) {
         console.log('=== APPLYING HIGHLIGHT STATUS CHANGES ===');
-        console.log('Highlight changes:', proposedChanges.highlight_status_changes);
+        console.log('Highlight changes:', highlightStatusChanges);
         
         try {
-          for (const changedImg of proposedChanges.highlight_status_changes.changed_images) {
+          for (const changedImg of highlightStatusChanges.changed_images) {
             console.log(`Updating highlight status for image: ${changedImg.media_url} to ${changedImg.is_highlighted}`);
             
             // Find the image in vendor_media table by media_url and vendor_id

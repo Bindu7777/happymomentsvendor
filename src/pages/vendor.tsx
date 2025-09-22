@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Vendor } from '@/lib/supabase';
 import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
-import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2 } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2, Info, Globe, Scroll, FileText } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -495,8 +495,8 @@ const VendorProfile = () => {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <h3 className="font-bold mb-1">{highlightedCatalogImages[currentSlide]?.title || "Our Featured Work"}</h3>
-                  <p className="text-sm opacity-90">Highlighted Images</p>
+                  <h3 className="font-bold mb-1">Highlight</h3>
+                  <p className="text-sm opacity-90">Featured Work</p>
                 </div>
                 <div className="absolute top-4 right-4">
                   <Badge className="bg-yellow-500 text-white">
@@ -645,13 +645,13 @@ const VendorProfile = () => {
                       <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                         <h3 className="text-2xl font-bold mb-2 text-white drop-shadow-lg">
                           {highlightedCatalogImages.length > 0 
-                            ? (highlightedCatalogImages[currentSlide]?.title || "Our Featured Work")
+                            ? "Highlight"
                             : "Our Work"
                           }
                         </h3>
                         <p className="text-base text-white/95 font-medium drop-shadow-md">
                           {highlightedCatalogImages.length > 0 
-                            ? "Highlighted Images"
+                            ? "Featured Work"
                             : "Professional services for your special day"
                           }
                         </p>
@@ -909,67 +909,13 @@ const VendorProfile = () => {
               </CardContent>
             </Card>
 
-            {/* Highlighted Catalog Images */}
-            {highlightedCatalogImages.length > 0 && (
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-yellow-200">
-                <CardContent className="p-8">
-                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    <Sparkles className="w-8 h-8 text-yellow-600" />
-                    Featured Highlights
-                    <Badge className="ml-2 bg-yellow-100 text-yellow-800 border-yellow-200">
-                      ⭐ Top Picks
-                    </Badge>
-                  </h2>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {highlightedCatalogImages.map((image, index) => (
-                      <Dialog key={`highlight-${index}`}>
-                        <DialogTrigger asChild>
-                          <div 
-                            className="relative group cursor-pointer overflow-hidden rounded-xl border-3 border-yellow-300 shadow-lg"
-                            onClick={(e) => { e.stopPropagation(); setSelectedImage(image); }}
-                          >
-                            <img 
-                              src={image.media_url} 
-                              alt={image.title || `Highlighted ${index + 1}`}
-                              className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
-                            />
-                            <div className="absolute top-2 right-2">
-                              <Badge className="bg-yellow-500 text-white">
-                                <Sparkles className="w-3 h-3 mr-1" />
-                                Featured
-                              </Badge>
-                            </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                              <div className="text-white text-center">
-                                <Camera className="w-8 h-8 mx-auto mb-2" />
-                                <span className="text-sm font-medium">View Full Size</span>
-                              </div>
-                            </div>
-                          </div>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-6xl">
-                          <div className="relative">
-                            <img 
-                              src={image.media_url} 
-                              alt={image.title || `Highlighted ${index + 1}`}
-                              className="w-full h-auto rounded-lg"
-                            />
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Complete Catalog Gallery */}
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">
               <CardContent className="p-8">
                 <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                   <Video className="w-8 h-8 text-blue-600" />
-                  Complete Catalog
+                  Gallery
                   <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200">
                     {catalogImages.length} Images
                   </Badge>
@@ -1368,6 +1314,125 @@ const VendorProfile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Additional Information Section */}
+            {vendor.additional_info && (
+              <Card className="hover:shadow-lg transition-all duration-300 border-2 border-purple-100">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
+                    <Info className="w-6 h-6 text-purple-600" />
+                    Additional Information
+                  </h3>
+                  <div className="space-y-6">
+                    
+                    {/* Working Hours */}
+                    {vendor.additional_info.working_hours && (
+                      <div className="p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl border border-purple-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Clock className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-purple-800 mb-2">Working Hours</h4>
+                            <p className="text-sm text-purple-700 leading-relaxed">
+                              {vendor.additional_info.working_hours}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Languages */}
+                    {vendor.additional_info.languages && Array.isArray(vendor.additional_info.languages) && vendor.additional_info.languages.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Globe className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-orange-800 mb-2">Languages Spoken</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {vendor.additional_info.languages.map((language, index) => (
+                                <span key={index} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
+                                  {language}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Awards */}
+                    {vendor.additional_info.awards && Array.isArray(vendor.additional_info.awards) && vendor.additional_info.awards.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border border-yellow-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Award className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-yellow-800 mb-2">Awards & Recognition</h4>
+                            <div className="space-y-2">
+                              {vendor.additional_info.awards.map((award, index) => (
+                                <p key={index} className="text-sm text-yellow-700 leading-relaxed flex items-start gap-2">
+                                  <span className="text-yellow-600 mt-1">🏆</span>
+                                  {award}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Certifications */}
+                    {vendor.additional_info.certifications && Array.isArray(vendor.additional_info.certifications) && vendor.additional_info.certifications.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Scroll className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-indigo-800 mb-2">Certifications</h4>
+                            <div className="space-y-2">
+                              {vendor.additional_info.certifications.map((cert, index) => (
+                                <p key={index} className="text-sm text-indigo-700 leading-relaxed flex items-start gap-2">
+                                  <span className="text-indigo-600 mt-1">📜</span>
+                                  {cert}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom Fields */}
+                    {vendor.additional_info.custom_fields && Array.isArray(vendor.additional_info.custom_fields) && vendor.additional_info.custom_fields.length > 0 && (
+                      <div className="p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl border border-gray-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <FileText className="w-4 h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-800 mb-2">Additional Details</h4>
+                            <div className="space-y-3">
+                              {vendor.additional_info.custom_fields.map((field, index) => (
+                                <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
+                                  <h5 className="font-semibold text-gray-800 text-sm mb-1">{field.field_name}</h5>
+                                  <p className="text-sm text-gray-600">{field.field_value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

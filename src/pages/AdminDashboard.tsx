@@ -997,24 +997,24 @@ const AdminDashboard = () => {
               </div>
               
               {/* Color Legend */}
-              <div className="mt-4 p-4 bg-gradient-to-r from-purple-800/30 to-blue-800/30 border border-purple-500/30 rounded-lg">
-                <h4 className="text-sm font-bold text-purple-200 mb-3">Change Legend:</h4>
+              <div className="mt-4 p-4 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg">
+                <h4 className="text-sm font-bold text-gray-800 mb-3">Change Legend:</h4>
                 <div className="flex flex-wrap gap-6 text-sm">
                   <div className="flex items-center">
                     <div className="w-4 h-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full mr-3 shadow-lg"></div>
-                    <span className="text-purple-200">Proposed Changes</span>
+                    <span className="text-gray-700 font-medium">Proposed Changes</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-4 h-4 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full mr-3 shadow-lg"></div>
-                    <span className="text-purple-200">🆕 New Powers</span>
+                    <span className="text-gray-700 font-medium">🆕 New Powers</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-4 h-4 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full mr-3 shadow-lg"></div>
-                    <span className="text-purple-200">Modified Abilities</span>
+                    <span className="text-gray-700 font-medium">Modified Abilities</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-4 h-4 bg-gradient-to-r from-red-500 to-pink-500 rounded-full mr-3 shadow-lg"></div>
-                    <span className="text-purple-200">Current State</span>
+                    <span className="text-gray-700 font-medium">Current State</span>
                   </div>
                 </div>
               </div>
@@ -1106,7 +1106,72 @@ const AdminDashboard = () => {
                                 );
                               }
                               
-                              if (fieldKey === 'catalog_images' && Array.isArray(value)) {
+                              if (fieldKey === 'catalog_images') {
+                                // Handle new structured format for catalog images changes
+                                if (value && typeof value === 'object' && value.added && value.removed) {
+                                  return (
+                                    <div className="space-y-3">
+                                      {value.removed && value.removed.length > 0 && (
+                                        <div>
+                                          <span className="text-xs font-medium text-red-600">Removed Images:</span>
+                                          <div className="grid grid-cols-2 gap-2 mt-1">
+                                            {value.removed.slice(0, 4).map((imgUrl, i) => (
+                                              <div key={i} className="relative opacity-60">
+                                                <img 
+                                                  src={imgUrl} 
+                                                  alt={`Removed ${i + 1}`} 
+                                                  className="w-full h-20 object-cover rounded border border-red-300"
+                                                  onError={(e) => (e.target as HTMLElement).style.display = 'none'}
+                                                />
+                                                <div className="absolute inset-0 bg-red-100 bg-opacity-50 flex items-center justify-center">
+                                                  <span className="text-xs text-red-600 font-bold">REMOVED</span>
+                                                </div>
+                                              </div>
+                                            ))}
+                                            {value.removed.length > 4 && (
+                                              <div className="flex items-center justify-center bg-red-100 rounded border border-red-300 text-xs text-red-600">
+                                                +{value.removed.length - 4} more removed
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {value.added && value.added.length > 0 && (
+                                        <div>
+                                          <span className="text-xs font-medium text-green-600">Added Images:</span>
+                                          <div className="grid grid-cols-2 gap-2 mt-1">
+                                            {value.added.slice(0, 4).map((imgUrl, i) => (
+                                              <div key={i} className="relative">
+                                                <img 
+                                                  src={imgUrl} 
+                                                  alt={`Added ${i + 1}`} 
+                                                  className="w-full h-20 object-cover rounded border border-green-300"
+                                                  onError={(e) => (e.target as HTMLElement).style.display = 'none'}
+                                                />
+                                                <div className="absolute inset-0 bg-green-100 bg-opacity-50 flex items-center justify-center">
+                                                  <span className="text-xs text-green-600 font-bold">ADDED</span>
+                                                </div>
+                                              </div>
+                                            ))}
+                                            {value.added.length > 4 && (
+                                              <div className="flex items-center justify-center bg-green-100 rounded border border-green-300 text-xs text-green-600">
+                                                +{value.added.length - 4} more added
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      <div className="text-xs text-gray-500">
+                                        Count: {value.current_count || 0} → {value.new_count || 0}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                
+                                // Handle legacy array format
+                                if (Array.isArray(value)) {
                                 return (
                                   <div className="grid grid-cols-2 gap-2">
                                     {value.slice(0, 4).map((imgUrl, i) => (
@@ -1126,6 +1191,7 @@ const AdminDashboard = () => {
                                     )}
                                   </div>
                                 );
+                                }
                               }
 
                               if (fieldKey === 'highlight_status_changes' && value?.changed_images) {

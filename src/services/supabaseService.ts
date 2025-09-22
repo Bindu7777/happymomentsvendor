@@ -888,31 +888,70 @@ export const reviewVendorProfileChange = async (
       }
 
       // Handle catalog_images through vendor_media table if they were included in changes
-      if (catalogImages && Array.isArray(catalogImages)) {
+      if (catalogImages) {
         console.log('=== UPDATING CATALOG IMAGES IN VENDOR_MEDIA ===');
         console.log('Vendor ID:', changeRecord.vendor_id);
-        console.log('Catalog images to update:', catalogImages);
-        console.log('Catalog images count:', catalogImages.length);
+        console.log('Catalog images data:', catalogImages);
+        console.log('Catalog images type:', typeof catalogImages);
         
         try {
-          const catalogUpdateResult = await updateVendorCatalogImages(changeRecord.vendor_id, catalogImages);
-          if (!catalogUpdateResult) {
-            console.error('❌ Failed to update catalog images in vendor_media table');
-            // Don't fail the entire approval, just log the error
-            console.warn('Vendor profile updated but catalog images update failed');
+          let finalImageUrls: string[] = [];
+          
+          // Handle new structured format (added/removed)
+          if (typeof catalogImages === 'object' && catalogImages.added && catalogImages.removed) {
+            console.log('Processing structured catalog images format');
+            console.log('Added images:', catalogImages.added);
+            console.log('Removed images:', catalogImages.removed);
+            
+            // Get current images from vendor_media table
+            const { data: currentImages, error: fetchError } = await supabase
+              .from('vendor_media')
+              .select('media_url')
+              .eq('vendor_id', changeRecord.vendor_id)
+              .eq('category', 'catalog');
+              
+            if (fetchError) {
+              console.error('Error fetching current catalog images:', fetchError);
+              throw fetchError;
+            }
+            
+            const currentImageUrls = currentImages?.map(img => img.media_url) || [];
+            console.log('Current catalog images from database:', currentImageUrls);
+            
+            // Remove deleted images and add new images
+            const afterRemoval = currentImageUrls.filter(url => !catalogImages.removed.includes(url));
+            finalImageUrls = [...afterRemoval, ...catalogImages.added];
+            
+            console.log('Final image URLs after processing:', finalImageUrls);
+            
+          } else if (Array.isArray(catalogImages)) {
+            // Handle legacy array format
+            console.log('Processing legacy array format');
+            finalImageUrls = catalogImages;
           } else {
-            console.log('✅ Catalog images updated successfully in vendor_media table');
-            console.log('Catalog images should now be visible in public profile');
+            console.log('Unknown catalog images format, skipping update');
+            return { success: true, message: 'Changes approved but catalog images format not recognized' };
           }
+          
+          if (finalImageUrls.length >= 0) { // Allow empty arrays (all images removed)
+            const catalogUpdateResult = await updateVendorCatalogImages(changeRecord.vendor_id, finalImageUrls);
+            if (!catalogUpdateResult) {
+              console.error('❌ Failed to update catalog images in vendor_media table');
+              // Don't fail the entire approval, just log the error
+              console.warn('Vendor profile updated but catalog images update failed');
+            } else {
+              console.log('✅ Catalog images updated successfully in vendor_media table');
+              console.log('Catalog images should now be visible in public profile');
+            }
+          }
+          
         } catch (catalogError) {
           console.error('❌ Error updating catalog images:', catalogError);
           // Don't fail the entire approval, just log the error
           console.warn('Vendor profile updated but catalog images update failed:', catalogError);
         }
       } else {
-        console.log('No catalog images to update or catalog images is not an array');
-        console.log('catalogImages value:', catalogImages);
-        console.log('catalogImages type:', typeof catalogImages);
+        console.log('No catalog images to update');
       }
 
       // Handle highlight status changes

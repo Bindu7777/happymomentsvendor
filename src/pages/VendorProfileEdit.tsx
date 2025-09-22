@@ -96,6 +96,7 @@ const VendorProfileEdit: React.FC = () => {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<string[]>([]);
+  const [originalCatalogImages, setOriginalCatalogImages] = useState<string[]>([]);
   const [catalogImagesWithMeta, setCatalogImagesWithMeta] = useState<any[]>([]);
   const [forceRefresh, setForceRefresh] = useState(0);
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
@@ -230,9 +231,12 @@ const VendorProfileEdit: React.FC = () => {
         try {
           catalogImages = await loadCatalogImages(finalVendorData.vendor_id);
           console.log('Catalog images loaded successfully:', catalogImages);
+          // Store original catalog images for comparison
+          setOriginalCatalogImages(catalogImages);
         } catch (catalogError) {
           console.error('Error loading catalog images:', catalogError);
           catalogImages = [];
+          setOriginalCatalogImages([]);
         }
         
         // Load form with final data - SINGLE CALL ONLY
@@ -331,9 +335,15 @@ const VendorProfileEdit: React.FC = () => {
       },
       additional_info: {
         working_hours: vendorData.additional_info?.working_hours || '',
-        languages: vendorData.additional_info?.languages || [],
-        awards: vendorData.additional_info?.awards || [],
-        certifications: vendorData.additional_info?.certifications || [],
+        languages: Array.isArray(vendorData.additional_info?.languages) 
+          ? vendorData.additional_info.languages 
+          : (vendorData.additional_info?.languages || ''),
+        awards: Array.isArray(vendorData.additional_info?.awards)
+          ? vendorData.additional_info.awards
+          : (vendorData.additional_info?.awards || ''),
+        certifications: Array.isArray(vendorData.additional_info?.certifications)
+          ? vendorData.additional_info.certifications
+          : (vendorData.additional_info?.certifications || ''),
         custom_fields: vendorData.additional_info?.custom_fields || []
       }
     };
@@ -619,6 +629,19 @@ const VendorProfileEdit: React.FC = () => {
             return newUrls;
           });
           
+          // Remove from uploadedImageUrls if it exists there
+          setUploadedImageUrls(prev => {
+            const newUrls = prev.filter(url => url !== deleteConfirmData.media_url);
+            console.log('Updated uploadedImageUrls:', newUrls);
+            return newUrls;
+          });
+          
+          // Remove from catalog image form fields (URL inputs section)
+          const currentCatalogImageValues = watch('catalog_images') || [];
+          const updatedCatalogImageValues = currentCatalogImageValues.filter((url: string) => url !== deleteConfirmData.media_url);
+          setValue('catalog_images', updatedCatalogImageValues);
+          console.log('Updated catalog_images form field:', updatedCatalogImageValues);
+          
           // Update current highlight status to remove deleted image
           setCurrentHighlightStatus(prev => 
             prev.filter(img => img.id !== deleteConfirmData.id)
@@ -748,7 +771,7 @@ const VendorProfileEdit: React.FC = () => {
         services: vendor.services || [],
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
-        catalog_images: [...(catalogImages || []), ...uploadedImageUrls], // Re-added for comparison
+        catalog_images: originalCatalogImages || [],
         customer_reviews: vendor.customer_reviews || [],
         booking_policies: vendor.booking_policies || undefined,
         additional_info: vendor.additional_info || undefined,
@@ -784,7 +807,7 @@ const VendorProfileEdit: React.FC = () => {
             : pkg.features || []
         })) || [],
         deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
-        catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls], // Re-added to main approval
+        catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls],
         customer_reviews: data.customer_reviews?.filter(r => 
           r.customer_name && r.customer_name.trim() !== '' && r.review && r.review.trim() !== ''
         ) || [],
@@ -795,9 +818,15 @@ const VendorProfileEdit: React.FC = () => {
         } : undefined,
         additional_info: data.additional_info ? {
           working_hours: data.additional_info.working_hours || '',
-          languages: data.additional_info.languages || [],
-          awards: data.additional_info.awards || [],
-          certifications: data.additional_info.certifications || [],
+          languages: typeof data.additional_info.languages === 'string' 
+            ? data.additional_info.languages.split(',').map(l => l.trim()).filter(l => l !== '')
+            : (data.additional_info.languages || []),
+          awards: typeof data.additional_info.awards === 'string'
+            ? data.additional_info.awards.split(',').map(a => a.trim()).filter(a => a !== '')
+            : (data.additional_info.awards || []),
+          certifications: typeof data.additional_info.certifications === 'string'
+            ? data.additional_info.certifications.split(',').map(c => c.trim()).filter(c => c !== '')
+            : (data.additional_info.certifications || []),
           custom_fields: data.additional_info.custom_fields?.filter(f => 
             f.field_name && f.field_name.trim() !== '' && f.field_value && f.field_value.trim() !== ''
           ) || []
@@ -851,6 +880,41 @@ const VendorProfileEdit: React.FC = () => {
         console.log('JSON new:', JSON.stringify(newValue));
         console.log('Are equal:', JSON.stringify(currentValue) === JSON.stringify(newValue));
         
+        // Special debugging for services field
+        if (key === 'services') {
+          console.log('=== SERVICES DEBUG ===');
+          console.log('Current services type:', typeof currentValue);
+          console.log('Current services is array:', Array.isArray(currentValue));
+          console.log('New services type:', typeof newValue);
+          console.log('New services is array:', Array.isArray(newValue));
+          if (Array.isArray(currentValue)) {
+            console.log('Current services length:', currentValue.length);
+            console.log('Current services items:', currentValue);
+          }
+          if (Array.isArray(newValue)) {
+            console.log('New services length:', newValue.length);
+            console.log('New services items:', newValue);
+          }
+        }
+        
+        // Special debugging for catalog_images field
+        if (key === 'catalog_images') {
+          console.log('=== CATALOG IMAGES DEBUG ===');
+          console.log('Current catalog_images type:', typeof currentValue);
+          console.log('Current catalog_images is array:', Array.isArray(currentValue));
+          console.log('New catalog_images type:', typeof newValue);
+          console.log('New catalog_images is array:', Array.isArray(newValue));
+          if (Array.isArray(currentValue)) {
+            console.log('Current catalog_images length:', currentValue.length);
+            console.log('Current catalog_images items:', currentValue);
+          }
+          if (Array.isArray(newValue)) {
+            console.log('New catalog_images length:', newValue.length);
+            console.log('New catalog_images items:', newValue);
+          }
+          console.log('Uploaded image URLs:', uploadedImageUrls);
+        }
+        
         // Skip if both values are effectively empty or both are undefined
         if ((isEffectivelyEmpty(currentValue) && isEffectivelyEmpty(newValue)) ||
             (currentValue === undefined && newValue === undefined)) {
@@ -863,8 +927,20 @@ const VendorProfileEdit: React.FC = () => {
           if (val === null || val === undefined) return null;
           if (Array.isArray(val)) {
             // Special handling for services array - sort by name for consistent comparison
-            if (key === 'services' && val.length > 0 && val[0]?.name) {
-              return val.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            if (key === 'services' && val.length > 0) {
+              // Handle both string and object formats for services
+              const normalizedServices = val.map(service => {
+                if (typeof service === 'string') {
+                  return { name: service, description: '', price: '' };
+                }
+                return {
+                  name: service?.name || '',
+                  description: service?.description || '',
+                  price: service?.price || ''
+                };
+              }).filter(service => service.name.trim() !== '');
+              
+              return normalizedServices.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
             }
             return val.sort();
           }
@@ -881,6 +957,20 @@ const VendorProfileEdit: React.FC = () => {
         const normalizedCurrent = normalizeForComparison(currentValue);
         const normalizedNew = normalizeForComparison(newValue);
         
+        // Special handling for services - if both are empty arrays, consider them equal
+        if (key === 'services') {
+          const currentIsEmpty = !normalizedCurrent || (Array.isArray(normalizedCurrent) && normalizedCurrent.length === 0);
+          const newIsEmpty = !normalizedNew || (Array.isArray(normalizedNew) && normalizedNew.length === 0);
+          
+          if (currentIsEmpty && newIsEmpty) {
+            console.log(`Skipping ${key} - both are empty arrays`);
+            return;
+          }
+          
+          console.log('Normalized current services:', normalizedCurrent);
+          console.log('Normalized new services:', normalizedNew);
+        }
+        
         // Deep comparison for objects and arrays
         if (JSON.stringify(normalizedCurrent) !== JSON.stringify(normalizedNew)) {
           console.log(`Adding ${key} to changes - values differ`);
@@ -891,6 +981,48 @@ const VendorProfileEdit: React.FC = () => {
       });
 
       console.log('Only changed fields:', proposedChanges);
+
+      // Special handling for catalog images - only include if there are actual changes
+      if (proposedChanges.catalog_images) {
+        const currentImages = currentData.catalog_images || [];
+        const newImages = proposedChanges.catalog_images || [];
+        
+        console.log('=== CATALOG IMAGES CHANGE ANALYSIS ===');
+        console.log('Original images (from database):', originalCatalogImages);
+        console.log('Current images (for comparison):', currentImages);
+        console.log('New images (from form + uploaded):', newImages);
+        console.log('Original images count:', originalCatalogImages.length);
+        console.log('Current images count:', currentImages.length);
+        console.log('New images count:', newImages.length);
+        
+        // Check if there are actual differences (added/removed images)
+        const currentSet = new Set(currentImages);
+        const newSet = new Set(newImages);
+        
+        const addedImages = newImages.filter(img => !currentSet.has(img));
+        const removedImages = currentImages.filter(img => !newSet.has(img));
+        
+        console.log('Added images:', addedImages);
+        console.log('Removed images:', removedImages);
+        console.log('Added count:', addedImages.length);
+        console.log('Removed count:', removedImages.length);
+        
+        // Only include catalog_images in changes if there are actual additions or removals
+        if (addedImages.length > 0 || removedImages.length > 0) {
+          // Create a more descriptive change object
+          proposedChanges.catalog_images = {
+            added: addedImages,
+            removed: removedImages,
+            current_count: currentImages.length,
+            new_count: newImages.length
+          };
+          console.log('✅ Including catalog images changes:', proposedChanges.catalog_images);
+        } else {
+          // No actual changes, remove from proposed changes
+          delete proposedChanges.catalog_images;
+          console.log('❌ No actual catalog images changes detected, removing from proposed changes');
+        }
+      }
 
       // Check for highlight status changes
       console.log('=== CHECKING HIGHLIGHT STATUS CHANGES ===');
@@ -1918,7 +2050,39 @@ const VendorProfileEdit: React.FC = () => {
                           />
                           <Button
                             type="button"
-                            onClick={() => removeCatalogImage(index)}
+                            onClick={() => {
+                              // Get the URL that's being removed
+                              const urlToRemove = watch(`catalog_images.${index}`);
+                              console.log('Removing URL from form field:', urlToRemove);
+                              
+                              // Remove from form field
+                              removeCatalogImage(index);
+                              
+                              // Also remove from visual thumbnails if it exists there
+                              if (urlToRemove) {
+                                setCatalogImagesWithMeta(prev => {
+                                  const newImages = prev.filter(img => img.media_url !== urlToRemove);
+                                  console.log('Updated catalogImagesWithMeta after URL removal:', newImages);
+                                  return newImages;
+                                });
+                                
+                                setCatalogImages(prev => {
+                                  const newUrls = prev.filter(url => url !== urlToRemove);
+                                  console.log('Updated catalogImages after URL removal:', newUrls);
+                                  return newUrls;
+                                });
+                                
+                                setUploadedImageUrls(prev => {
+                                  const newUrls = prev.filter(url => url !== urlToRemove);
+                                  console.log('Updated uploadedImageUrls after URL removal:', newUrls);
+                                  return newUrls;
+                                });
+                                
+                                setCurrentHighlightStatus(prev => 
+                                  prev.filter(img => img.media_url !== urlToRemove)
+                                );
+                              }
+                            }}
                             variant="outline"
                             size="sm"
                           >

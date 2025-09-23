@@ -978,7 +978,7 @@ const VendorDashboard: React.FC = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="w-5 h-5 text-[#001B5E]" />
-                  Profile Management
+                  My Vendor Profile
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1006,37 +1006,50 @@ const VendorDashboard: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <CheckCircle className="w-5 h-5 text-green-600" />
                       <div>
-                        <p className="font-medium text-green-800">Profile Up to Date</p>
-                        <p className="text-sm text-green-700">No pending changes</p>
+                        <p className="font-medium text-green-800">Your Profile is Up to Date</p>
+                        <p className="text-sm text-green-700">No pending updates</p>
                       </div>
                     </div>
-                    <Badge className="bg-green-100 text-green-800">Active</Badge>
+                    <div className="text-right">
+                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      <p className="text-xs text-green-600 mt-1">Visible to Customers</p>
+                    </div>
                   </div>
                 )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Button 
-                    onClick={handleEditProfile}
-                    className="flex items-center gap-2 h-20 bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
-                  >
-                    <Edit className="w-6 h-6" />
-                    <div className="text-left">
-                      <div className="font-medium">Edit Profile</div>
-                      <div className="text-sm opacity-90">Submit changes for approval</div>
-                    </div>
-                  </Button>
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={handleEditProfile}
+                      className="flex items-center gap-2 h-20 bg-orange-500 hover:bg-orange-600 text-white shadow-lg w-full"
+                    >
+                      <Edit className="w-6 h-6" />
+                      <div className="text-left">
+                        <div className="font-medium">Update My Details</div>
+                        <div className="text-sm opacity-90">Send for Approval</div>
+                      </div>
+                    </Button>
+                    <p className="text-sm text-gray-600 text-center">
+                      Update your shop name, contact details, or services easily.
+                    </p>
+                  </div>
 
-                  <Button 
-                    onClick={handleViewProfile}
-                    variant="outline"
-                    className="flex items-center gap-2 h-20"
-                  >
-                    <Eye className="w-6 h-6" />
-                    <div className="text-left">
-                      <div className="font-medium">View Public Profile</div>
-                      <div className="text-sm text-gray-600">See how customers see you</div>
-                    </div>
-                  </Button>
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={handleViewProfile}
+                      variant="outline"
+                      className="flex items-center gap-2 h-20 w-full"
+                    >
+                      <Eye className="w-6 h-6" />
+                      <div className="text-left">
+                        <div className="font-medium">See How Customers View You</div>
+                        <div className="text-sm text-gray-600">Preview Profile (Customer View)</div>
+                      </div>
+                    </Button>
+                    <p className="text-sm text-gray-600 text-center">
+                      Check your public information and make sure everything is correct.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

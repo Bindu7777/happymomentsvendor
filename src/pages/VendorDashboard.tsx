@@ -40,6 +40,11 @@ import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
 import DealPriceModal from '../components/DealPriceModal';
 import VendorCalendar from '../components/VendorCalendar';
+import InvoiceQuotationList from '../components/InvoiceQuotationList';
+import InvoiceQuotationModal from '../components/InvoiceQuotationModal';
+import InvoiceQuotationPreview from '../components/InvoiceQuotationPreview';
+import { InvoiceQuotation } from '../services/invoiceService';
+import { generateAndDownloadPDF } from '../services/pdfService';
 
 const VendorDashboard: React.FC = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
@@ -61,6 +66,13 @@ const VendorDashboard: React.FC = () => {
   const [confirmingLead, setConfirmingLead] = useState<any>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<any>(null);
+  
+  // Invoice/Quotation states
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showQuotationModal, setShowQuotationModal] = useState(false);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [selectedInvoiceQuotation, setSelectedInvoiceQuotation] = useState<InvoiceQuotation | null>(null);
+  const [editingInvoiceQuotation, setEditingInvoiceQuotation] = useState<InvoiceQuotation | null>(null);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -573,6 +585,56 @@ const VendorDashboard: React.FC = () => {
     if (vendor) {
       await loadCalendarData(parseInt(vendor.vendor_id));
     }
+  };
+
+  // Invoice/Quotation handlers
+  const handleCreateInvoice = () => {
+    setEditingInvoiceQuotation(null);
+    setShowInvoiceModal(true);
+  };
+
+  const handleCreateQuotation = () => {
+    setEditingInvoiceQuotation(null);
+    setShowQuotationModal(true);
+  };
+
+  const handleEditInvoiceQuotation = (invoiceQuotation: InvoiceQuotation) => {
+    setEditingInvoiceQuotation(invoiceQuotation);
+    if (invoiceQuotation.type === 'invoice') {
+      setShowInvoiceModal(true);
+    } else {
+      setShowQuotationModal(true);
+    }
+  };
+
+  const handleViewInvoiceQuotation = (invoiceQuotation: InvoiceQuotation) => {
+    setSelectedInvoiceQuotation(invoiceQuotation);
+    setShowInvoicePreview(true);
+  };
+
+  const handleInvoiceQuotationSaved = (invoiceQuotation: InvoiceQuotation) => {
+    // Refresh the list or handle the saved invoice/quotation
+    console.log('Invoice/Quotation saved:', invoiceQuotation);
+    setShowInvoiceModal(false);
+    setShowQuotationModal(false);
+    setEditingInvoiceQuotation(null);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!selectedInvoiceQuotation || !vendor) return;
+    
+    try {
+      await generateAndDownloadPDF(selectedInvoiceQuotation, vendor);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    }
+  };
+
+  const handleSendToCustomer = () => {
+    // Implement send to customer functionality
+    console.log('Send to customer:', selectedInvoiceQuotation?.customer_name);
+    alert('Send to customer functionality will be implemented');
   };
 
   const handleLogout = () => {
@@ -1732,33 +1794,18 @@ const VendorDashboard: React.FC = () => {
         {/* Invoices Tab */}
         {activeTab === 'invoices' && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Invoice & Quotation Maker</h2>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Invoice
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <FileText className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-                  <h3 className="font-semibold text-gray-800 mb-2">Create Quotation</h3>
-                  <p className="text-gray-600 text-sm mb-4">Generate professional quotations for potential clients</p>
-                  <Button variant="outline">Coming Soon</Button>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <DollarSign className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                  <h3 className="font-semibold text-gray-800 mb-2">Create Invoice</h3>
-                  <p className="text-gray-600 text-sm mb-4">Generate invoices for confirmed bookings</p>
-                  <Button variant="outline">Coming Soon</Button>
-                </CardContent>
-              </Card>
-            </div>
+            <InvoiceQuotationList
+              vendor={vendor}
+              onEdit={handleEditInvoiceQuotation}
+              onView={handleViewInvoiceQuotation}
+              onCreateNew={(type) => {
+                if (type === 'invoice') {
+                  handleCreateInvoice();
+                } else {
+                  handleCreateQuotation();
+                }
+              }}
+            />
           </div>
         )}
 
@@ -1875,6 +1922,54 @@ const VendorDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Invoice Modal */}
+      {showInvoiceModal && vendor && (
+        <InvoiceQuotationModal
+          isOpen={showInvoiceModal}
+          onClose={() => {
+            setShowInvoiceModal(false);
+            setEditingInvoiceQuotation(null);
+          }}
+          onSave={handleInvoiceQuotationSaved}
+          vendor={vendor}
+          type="invoice"
+          editData={editingInvoiceQuotation}
+        />
+      )}
+
+      {/* Quotation Modal */}
+      {showQuotationModal && vendor && (
+        <InvoiceQuotationModal
+          isOpen={showQuotationModal}
+          onClose={() => {
+            setShowQuotationModal(false);
+            setEditingInvoiceQuotation(null);
+          }}
+          onSave={handleInvoiceQuotationSaved}
+          vendor={vendor}
+          type="quotation"
+          editData={editingInvoiceQuotation}
+        />
+      )}
+
+      {/* Invoice/Quotation Preview Modal */}
+      {showInvoicePreview && selectedInvoiceQuotation && vendor && (
+        <InvoiceQuotationPreview
+          invoiceQuotation={selectedInvoiceQuotation}
+          vendor={vendor}
+          onClose={() => {
+            setShowInvoicePreview(false);
+            setSelectedInvoiceQuotation(null);
+          }}
+          onEdit={() => {
+            setShowInvoicePreview(false);
+            handleEditInvoiceQuotation(selectedInvoiceQuotation);
+          }}
+          onDownload={handleDownloadPDF}
+          onSend={handleSendToCustomer}
+        />
       )}
       
       {/* Brand-Aligned Floating Action Button */}

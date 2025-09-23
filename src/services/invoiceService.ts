@@ -41,11 +41,21 @@ export interface InvoiceTemplate {
 }
 
 // Generate invoice/quotation number
-export const generateDocumentNumber = (type: 'invoice' | 'quotation', vendorId: string | number): string => {
+export const generateDocumentNumber = async (type: 'invoice' | 'quotation', vendorId: string | number): Promise<string> => {
   const prefix = type === 'invoice' ? 'INV' : 'QTN';
-  const timestamp = Date.now().toString().slice(-6);
   const vendorCode = vendorId.toString().slice(-3);
-  return `${prefix}-${vendorCode}-${timestamp}`;
+  
+  // Get the count of existing documents for this vendor and type
+  const { count } = await supabase
+    .from('invoice_quotations')
+    .select('*', { count: 'exact', head: true })
+    .eq('vendor_id', vendorId.toString())
+    .eq('type', type);
+  
+  const sequenceNumber = (count || 0) + 1;
+  const paddedSequence = sequenceNumber.toString().padStart(3, '0');
+  
+  return `${prefix}-${vendorCode}-${paddedSequence}`;
 };
 
 // Create new invoice/quotation
@@ -67,9 +77,13 @@ export const createInvoiceQuotation = async (data: Omit<InvoiceQuotation, 'id' |
       return { success: false, error: 'At least one service item is required' };
     }
 
+    // Generate unique document number
+    const documentNumber = await generateDocumentNumber(data.type, data.vendor_id);
+    const invoiceData = { ...data, number: documentNumber };
+
     const { data: result, error } = await supabase
       .from('invoice_quotations')
-      .insert([data])
+      .insert([invoiceData])
       .select()
       .single();
 

@@ -714,7 +714,7 @@ const VendorDashboard: React.FC = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-800 mb-4">Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
-          <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => navigate('/')} className="bg-orange-500 hover:bg-orange-600 text-white">
             Go to Home
           </Button>
         </div>
@@ -728,7 +728,7 @@ const VendorDashboard: React.FC = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h2>
           <p className="text-gray-600 mb-4">Please log in to access the vendor dashboard.</p>
-          <Button onClick={() => navigate('/')} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => navigate('/')} className="bg-orange-500 hover:bg-orange-600 text-white">
             Go to Home
           </Button>
         </div>
@@ -776,10 +776,10 @@ const VendorDashboard: React.FC = () => {
         }
       `}</style>
       
-    <div className="min-h-screen" style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 50%, #2684FF 100%)' }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-orange-50">
       
       {/* Brand-Aligned Welcome Header - Hidden on Mobile, Visible on Desktop */}
-      <div style={{ background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)', borderBottomColor: '#FFA326' }} className="hidden md:block shadow-2xl border-b-4">
+      <div className="hidden md:block shadow-2xl border-b-4 bg-blue-600 border-orange-400">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center py-6 md:py-8 gap-4 md:gap-0">
             
@@ -811,12 +811,12 @@ const VendorDashboard: React.FC = () => {
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-3 mb-3">
                   {/* Category Icon */}
                   <div className="flex items-center gap-2">
-                    {vendor.category?.toLowerCase().includes('photo') && <Camera className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
-                    {vendor.category?.toLowerCase().includes('event') && <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
-                    {vendor.category?.toLowerCase().includes('decor') && <Star className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
-                    {!vendor.category?.toLowerCase().includes('photo') && !vendor.category?.toLowerCase().includes('event') && !vendor.category?.toLowerCase().includes('decor') && <Award className="w-4 h-4 md:w-5 md:h-5 text-blue-200" />}
+                    {vendor.category?.toLowerCase().includes('photo') && <Camera className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
+                    {vendor.category?.toLowerCase().includes('event') && <Calendar className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
+                    {vendor.category?.toLowerCase().includes('decor') && <Star className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
+                    {!vendor.category?.toLowerCase().includes('photo') && !vendor.category?.toLowerCase().includes('event') && !vendor.category?.toLowerCase().includes('decor') && <Award className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
                     
-                    <p className="text-blue-100 text-sm md:text-lg font-medium">
+                    <p className="text-white/90 text-sm md:text-lg font-medium">
                       {vendor.category} | {vendor.brand_name}
                     </p>
                   </div>
@@ -990,7 +990,7 @@ const VendorDashboard: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-blue-600" />
+                  <User className="w-5 h-5 text-[#001B5E]" />
                   Profile Management
                 </CardTitle>
               </CardHeader>
@@ -1030,7 +1030,7 @@ const VendorDashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Button 
                     onClick={handleEditProfile}
-                    className="flex items-center gap-2 h-20 bg-blue-600 hover:bg-blue-700"
+                    className="flex items-center gap-2 h-20 bg-orange-500 hover:bg-orange-600 text-white shadow-lg"
                   >
                     <Edit className="w-6 h-6" />
                     <div className="text-left">
@@ -1455,10 +1455,10 @@ const VendorDashboard: React.FC = () => {
                       
                       {/* Compact Event Info Pills */}
                       <div className="flex flex-wrap gap-2 mt-1">
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                        <span className="bg-[#F7941D]/20 text-[#001B5E] px-2 py-1 rounded-full text-xs font-medium">
                           📅 {lead.event_type || 'Event TBD'}
                         </span>
-                        <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                        <span className="bg-[#001B5E]/20 text-[#001B5E] px-2 py-1 rounded-full text-xs font-medium">
                           🕒 {lead.event_date ? new Date(lead.event_date).toLocaleDateString() : 'Date TBD'}
                         </span>
                         {lead.budget_range && (
@@ -1667,7 +1667,7 @@ const VendorDashboard: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card>
                 <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-blue-600">{calendarStats.total_events || 0}</p>
+                  <p className="text-2xl font-bold text-[#001B5E]">{calendarStats.total_events || 0}</p>
                   <p className="text-sm text-gray-600">Total Events</p>
                 </CardContent>
               </Card>
@@ -1717,7 +1717,7 @@ const VendorDashboard: React.FC = () => {
                       <p className="text-sm font-medium text-gray-600">Profile Views</p>
                       <p className="text-2xl font-bold text-gray-900">{analytics.profileViews}</p>
                     </div>
-                    <Eye className="w-8 h-8 text-blue-600" />
+                    <Eye className="w-8 h-8 text-[#001B5E]" />
                   </div>
                 </CardContent>
               </Card>
@@ -1741,7 +1741,7 @@ const VendorDashboard: React.FC = () => {
                       <p className="text-sm font-medium text-gray-600">Call Clicks</p>
                       <p className="text-2xl font-bold text-gray-900">{analytics.callClicks}</p>
                     </div>
-                    <Phone className="w-8 h-8 text-purple-600" />
+                    <Phone className="w-8 h-8 text-[#F7941D]" />
                   </div>
                 </CardContent>
               </Card>
@@ -1777,7 +1777,7 @@ const VendorDashboard: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Conversion Rate</span>
-                      <span className="font-medium text-blue-600">{leadStats.conversion_rate || 0}%</span>
+                      <span className="font-medium text-[#001B5E]">{leadStats.conversion_rate || 0}%</span>
                     </div>
                   </div>
                 </CardContent>

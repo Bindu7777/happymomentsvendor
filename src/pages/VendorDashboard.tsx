@@ -73,6 +73,7 @@ const VendorDashboard: React.FC = () => {
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [selectedInvoiceQuotation, setSelectedInvoiceQuotation] = useState<InvoiceQuotation | null>(null);
   const [editingInvoiceQuotation, setEditingInvoiceQuotation] = useState<InvoiceQuotation | null>(null);
+  const [invoiceListRefreshTrigger, setInvoiceListRefreshTrigger] = useState(0);
   
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -618,6 +619,13 @@ const VendorDashboard: React.FC = () => {
     setShowInvoiceModal(false);
     setShowQuotationModal(false);
     setEditingInvoiceQuotation(null);
+    
+    // Trigger list refresh
+    setInvoiceListRefreshTrigger(prev => prev + 1);
+    
+    // Automatically open the preview of the saved document
+    setSelectedInvoiceQuotation(invoiceQuotation);
+    setShowInvoicePreview(true);
   };
 
   const handleDownloadPDF = async () => {
@@ -1805,6 +1813,7 @@ const VendorDashboard: React.FC = () => {
                   handleCreateQuotation();
                 }
               }}
+              refreshTrigger={invoiceListRefreshTrigger}
             />
           </div>
         )}

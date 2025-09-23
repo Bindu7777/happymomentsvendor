@@ -31,13 +31,15 @@ interface InvoiceQuotationListProps {
   onEdit: (invoiceQuotation: InvoiceQuotation) => void;
   onView: (invoiceQuotation: InvoiceQuotation) => void;
   onCreateNew: (type: 'invoice' | 'quotation') => void;
+  refreshTrigger?: number; // Add this to trigger refresh
 }
 
 const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
   vendor,
   onEdit,
   onView,
-  onCreateNew
+  onCreateNew,
+  refreshTrigger
 }) => {
   const [invoicesQuotations, setInvoicesQuotations] = useState<InvoiceQuotation[]>([]);
   const [filteredData, setFilteredData] = useState<InvoiceQuotation[]>([]);
@@ -49,7 +51,7 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
 
   useEffect(() => {
     loadInvoicesQuotations();
-  }, [vendor]);
+  }, [vendor, refreshTrigger]);
 
   useEffect(() => {
     applyFilters();

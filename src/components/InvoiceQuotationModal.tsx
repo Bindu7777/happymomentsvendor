@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, FileText, DollarSign, Save, Download, Send } from 'lucide-react';
+import { X, Plus, Trash2, FileText, Save, Download, Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -259,11 +259,7 @@ const InvoiceQuotationModal: React.FC<InvoiceQuotationModalProps> = ({
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {type === 'invoice' ? (
-                <DollarSign className="w-6 h-6" />
-              ) : (
-                <FileText className="w-6 h-6" />
-              )}
+              <FileText className="w-6 h-6" />
               <h2 className="text-2xl font-bold">
                 {editData ? 'Edit' : 'Create'} {type === 'invoice' ? 'Invoice' : 'Quotation'}
               </h2>

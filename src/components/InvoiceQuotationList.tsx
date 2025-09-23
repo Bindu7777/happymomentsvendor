@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
-  DollarSign, 
   Eye, 
   Edit, 
   Trash2, 
@@ -127,7 +126,7 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
   };
 
   const getTypeIcon = (type: string) => {
-    return type === 'invoice' ? <DollarSign className="w-4 h-4" /> : <FileText className="w-4 h-4" />;
+    return <FileText className="w-4 h-4" />;
   };
 
   const formatDate = (dateString: string) => {
@@ -176,7 +175,7 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
             onClick={() => onCreateNew('invoice')}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            <DollarSign className="w-4 h-4 mr-2" />
+            <FileText className="w-4 h-4 mr-2" />
             New Invoice
           </Button>
         </div>
@@ -289,7 +288,7 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
                 onClick={() => onCreateNew('invoice')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                <DollarSign className="w-4 h-4 mr-2" />
+                <FileText className="w-4 h-4 mr-2" />
                 Create Invoice
               </Button>
             </div>

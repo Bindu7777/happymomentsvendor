@@ -63,7 +63,7 @@ const InvoiceQuotationPreview: React.FC<InvoiceQuotationPreviewProps> = ({
 Your ${documentType} ${invoiceQuotation.number} is ready.
 
 📄 Document: ${documentType} ${invoiceQuotation.number}
-💰 Total Amount: ${formatCurrency(invoiceQuotation.total)}
+💵 Total Amount: ${formatCurrency(invoiceQuotation.total)}
 📅 Date: ${formatDate(invoiceQuotation.date)}
 
 Please review the attached document. For any queries, feel free to contact us.
@@ -84,7 +84,7 @@ ${vendor.brand_name}`;
 Please find attached your ${documentType} ${invoiceQuotation.number}.
 
 📄 Document: ${documentType} ${invoiceQuotation.number}
-💰 Total Amount: ${formatCurrency(invoiceQuotation.total)}
+💵 Total Amount: ${formatCurrency(invoiceQuotation.total)}
 📅 Date: ${formatDate(invoiceQuotation.date)}
 
 Please review the document and let us know if you have any questions.

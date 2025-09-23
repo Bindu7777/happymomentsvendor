@@ -779,7 +779,7 @@ const VendorDashboard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-orange-50">
       
       {/* Brand-Aligned Welcome Header - Hidden on Mobile, Visible on Desktop */}
-      <div className="hidden md:block shadow-2xl border-b-4 bg-blue-600 border-orange-400">
+      <div className="hidden md:block shadow-2xl border-b-4 border-orange-400" style={{ backgroundColor: '#001B5E' }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center py-6 md:py-8 gap-4 md:gap-0">
             

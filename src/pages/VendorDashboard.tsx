@@ -18,7 +18,6 @@ import {
   FileText,
   MessageSquare,
   MessageCircle,
-  TrendingUp,
   DollarSign,
   CheckCircle,
   AlertCircle,
@@ -88,12 +87,6 @@ const VendorDashboard: React.FC = () => {
   });
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [calendarStats, setCalendarStats] = useState<any>({});
-  const [analytics] = useState({
-    profileViews: 1250,
-    whatsappClicks: 89,
-    callClicks: 67,
-    emailClicks: 34,
-  });
   const navigate = useNavigate();
 
   // Clean filtering function: OR within categories, AND between categories
@@ -936,12 +929,6 @@ const VendorDashboard: React.FC = () => {
               icon: Calendar
             },
             { 
-              id: 'analytics', 
-              label: 'ANALYTICS', 
-              mobileLabel: 'Analytics',
-              icon: TrendingUp
-            },
-            { 
               id: 'invoices', 
               label: 'INVOICES', 
               mobileLabel: 'Invoices',
@@ -1703,101 +1690,6 @@ const VendorDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Analytics Tab */}
-        {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Analytics & Insights</h2>
-            
-            {/* Engagement Analytics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Profile Views</p>
-                      <p className="text-2xl font-bold text-gray-900">{analytics.profileViews}</p>
-                    </div>
-                    <Eye className="w-8 h-8 text-[#001B5E]" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">WhatsApp Clicks</p>
-                      <p className="text-2xl font-bold text-gray-900">{analytics.whatsappClicks}</p>
-                    </div>
-                    <MessageSquare className="w-8 h-8 text-green-600" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Call Clicks</p>
-                      <p className="text-2xl font-bold text-gray-900">{analytics.callClicks}</p>
-                    </div>
-                    <Phone className="w-8 h-8 text-[#F7941D]" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-600">Email Clicks</p>
-                      <p className="text-2xl font-bold text-gray-900">{analytics.emailClicks}</p>
-                    </div>
-                    <Mail className="w-8 h-8 text-orange-600" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Conversion Analytics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Lead Performance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Total Leads</span>
-                      <span className="font-medium">{leadStats.total_leads || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Converted</span>
-                      <span className="font-medium text-green-600">{leadStats.confirmed_bookings || 0}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Conversion Rate</span>
-                      <span className="font-medium text-[#001B5E]">{leadStats.conversion_rate || 0}%</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Revenue Tracking</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <DollarSign className="w-12 h-12 text-green-600 mx-auto mb-4" />
-                    <p className="text-3xl font-bold text-gray-900">₹{(leadStats.total_revenue || 0).toLocaleString()}</p>
-                    <p className="text-gray-600">Total Revenue</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
 
         {/* Invoices Tab */}
         {activeTab === 'invoices' && (

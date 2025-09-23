@@ -57,7 +57,7 @@ const InvoiceQuotationPreview: React.FC<InvoiceQuotationPreviewProps> = ({
 
   const handleWhatsAppShare = () => {
     const phoneNumber = invoiceQuotation.customer_mobile.replace(/[^0-9]/g, '');
-    const documentType = invoiceQuotation.type === 'invoice' ? 'Bill' : 'Estimate';
+    const documentType = invoiceQuotation.type === 'invoice' ? 'Invoice' : 'Quotation';
     const message = `Hi ${invoiceQuotation.customer_name}! 
 
 Your ${documentType} ${invoiceQuotation.number} is ready.
@@ -77,7 +77,7 @@ ${vendor.brand_name}`;
   };
 
   const handleEmailShare = () => {
-    const documentType = invoiceQuotation.type === 'invoice' ? 'Bill' : 'Estimate';
+    const documentType = invoiceQuotation.type === 'invoice' ? 'Invoice' : 'Quotation';
     const subject = `${documentType} ${invoiceQuotation.number} - ${vendor.brand_name}`;
     const body = `Dear ${invoiceQuotation.customer_name},
 
@@ -109,7 +109,7 @@ ${vendor.email ? `Email: ${vendor.email}` : ''}`;
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-bold">
-                {invoiceQuotation.type === 'invoice' ? 'Bill' : 'Estimate'} Preview
+                {invoiceQuotation.type === 'invoice' ? 'Invoice' : 'Quotation'} Preview
               </h2>
               <span className="text-sm bg-white/20 px-2 py-1 rounded">
                 {invoiceQuotation.number}

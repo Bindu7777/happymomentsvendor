@@ -943,8 +943,8 @@ const VendorDashboard: React.FC = () => {
             },
             { 
               id: 'invoices', 
-              label: 'BILLS & ESTIMATES', 
-              mobileLabel: 'Bills & Estimates',
+              label: 'INVOICES', 
+              mobileLabel: 'Invoices',
               icon: FileText
             },
           ].map((tab, index) => (
@@ -1799,7 +1799,7 @@ const VendorDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Bills & Estimates Tab */}
+        {/* Invoices Tab */}
         {activeTab === 'invoices' && (
           <div className="space-y-6">
             <InvoiceQuotationList

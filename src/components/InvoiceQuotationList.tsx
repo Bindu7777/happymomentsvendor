@@ -160,8 +160,8 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Invoices & Quotations</h2>
-          <p className="text-gray-600">Manage your billing documents</p>
+          <h2 className="text-2xl font-bold text-gray-900">Bills & Estimates</h2>
+          <p className="text-gray-600">Easily manage your bills and estimates</p>
         </div>
         <div className="flex gap-2">
           <Button
@@ -170,14 +170,14 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
             className="border-blue-200 text-blue-700 hover:bg-blue-50"
           >
             <FileText className="w-4 h-4 mr-2" />
-            New Quotation
+            Create Estimate
           </Button>
           <Button
             onClick={() => onCreateNew('invoice')}
             className="bg-blue-600 hover:bg-blue-700"
           >
             <DollarSign className="w-4 h-4 mr-2" />
-            New Invoice
+            Create Bill
           </Button>
         </div>
       </div>
@@ -189,7 +189,7 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
               type="text"
-              placeholder="Search by customer name, mobile, email, or document number..."
+              placeholder="Search by customer name, mobile number, email, or bill/estimate number..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -201,7 +201,7 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
             className="border-gray-300"
           >
             <Filter className="w-4 h-4 mr-2" />
-            Filters
+            More Options
           </Button>
         </div>
 
@@ -268,11 +268,11 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
           <CardContent className="text-center py-12">
             <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {invoicesQuotations.length === 0 ? 'No documents yet' : 'No documents match your filters'}
+              {invoicesQuotations.length === 0 ? 'No Bills or Estimates Yet' : 'No bills or estimates match your filters'}
             </h3>
             <p className="text-gray-600 mb-6">
               {invoicesQuotations.length === 0 
-                ? 'Create your first invoice or quotation to get started'
+                ? 'Start by making your first bill or estimate for your customer'
                 : 'Try adjusting your search criteria or clearing filters'
               }
             </p>
@@ -283,16 +283,19 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
                 className="border-blue-200 text-blue-700 hover:bg-blue-50"
               >
                 <FileText className="w-4 h-4 mr-2" />
-                Create Quotation
+                Make Estimate
               </Button>
               <Button
                 onClick={() => onCreateNew('invoice')}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 <DollarSign className="w-4 h-4 mr-2" />
-                Create Invoice
+                Make Bill
               </Button>
             </div>
+            <p className="text-sm text-gray-500 mt-4">
+              You can download or share bills and estimates with your customers
+            </p>
           </CardContent>
         </Card>
       ) : (

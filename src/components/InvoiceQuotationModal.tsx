@@ -265,7 +265,7 @@ const InvoiceQuotationModal: React.FC<InvoiceQuotationModalProps> = ({
                 <FileText className="w-6 h-6" />
               )}
               <h2 className="text-2xl font-bold">
-                {editData ? 'Edit' : 'Create'} {type === 'invoice' ? 'Invoice' : 'Quotation'}
+                {editData ? 'Edit' : 'Create'} {type === 'invoice' ? 'Bill' : 'Estimate'}
               </h2>
             </div>
             <div className="flex items-center gap-2">

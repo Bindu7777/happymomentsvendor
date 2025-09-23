@@ -29,7 +29,7 @@ const VendorProfile = () => {
   });
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCoupon, setShowCoupon] = useState(false);
-  const [recentClaims, setRecentClaims] = useState(47);
+  const [recentClaims, setRecentClaims] = useState(Math.floor(Math.random() * 100) + 1);
   const [showRatingTooltip, setShowRatingTooltip] = useState(false);
 
   // Load vendor data if vendorId is provided
@@ -1315,53 +1315,63 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 </h3>
                 <div className="space-y-6">
                   
-                  {/* Advance Payment Policy */}
-                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-white text-sm font-bold">₹</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-green-800 mb-2">Advance Payment Policy</h4>
-                        <p className="text-sm text-green-700 leading-relaxed">
-                          50% of the total booking amount must be paid upfront to confirm the booking. 
-                          The remaining 50% should be settled at least 3 days before the event.
-                        </p>
+                  {/* Payment Terms Policy */}
+                  {vendor.booking_policies?.payment_terms && (
+                    <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-white text-sm font-bold">₹</span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-green-800 mb-2">Payment Terms</h4>
+                          <p className="text-sm text-green-700 leading-relaxed">
+                            {vendor.booking_policies.payment_terms}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Cancellation & Refund Policy */}
-                  <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-white text-sm font-bold">↩</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-orange-800 mb-2">Cancellation & Refund Policy</h4>
-                        <p className="text-sm text-orange-700 leading-relaxed">
-                          Cancellations made 7 days before the event will receive a 50% refund of the advance. 
-                          Cancellations within 7 days are non-refundable.
-                        </p>
+                  {/* Cancellation Policy */}
+                  {vendor.booking_policies?.cancellation_policy && (
+                    <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-white text-sm font-bold">↩</span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-orange-800 mb-2">Cancellation Policy</h4>
+                          <p className="text-sm text-orange-700 leading-relaxed">
+                            {vendor.booking_policies.cancellation_policy}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Service Commitment Policy */}
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                        <span className="text-white text-sm font-bold">✓</span>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-blue-800 mb-2">Service Commitment Policy</h4>
-                        <p className="text-sm text-blue-700 leading-relaxed">
-                          Vendors must arrive on time and provide all services as agreed. Any deviation should be 
-                          communicated at least 24 hours prior, failing which a compensation or rescheduling clause may apply.
-                        </p>
+                  {/* Booking Requirements */}
+                  {vendor.booking_policies?.booking_requirements && (
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-white text-sm font-bold">✓</span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-blue-800 mb-2">Booking Requirements</h4>
+                          <p className="text-sm text-blue-700 leading-relaxed">
+                            {vendor.booking_policies.booking_requirements}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Show message if no policies are available */}
+                  {!vendor.booking_policies?.payment_terms && !vendor.booking_policies?.cancellation_policy && !vendor.booking_policies?.booking_requirements && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No booking policies available for this vendor.</p>
+                    </div>
+                  )}
 
                 </div>
               </CardContent>

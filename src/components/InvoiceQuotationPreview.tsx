@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Download, Send, Edit, Print } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Download, Send, Edit, Print, MessageCircle, Mail, Share2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { InvoiceQuotation } from '../services/invoiceService';
 
@@ -20,6 +20,24 @@ const InvoiceQuotationPreview: React.FC<InvoiceQuotationPreviewProps> = ({
   onDownload,
   onSend
 }) => {
+  const [showShareOptions, setShowShareOptions] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showShareOptions) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.share-dropdown')) {
+          setShowShareOptions(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showShareOptions]);
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -35,6 +53,52 @@ const InvoiceQuotationPreview: React.FC<InvoiceQuotationPreviewProps> = ({
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  const handleWhatsAppShare = () => {
+    const phoneNumber = invoiceQuotation.customer_mobile.replace(/[^0-9]/g, '');
+    const documentType = invoiceQuotation.type === 'invoice' ? 'Invoice' : 'Quotation';
+    const message = `Hi ${invoiceQuotation.customer_name}! 
+
+Your ${documentType} ${invoiceQuotation.number} is ready.
+
+📄 Document: ${documentType} ${invoiceQuotation.number}
+💰 Total Amount: ${formatCurrency(invoiceQuotation.total)}
+📅 Date: ${formatDate(invoiceQuotation.date)}
+
+Please review the attached document. For any queries, feel free to contact us.
+
+Best regards,
+${vendor.brand_name}`;
+
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    setShowShareOptions(false);
+  };
+
+  const handleEmailShare = () => {
+    const documentType = invoiceQuotation.type === 'invoice' ? 'Invoice' : 'Quotation';
+    const subject = `${documentType} ${invoiceQuotation.number} - ${vendor.brand_name}`;
+    const body = `Dear ${invoiceQuotation.customer_name},
+
+Please find attached your ${documentType} ${invoiceQuotation.number}.
+
+📄 Document: ${documentType} ${invoiceQuotation.number}
+💰 Total Amount: ${formatCurrency(invoiceQuotation.total)}
+📅 Date: ${formatDate(invoiceQuotation.date)}
+
+Please review the document and let us know if you have any questions.
+
+Thank you for your business!
+
+Best regards,
+${vendor.brand_name}
+${vendor.phone ? `Phone: ${vendor.phone}` : ''}
+${vendor.email ? `Email: ${vendor.email}` : ''}`;
+
+    const emailUrl = `mailto:${invoiceQuotation.customer_email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(emailUrl, '_blank');
+    setShowShareOptions(false);
   };
 
   return (
@@ -216,10 +280,45 @@ const InvoiceQuotationPreview: React.FC<InvoiceQuotationPreviewProps> = ({
               <Download className="w-4 h-4 mr-2" />
               Download PDF
             </Button>
-            <Button onClick={onSend} className="bg-blue-600 hover:bg-blue-700">
-              <Send className="w-4 h-4 mr-2" />
-              Send to Customer
-            </Button>
+            
+            {/* Share Options Dropdown */}
+            <div className="relative share-dropdown">
+              <Button 
+                onClick={() => setShowShareOptions(!showShareOptions)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Send to Customer
+              </Button>
+              
+              {showShareOptions && (
+                <div className="absolute bottom-full right-0 mb-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <div className="p-2">
+                    <button
+                      onClick={handleWhatsAppShare}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-green-50 rounded-lg transition-colors"
+                    >
+                      <MessageCircle className="w-5 h-5 text-green-600" />
+                      <div>
+                        <div className="font-medium text-gray-900">WhatsApp</div>
+                        <div className="text-sm text-gray-600">Send via WhatsApp</div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={handleEmailShare}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Mail className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <div className="font-medium text-gray-900">Email</div>
+                        <div className="text-sm text-gray-600">Send via Email</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

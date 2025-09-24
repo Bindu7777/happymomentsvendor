@@ -26,6 +26,7 @@ import CategoryVendors from "./pages/CategoryVendors";
 import VendorDashboard from "./pages/VendorDashboard";
 import VendorProfileEdit from "./pages/VendorProfileEdit";
 import ImageUploadTestPage from "./pages/ImageUploadTestPage";
+import SmartRequest from "./pages/SmartRequest";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -90,6 +91,7 @@ const App = () => {
               <Route path="/blog/:blogId" element={<Navigate to="/" />} />
               <Route path="/blog" element={<Navigate to="/" />} />
                <Route path="/beautyvendor" element={<BeautyVendor />} />
+              <Route path="/smart-request" element={<SmartRequest />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>

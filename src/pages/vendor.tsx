@@ -575,7 +575,7 @@ const VendorProfile = () => {
 
                     {/* Bio */}
                     <p className="text-xl text-gray-700 mb-12 leading-relaxed">
-                      {vendor.detailed_intro || `Professional ${vendor.category.toLowerCase()} services with ${vendor.experience || '5+'} years of experience. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.`}
+                      {vendor.detailed_intro || `Professional ${vendor.category.toLowerCase()} services${vendor.experience ? ` with ${vendor.experience} of experience` : ''}. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.`}
                     </p>
 
                     {/* Details Icons Row */}
@@ -1098,7 +1098,12 @@ const VendorProfile = () => {
                       <span className="text-white text-sm font-bold">₹</span>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-black text-blue-800">Contact for Pricing</div>
+                      <div className="text-2xl font-black text-blue-800">
+                        {vendor.starting_price 
+                          ? `Starting ₹${vendor.starting_price.toLocaleString()}`
+                          : 'Contact for Pricing'
+                        }
+                      </div>
                       <div className="text-sm text-blue-600 font-semibold">Professional {vendor.category}</div>
                     </div>
                     <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">

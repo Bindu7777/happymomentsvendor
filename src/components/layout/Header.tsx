@@ -133,6 +133,12 @@ const Header = () => {
 
           {/* Desktop Navigation - moved next to logo */}
           <nav className="hidden md:flex items-center space-x-8">
+            <Link
+              to="/smart-request"
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
+              🎯 Smart Request
+            </Link>
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
                 Categories <ChevronDown className="ml-1 h-4 w-4" />
@@ -303,29 +309,14 @@ const Header = () => {
           )}
 
           {user == null && (
-            <>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  navigate("/login");
-                }}
-                className="text-white hover:text-wedding-orange hover:bg-wedding-navy-hover"
-              >
-                Log in
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  navigate("/admin/login");
-                }}
-                className="text-white hover:text-blue-400 hover:bg-blue-900"
-              >
-                Admin
-              </Button>
-              <Button className="bg-wedding-orange hover:bg-wedding-orange-hover text-white">
-                Sign up
-              </Button>
-            </>
+            <Button
+              onClick={() => {
+                navigate("/login");
+              }}
+              className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-6 py-2 rounded-lg font-semibold"
+            >
+              Sign In
+            </Button>
           )}
         </div>
         {user && (
@@ -360,6 +351,13 @@ const Header = () => {
         >
           <div className="container-custom py-4 flex flex-col space-y-4">
             <div className="flex flex-col space-y-2">
+              <Link
+                to="/smart-request"
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-3 rounded-lg font-semibold text-center transition-all duration-300 shadow-lg hover:shadow-xl"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                🎯 Smart Request
+              </Link>
               <div className="py-2">
                 <div className="font-medium mb-2 text-white">Categories</div>
                 <div className="ml-4 flex flex-col space-y-2">
@@ -404,27 +402,13 @@ const Header = () => {
             </div>
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
               <Button
-                variant="ghost"
                 onClick={() => {
-                  console.log("navigatinfg");
                   navigate("/login");
+                  setMobileMenuOpen(false);
                 }}
-                className="text-white hover:text-wedding-orange hover:bg-wedding-navy-hover"
+                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-6 py-3 rounded-lg font-semibold text-center"
               >
-                Log in
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  navigate("/admin/login");
-                }}
-                className="text-white hover:text-blue-400 hover:bg-blue-900"
-              >
-                Admin Login
-              </Button>
-
-              <Button className="justify-start bg-wedding-orange hover:bg-wedding-orange-hover text-white">
-                Sign up
+                Sign In
               </Button>
             </div>
           </div>

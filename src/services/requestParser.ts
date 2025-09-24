@@ -23,75 +23,156 @@ export interface ServiceCategory {
   subcategories?: string[];
 }
 
-// Service category mapping for AI parsing
+// Service category mapping for AI parsing with Telugu and mixed language support
 const SERVICE_CATEGORIES: ServiceCategory[] = [
   {
-    keywords: ['photographer', 'photography', 'photo', 'camera', 'shoot', 'candid', 'wedding photos'],
+    keywords: [
+      'photographer', 'photography', 'photo', 'camera', 'shoot', 'candid', 'wedding photos',
+      'photographer kavali', 'photo shoot', 'candid photos', 'wedding photographer'
+    ],
     category: 'Photographers',
     subcategories: ['Wedding Photography', 'Pre-wedding', 'Candid', 'Traditional', 'Drone']
   },
   {
-    keywords: ['makeup', 'makeup artist', 'beauty', 'bridal makeup', 'glamour', 'cosmetics'],
+    keywords: [
+      'makeup', 'makeup artist', 'beauty', 'bridal makeup', 'glamour', 'cosmetics',
+      'makeup artist kavali', 'beauty artist', 'bridal makeup artist', 'glamour artist'
+    ],
     category: 'Makeup Artists',
     subcategories: ['Bridal Makeup', 'Party Makeup', 'Traditional', 'Glamour']
   },
   {
-    keywords: ['decorator', 'decoration', 'decoration', 'floral', 'balloon', 'stage', 'mandap', 'backdrop'],
+    keywords: [
+      'decorator', 'decoration', 'floral', 'balloon', 'stage', 'mandap', 'backdrop',
+      'decorator kavali', 'decoration kavali', 'stage decoration', 'mandap decoration'
+    ],
     category: 'Decorators',
     subcategories: ['Wedding Decoration', 'Birthday Decoration', 'Corporate Decoration', 'Floral Arrangements']
   },
   {
-    keywords: ['caterer', 'catering', 'food', 'catering', 'catering', 'catering', 'catering'],
+    keywords: [
+      'caterer', 'catering', 'food', 'catering kavali', 'food kavali',
+      'catering service', 'food service', 'catering for wedding'
+    ],
     category: 'Caterers',
     subcategories: ['Wedding Catering', 'Corporate Catering', 'Birthday Catering', 'Traditional Cuisine']
   },
   {
-    keywords: ['dj', 'music', 'entertainment', 'sound', 'lighting', 'dance', 'party music'],
+    keywords: [
+      'dj', 'music', 'entertainment', 'sound', 'lighting', 'dance', 'party music',
+      'dj kavali', 'music kavali', 'sound system', 'party music', 'dance music'
+    ],
     category: 'DJs, Lighting, and Entertainment',
     subcategories: ['Wedding DJ', 'Party Music', 'Lighting', 'Sound System']
   },
   {
-    keywords: ['venue', 'hall', 'banquet', 'resort', 'hotel', 'garden', 'outdoor venue'],
+    keywords: [
+      'venue', 'hall', 'banquet', 'resort', 'hotel', 'garden', 'outdoor venue',
+      'venue kavali', 'hall kavali', 'banquet hall', 'wedding venue'
+    ],
     category: 'Venues',
     subcategories: ['Wedding Venues', 'Corporate Venues', 'Birthday Venues', 'Garden Venues']
   },
   {
-    keywords: ['planner', 'event planner', 'coordinator', 'organizer', 'event management'],
+    keywords: [
+      'planner', 'event planner', 'coordinator', 'organizer', 'event management',
+      'planner kavali', 'event planner kavali', 'coordinator kavali'
+    ],
     category: 'Event Planners',
     subcategories: ['Wedding Planning', 'Corporate Events', 'Birthday Planning', 'Full Service']
   },
   {
-    keywords: ['anchor', 'emcee', 'host', 'announcer', 'master of ceremonies'],
+    keywords: [
+      'anchor', 'emcee', 'host', 'announcer', 'master of ceremonies',
+      'anchor kavali', 'emcee kavali', 'host kavali', 'announcer kavali'
+    ],
     category: 'Anchors',
     subcategories: ['Wedding Anchoring', 'Corporate Events', 'Birthday Parties', 'Cultural Events']
   },
   {
-    keywords: ['transport', 'car', 'vehicle', 'rental', 'transportation', 'bus', 'car rental'],
+    keywords: [
+      'transport', 'car', 'vehicle', 'rental', 'transportation', 'bus', 'car rental',
+      'transport kavali', 'car kavali', 'vehicle kavali', 'transportation kavali'
+    ],
     category: 'Transportation Services',
     subcategories: ['Wedding Cars', 'Corporate Transport', 'Airport Transfer', 'Group Transport']
   },
   {
-    keywords: ['fashion', 'costume', 'designer', 'outfit', 'dress', 'suit', 'clothing'],
+    keywords: [
+      'fashion', 'costume', 'designer', 'outfit', 'dress', 'suit', 'clothing',
+      'fashion kavali', 'dress kavali', 'outfit kavali', 'clothing kavali'
+    ],
     category: 'Fashion/Costume Designers',
     subcategories: ['Wedding Wear', 'Traditional Wear', 'Party Wear', 'Custom Design']
   },
   {
-    keywords: ['tent', 'equipment', 'rental', 'furniture', 'tent rental', 'equipment rental'],
+    keywords: [
+      'tent', 'equipment', 'rental', 'furniture', 'tent rental', 'equipment rental',
+      'tent kavali', 'equipment kavali', 'furniture kavali', 'rental kavali'
+    ],
     category: 'Tent & Equipment Rentals',
     subcategories: ['Wedding Tents', 'Corporate Equipment', 'Furniture Rental', 'Event Equipment']
   }
 ];
 
-// Event type keywords
+// Event type keywords with Telugu and mixed language support
 const EVENT_TYPES = [
-  { keywords: ['wedding', 'marriage', 'shaadi', 'vivah', 'kalyana'], type: 'Wedding' },
-  { keywords: ['birthday', 'bday', 'birthday party', 'birthday celebration'], type: 'Birthday' },
-  { keywords: ['corporate', 'office', 'business', 'company', 'corporate event'], type: 'Corporate' },
-  { keywords: ['anniversary', 'anniversary celebration', 'wedding anniversary'], type: 'Anniversary' },
-  { keywords: ['engagement', 'ring ceremony', 'sagai'], type: 'Engagement' },
-  { keywords: ['baby shower', 'godh bharai', 'seemantham'], type: 'Baby Shower' },
-  { keywords: ['housewarming', 'griha pravesh', 'new home'], type: 'Housewarming' },
-  { keywords: ['festival', 'festival celebration', 'religious', 'puja'], type: 'Festival' }
+  { 
+    keywords: [
+      'wedding', 'marriage', 'shaadi', 'vivah', 'kalyana', 'pelli', 'pelli ki',
+      'wedding ki', 'marriage ki', 'sister ki pelli', 'brother ki pelli'
+    ], 
+    type: 'Wedding' 
+  },
+  { 
+    keywords: [
+      'birthday', 'bday', 'birthday party', 'birthday celebration', 'birthday ki',
+      'birthday party ki', 'birthday celebration ki'
+    ], 
+    type: 'Birthday' 
+  },
+  { 
+    keywords: [
+      'corporate', 'office', 'business', 'company', 'corporate event', 'corporate ki',
+      'office event', 'business event'
+    ], 
+    type: 'Corporate' 
+  },
+  { 
+    keywords: [
+      'anniversary', 'anniversary celebration', 'wedding anniversary', 'anniversary ki',
+      'wedding anniversary ki'
+    ], 
+    type: 'Anniversary' 
+  },
+  { 
+    keywords: [
+      'engagement', 'ring ceremony', 'sagai', 'engagement ki', 'ring ceremony ki',
+      'sagai ki', 'engagement ceremony'
+    ], 
+    type: 'Engagement' 
+  },
+  { 
+    keywords: [
+      'baby shower', 'godh bharai', 'seemantham', 'baby shower ki', 'godh bharai ki',
+      'seemantham ki'
+    ], 
+    type: 'Baby Shower' 
+  },
+  { 
+    keywords: [
+      'housewarming', 'griha pravesh', 'new home', 'housewarming ki', 'griha pravesh ki',
+      'new home ki'
+    ], 
+    type: 'Housewarming' 
+  },
+  { 
+    keywords: [
+      'festival', 'festival celebration', 'religious', 'puja', 'festival ki',
+      'religious event', 'puja ki'
+    ], 
+    type: 'Festival' 
+  }
 ];
 
 // Gender preference keywords
@@ -100,22 +181,45 @@ const GENDER_PREFERENCES = [
   { keywords: ['female', 'women', 'lady', 'madam', 'female artist'], preference: 'female' as const }
 ];
 
-// Budget range patterns
+// Budget range patterns with Telugu and mixed language support
 const BUDGET_PATTERNS = [
   { pattern: /(\d+)\s*k\b/i, multiplier: 1000 },
   { pattern: /(\d+)\s*lakh\b/i, multiplier: 100000 },
   { pattern: /(\d+)\s*crore\b/i, multiplier: 10000000 },
   { pattern: /₹\s*(\d+)/i, multiplier: 1 },
-  { pattern: /(\d+)\s*rupees?/i, multiplier: 1 }
+  { pattern: /(\d+)\s*rupees?/i, multiplier: 1 },
+  // Enhanced patterns for better number detection
+  { pattern: /(\d{1,3}(?:,\d{3})*)\b/g, multiplier: 1 }, // Matches numbers with commas like 20,000
+  { pattern: /(\d+)\s*(?:for|budget|around|upto|max|maximum)/i, multiplier: 1 }, // Matches "20,000 for" or "budget 20,000"
+  { pattern: /(?:for|budget|around|upto|max|maximum)\s*(\d{1,3}(?:,\d{3})*)/i, multiplier: 1 }, // Matches "for 20,000" or "budget 20,000"
+  { pattern: /(\d+)\s*(?:rs|rupees?|inr)/i, multiplier: 1 }, // Matches "20000 rs" or "20000 rupees"
+  // Additional patterns for better coverage
+  { pattern: /for\s+(\d{1,3}(?:,\d{3})*)/i, multiplier: 1 }, // Matches "for 25,000"
+  { pattern: /(\d{1,3}(?:,\d{3})*)\s+for/i, multiplier: 1 }, // Matches "25,000 for"
+  { pattern: /budget\s+(\d{1,3}(?:,\d{3})*)/i, multiplier: 1 }, // Matches "budget 30,000"
+  { pattern: /(\d{1,3}(?:,\d{3})*)\s+budget/i, multiplier: 1 }, // Matches "30,000 budget"
+  // Telugu and mixed language patterns - more specific to avoid duration conflicts
+  { pattern: /(\d+)\s*(?:k|thousand|thousands?)\s*(?:budget|kavali|lo|ki)/i, multiplier: 1000 }, // Matches "20k budget" or "20k kavali"
+  { pattern: /(\d+)\s*(?:lakh|lakhs?)\s*(?:budget|kavali|lo|ki)/i, multiplier: 100000 }, // Matches "1 lakh budget" or "2 lakh kavali"
+  { pattern: /budget\s*lo\s*(\d{1,3}(?:,\d{3})*)/i, multiplier: 1 }, // Matches "budget lo 20,000"
+  { pattern: /(\d{1,3}(?:,\d{3})*)\s*budget\s*lo/i, multiplier: 1 }, // Matches "20,000 budget lo"
+  { pattern: /(\d+)\s*(?:k|thousand|thousands?)\s*budget/i, multiplier: 1000 }, // Matches "20k budget"
+  { pattern: /(\d+)\s*(?:lakh|lakhs?)\s*budget/i, multiplier: 100000 }, // Matches "1 lakh budget"
 ];
 
-// Location patterns
+// Location patterns with Telugu and mixed language support
 const LOCATION_PATTERNS = [
   /in\s+([^,]+)/i,
   /at\s+([^,]+)/i,
   /near\s+([^,]+)/i,
   /location\s*:?\s*([^,]+)/i,
-  /place\s*:?\s*([^,]+)/i
+  /place\s*:?\s*([^,]+)/i,
+  // Telugu patterns
+  /lo\s+([^,]+)/i, // "Hyderabad lo" = "in Hyderabad"
+  /([^,]+)\s+lo/i, // "Hyderabad lo" = "in Hyderabad"
+  /([^,]+)\s+ki/i, // "Hyderabad ki" = "for Hyderabad"
+  /([^,]+)\s+location/i, // "Hyderabad location"
+  /location\s+([^,]+)/i // "location Hyderabad"
 ];
 
 // Date patterns
@@ -212,20 +316,55 @@ export class RequestParser {
   private extractBudgetRange(): void {
     let minBudget: number | undefined;
     let maxBudget: number | undefined;
+    const foundAmounts: number[] = [];
 
     // Look for budget patterns
     for (const pattern of BUDGET_PATTERNS) {
-      const match = this.text.match(pattern.pattern);
-      if (match) {
-        const amount = parseInt(match[1]) * pattern.multiplier;
-        
-        if (!minBudget) {
-          minBudget = amount;
-        } else if (amount > minBudget) {
-          maxBudget = amount;
-        } else {
-          maxBudget = minBudget;
-          minBudget = amount;
+      // Make sure the pattern is global for matchAll
+      const flags = pattern.pattern.flags.includes('g') ? pattern.pattern.flags : pattern.pattern.flags + 'g';
+      const globalPattern = new RegExp(pattern.pattern.source, flags);
+      const matches = this.text.matchAll(globalPattern);
+      for (const match of matches) {
+        if (match[1]) {
+          // Handle comma-separated numbers
+          const cleanAmount = match[1].replace(/,/g, '');
+          const amount = parseInt(cleanAmount) * pattern.multiplier;
+          foundAmounts.push(amount);
+        }
+      }
+    }
+
+    // Look for standalone numbers that could be budgets (4+ digits)
+    // But exclude numbers that are clearly durations or guest counts
+    const standaloneNumbers = this.text.match(/\b(\d{4,})\b/g);
+    if (standaloneNumbers) {
+      for (const num of standaloneNumbers) {
+        const amount = parseInt(num.replace(/,/g, ''));
+        // Only consider reasonable budget amounts (between 1,000 and 1,00,00,000)
+        // Exclude numbers that are likely durations (1-24) or guest counts (1-1000)
+        if (amount >= 1000 && amount <= 10000000) {
+          // Check if this number is part of a duration or guest count pattern
+          const numIndex = this.text.indexOf(num);
+          const context = this.text.substring(Math.max(0, numIndex - 20), Math.min(this.text.length, numIndex + 20));
+          
+          // Skip if it's clearly a duration or guest count
+          if (context.match(/\b(hours?|days?|weeks?|guests?|people|persons?)\b/i)) {
+            continue;
+          }
+          
+          foundAmounts.push(amount);
+        }
+      }
+    }
+
+    // Also look for numbers with commas that might not have been caught by other patterns
+    const commaNumbers = this.text.match(/\b(\d{1,3}(?:,\d{3})+)\b/g);
+    if (commaNumbers) {
+      for (const num of commaNumbers) {
+        const amount = parseInt(num.replace(/,/g, ''));
+        // Only consider reasonable budget amounts (between 1,000 and 1,00,00,000)
+        if (amount >= 1000 && amount <= 10000000) {
+          foundAmounts.push(amount);
         }
       }
     }
@@ -236,8 +375,26 @@ export class RequestParser {
       const minAmount = parseInt(rangeMatch[1]) * this.getMultiplier(rangeMatch[2]);
       const maxAmount = parseInt(rangeMatch[4]) * this.getMultiplier(rangeMatch[5]);
       
-      minBudget = Math.min(minAmount, maxAmount);
-      maxBudget = Math.max(minAmount, maxAmount);
+      foundAmounts.push(Math.min(minAmount, maxAmount));
+      foundAmounts.push(Math.max(minAmount, maxAmount));
+    }
+
+    // Process found amounts
+    if (foundAmounts.length > 0) {
+      // Filter out 0 values and sort amounts
+      const validAmounts = foundAmounts.filter(amount => amount > 0);
+      const sortedAmounts = [...new Set(validAmounts)].sort((a, b) => a - b);
+      
+      if (sortedAmounts.length > 0) {
+        // If we have multiple amounts, use the largest as max and smallest as min
+        if (sortedAmounts.length === 1) {
+          minBudget = sortedAmounts[0];
+          maxBudget = sortedAmounts[0] * 1.2; // Add 20% buffer
+        } else {
+          minBudget = sortedAmounts[0];
+          maxBudget = sortedAmounts[sortedAmounts.length - 1];
+        }
+      }
     }
 
     if (minBudget) {
@@ -262,8 +419,17 @@ export class RequestParser {
     for (const pattern of LOCATION_PATTERNS) {
       const match = this.text.match(pattern);
       if (match) {
-        this.parsedRequest.location = match[1].trim();
-        return;
+        const location = match[1].trim();
+        // Clean up location - remove common words that might be captured
+        const cleanLocation = location
+          .replace(/\b(budget|kavali|ki|lo|for|in|at|near)\b/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        
+        if (cleanLocation && cleanLocation.length > 1) {
+          this.parsedRequest.location = cleanLocation;
+          return;
+        }
       }
     }
 
@@ -312,16 +478,40 @@ export class RequestParser {
   }
 
   private extractDuration(): void {
-    const durationMatch = this.text.match(/(\d+)\s*(hours?|days?|weeks?)/i);
-    if (durationMatch) {
-      this.parsedRequest.duration = `${durationMatch[1]} ${durationMatch[2]}`;
+    // Enhanced duration patterns with Telugu support
+    const durationPatterns = [
+      /(\d+)\s*(hours?|days?|weeks?)/i,
+      /(\d+)\s*(hours?|days?|weeks?)\s*(?:ki|kavali|lo)/i, // Telugu patterns
+      /(?:for|ki|kavali)\s*(\d+)\s*(hours?|days?|weeks?)/i,
+      /(\d+)\s*(?:hours?|days?|weeks?)\s*(?:duration|time)/i
+    ];
+
+    for (const pattern of durationPatterns) {
+      const durationMatch = this.text.match(pattern);
+      if (durationMatch) {
+        this.parsedRequest.duration = `${durationMatch[1]} ${durationMatch[2]}`;
+        break;
+      }
     }
   }
 
   private extractGuestCount(): void {
-    const guestMatch = this.text.match(/(\d+)\s*(guests?|people|persons?)/i);
-    if (guestMatch) {
-      this.parsedRequest.guestCount = parseInt(guestMatch[1]);
+    // Enhanced guest count patterns with Telugu support
+    const guestPatterns = [
+      /(\d+)\s*(guests?|people|persons?)/i,
+      /(\d+)\s*(guests?|people|persons?)\s*(?:ki|kavali|lo)/i, // Telugu patterns
+      /(?:for|ki|kavali)\s*(\d+)\s*(guests?|people|persons?)/i,
+      /(\d+)\s*(?:guests?|people|persons?)\s*(?:family|family ki|family kosam)/i, // "family kosam" = "for family"
+      /family\s*kosam\s*(\d+)/i, // "family kosam 50" = "for 50 family members"
+      /(\d+)\s*family/i // "50 family" = "50 family members"
+    ];
+
+    for (const pattern of guestPatterns) {
+      const guestMatch = this.text.match(pattern);
+      if (guestMatch) {
+        this.parsedRequest.guestCount = parseInt(guestMatch[1]);
+        break;
+      }
     }
   }
 
@@ -348,16 +538,41 @@ export class RequestParser {
   private extractAdditionalRequirements(): void {
     const requirements: string[] = [];
     
-    // Look for specific requirements
+    // Look for specific requirements with Telugu and mixed language support
     const requirementKeywords = [
+      // English requirements
       'traditional', 'modern', 'vintage', 'rustic', 'luxury', 'budget',
       'same day', 'quick', 'professional', 'experienced', 'award winning',
-      'eco friendly', 'sustainable', 'custom', 'personalized'
+      'eco friendly', 'sustainable', 'custom', 'personalized',
+      // Telugu and mixed language requirements
+      'discount', 'discount kavali', 'discount ivvara', 'discount ivvali',
+      'family', 'family ki', 'family kosam', 'complete family',
+      'full coverage', 'full coverage kavali', 'complete coverage',
+      'same day', 'same day kavali', 'quick', 'quick kavali',
+      'professional', 'professional kavali', 'experienced', 'experienced kavali',
+      'budget', 'budget lo', 'within budget', 'budget friendly'
     ];
 
     for (const keyword of requirementKeywords) {
       if (this.text.includes(keyword)) {
-        requirements.push(keyword);
+        // Normalize the requirement for display
+        let normalizedReq = keyword;
+        if (keyword.includes('kavali')) {
+          normalizedReq = keyword.replace(' kavali', '');
+        }
+        if (keyword.includes('ivvara') || keyword.includes('ivvali')) {
+          normalizedReq = 'discount requested';
+        }
+        if (keyword.includes('family kosam')) {
+          normalizedReq = 'family coverage';
+        }
+        if (keyword.includes('budget lo')) {
+          normalizedReq = 'within budget';
+        }
+        
+        if (!requirements.includes(normalizedReq)) {
+          requirements.push(normalizedReq);
+        }
       }
     }
 

@@ -27,6 +27,9 @@ const Header = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
+  
+  // Debug: Log user state
+  console.log('Header - User state:', user);
 
   // Check if vendor is logged in on component mount
   useEffect(() => {
@@ -118,7 +121,7 @@ const Header = () => {
       ${scrollDirection === "down" ? "-translate-y-full" : "translate-y-0"}
     `}
   >
-      <div className=" container-custom flex items-center justify-between">
+      <div className="container-custom flex items-center justify-between">
         <div className="flex items-center space-x-8">
           {/* Logo with image - updated with white background */}
           <Link to="/" className="flex items-center">
@@ -192,16 +195,27 @@ const Header = () => {
         </div>
 
         {/* Auth buttons - kept on right */}
-        <div className="hidden md:flex items-center space-x-4">
-
-          {user == null && (
-            <Button
-              onClick={() => setShowLoginModal(true)}
-              className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-6 py-2 rounded-lg font-semibold"
-            >
-              Sign In
-            </Button>
-          )}
+        <div className="flex items-center space-x-3 z-50 relative">
+          <button
+            onClick={() => {
+              console.log('Customer Login clicked');
+              setLoginType('customer');
+              setShowLoginModal(true);
+            }}
+            className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+          >
+            Customer Login
+          </button>
+          <button
+            onClick={() => {
+              console.log('Vendor Login clicked');
+              setLoginType('vendor');
+              setShowLoginModal(true);
+            }}
+            className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+          >
+            Vendor Login
+          </button>
         </div>
         {/* Mobile menu button */}
         <button
@@ -279,12 +293,24 @@ const Header = () => {
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
               <Button
                 onClick={() => {
+                  setLoginType('customer');
                   setShowLoginModal(true);
                   setMobileMenuOpen(false);
                 }}
-                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-6 py-3 rounded-lg font-semibold text-center"
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-3 rounded-lg font-medium text-center"
               >
-                Sign In
+                Customer Login
+              </Button>
+              <Button
+                onClick={() => {
+                  setLoginType('vendor');
+                  setShowLoginModal(true);
+                  setMobileMenuOpen(false);
+                }}
+                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-3 rounded-lg font-medium text-center"
+              >
+                Vendor Login
               </Button>
             </div>
           </div>
@@ -296,40 +322,16 @@ const Header = () => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-center text-2xl font-bold text-gray-800">
-              Welcome to Happy Moments
+              {loginType === 'customer' ? 'Customer Login' : 'Vendor Login'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            {/* Login Type Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setLoginType('customer')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                  loginType === 'customer'
-                    ? 'bg-white text-orange-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Login as Customer
-              </button>
-              <button
-                onClick={() => setLoginType('vendor')}
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
-                  loginType === 'vendor'
-                    ? 'bg-white text-orange-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Login as Vendor
-              </button>
-            </div>
 
             {/* Customer Login */}
             {loginType === 'customer' && (
               <div className="space-y-4">
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Customer Login</h3>
-                  <p className="text-sm text-gray-600">Access your account to manage bookings</p>
+                  <p className="text-sm text-gray-600">Access your account to manage bookings and view your event history</p>
                 </div>
                 <Button
                   onClick={() => {
@@ -347,8 +349,7 @@ const Header = () => {
             {loginType === 'vendor' && (
               <div className="space-y-4">
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Vendor Login</h3>
-                  <p className="text-sm text-gray-600">Access your vendor dashboard</p>
+                  <p className="text-sm text-gray-600">Access your vendor dashboard to manage bookings and update your profile</p>
                 </div>
                 
                 {vendorLoginError && (

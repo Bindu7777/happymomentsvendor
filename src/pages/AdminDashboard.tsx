@@ -29,6 +29,7 @@ import { getAllVendorsForAdmin, updateVendor, deleteVendor, getAllPendingChanges
 import ConfirmationModal from "@/components/ConfirmationModal";
 import SuccessModal from "@/components/SuccessModal";
 import InputModal from "@/components/InputModal";
+import BulkUploadModal from "@/components/BulkUploadModal";
 
 interface DashboardStats {
   totalVendors: number;
@@ -93,6 +94,8 @@ const AdminDashboard = () => {
     onConfirm: () => {}
   });
 
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+
   // Demon-themed admin names and greetings
   const demonNames = [
     "Muzan Kibutsuji", 
@@ -156,6 +159,15 @@ const AdminDashboard = () => {
       console.error("Error fetching vendors:", error);
       setLoading(false);
     }
+  };
+
+  const handleBulkUploadSuccess = () => {
+    fetchVendors(); // Refresh the vendor list
+    setSuccessModal({
+      isOpen: true,
+      title: "Bulk Upload Successful",
+      message: "Vendors have been created successfully. You can now view them in the vendor list."
+    });
   };
 
   const fetchPendingChanges = async () => {
@@ -622,6 +634,13 @@ const AdminDashboard = () => {
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Summon Vendor
+              </button>
+              <button
+                onClick={() => setShowBulkUploadModal(true)}
+                className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white px-8 py-3 rounded-2xl flex items-center shadow-lg hover:shadow-orange-500/25 hover:scale-105 transition-all duration-300 font-semibold"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Bulk Upload
               </button>
               <button
                 onClick={handleLogout}
@@ -1434,6 +1453,12 @@ const AdminDashboard = () => {
         title={inputModal.title}
         message={inputModal.message}
         placeholder={inputModal.placeholder}
+      />
+
+      <BulkUploadModal
+        isOpen={showBulkUploadModal}
+        onClose={() => setShowBulkUploadModal(false)}
+        onSuccess={handleBulkUploadSuccess}
       />
     </div>
   );

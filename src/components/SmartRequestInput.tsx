@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2 } from 'lucide-react';
+import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2, Languages, Clock, Users, DollarSign } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -26,10 +26,60 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTimeout, setRecordingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<'en-IN' | 'te-IN' | 'auto'>('auto');
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [extractedDetails, setExtractedDetails] = useState<any>(null);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+
+  // Process transcript to improve accuracy and handle mixed languages
+  const processTranscript = (transcript: string): string => {
+    let processed = transcript.toLowerCase().trim();
+    
+    // Common Telugu to English mappings for better understanding
+    const teluguMappings: { [key: string]: string } = {
+      'kavali': 'need',
+      'kavali': 'want',
+      'pelli': 'wedding',
+      'pelli ki': 'for wedding',
+      'budget lo': 'within budget',
+      'discount ivvara': 'can you give discount',
+      'discount kavali': 'need discount',
+      'family kosam': 'for family',
+      'sister ki': 'for sister',
+      'brother ki': 'for brother',
+      'birthday ki': 'for birthday',
+      'reception ki': 'for reception',
+      'makeup artist': 'makeup artist',
+      'photographer': 'photographer',
+      'decorator': 'decorator',
+      'catering': 'catering',
+      'dj': 'dj',
+      'music': 'music',
+      'venue': 'venue',
+      'hall': 'hall',
+      'hours': 'hours',
+      'hours ki': 'for hours',
+      'guests': 'guests',
+      'people': 'people'
+    };
+
+    // Replace Telugu phrases with English equivalents
+    Object.entries(teluguMappings).forEach(([telugu, english]) => {
+      const regex = new RegExp(telugu, 'gi');
+      processed = processed.replace(regex, english);
+    });
+
+    // Clean up common speech recognition errors
+    processed = processed
+      .replace(/\b(um|uh|ah|er)\b/g, '') // Remove filler words
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    return processed;
+  };
 
   // Initialize speech recognition
   useEffect(() => {
@@ -39,8 +89,8 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       
       recognitionInstance.continuous = true;
       recognitionInstance.interimResults = true;
-      recognitionInstance.lang = 'en-IN';
-      recognitionInstance.maxAlternatives = 1;
+      recognitionInstance.lang = selectedLanguage === 'auto' ? 'en-IN' : selectedLanguage;
+      recognitionInstance.maxAlternatives = 3; // Get multiple alternatives for better accuracy
 
       recognitionInstance.onstart = () => {
         setIsListening(true);
@@ -52,19 +102,23 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
         let interimTranscript = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript;
+          const result = event.results[i];
+          if (result.isFinal) {
+            // Use the best alternative or combine multiple alternatives
+            const bestTranscript = result[0].transcript;
+            finalTranscript += bestTranscript;
           } else {
-            interimTranscript += transcript;
+            interimTranscript += result[0].transcript;
           }
         }
 
         setTranscript(finalTranscript + interimTranscript);
         
         if (finalTranscript) {
-          setText(finalTranscript);
-          handleTextChange(finalTranscript);
+          // Process the transcript for better accuracy
+          const processedText = processTranscript(finalTranscript);
+          setText(processedText);
+          handleTextChange(processedText);
         }
       };
 
@@ -128,8 +182,39 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
           if (validation.isValid) {
             setParsedRequest(parsed);
             onRequestParsed(parsed);
+            
+            // Show confirmation UI for voice input
+            if (isRecording || transcript) {
+              setExtractedDetails({
+                eventType: parsed.eventType,
+                services: parsed.serviceTypes,
+                budget: parsed.budgetRange,
+                location: parsed.location,
+                duration: parsed.duration,
+                guestCount: parsed.guestCount,
+                additionalRequirements: parsed.additionalRequirements,
+                originalText: newText
+              });
+              setShowConfirmation(true);
+            }
           } else {
             setParsedRequest(null);
+            // Show partial results for voice input even if incomplete
+            if (isRecording || transcript) {
+              setExtractedDetails({
+                eventType: parsed.eventType || 'Not specified',
+                services: parsed.serviceTypes || [],
+                budget: parsed.budgetRange || null,
+                location: parsed.location || 'Not specified',
+                duration: parsed.duration || 'Not specified',
+                guestCount: parsed.guestCount || 'Not specified',
+                additionalRequirements: parsed.additionalRequirements || [],
+                originalText: newText,
+                isIncomplete: true,
+                errors: validation.errors
+              });
+              setShowConfirmation(true);
+            }
           }
         } catch (error) {
           console.error('Error parsing request:', error);
@@ -156,6 +241,8 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       setIsRecording(true);
       setIsListening(true);
       setTranscript('');
+      setShowConfirmation(false);
+      setExtractedDetails(null);
       recognition.start();
       
       // Set a timeout to stop recording after 30 seconds
@@ -194,6 +281,29 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   const handleSubmit = () => {
     if (parsedRequest) {
       onRequestSubmit(parsedRequest);
+    }
+  };
+
+  const handleConfirmDetails = () => {
+    if (extractedDetails && parsedRequest) {
+      setShowConfirmation(false);
+      onRequestSubmit(parsedRequest);
+    }
+  };
+
+  const handleEditDetails = () => {
+    setShowConfirmation(false);
+    setIsEditing(true);
+  };
+
+  const handleReRecord = () => {
+    setShowConfirmation(false);
+    setText('');
+    setTranscript('');
+    setExtractedDetails(null);
+    setParsedRequest(null);
+    if (recognition) {
+      startRecording();
     }
   };
 
@@ -243,8 +353,34 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
           <p className="text-orange-600">
             Describe your event requirements naturally. We'll understand and find the perfect vendors for you.
           </p>
+          
+          {/* Language Selection */}
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-2">
+              <Languages className="h-4 w-4 text-orange-600" />
+              <span className="text-sm font-medium text-orange-700">Voice Language:</span>
+            </div>
+            <div className="flex gap-2">
+              {[
+                { value: 'auto', label: 'Auto Detect', flag: '🌐' },
+                { value: 'en-IN', label: 'English', flag: '🇮🇳' },
+                { value: 'te-IN', label: 'Telugu', flag: '🇮🇳' }
+              ].map((lang) => (
+                <Button
+                  key={lang.value}
+                  variant={selectedLanguage === lang.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedLanguage(lang.value as any)}
+                  className={`text-xs ${selectedLanguage === lang.value ? 'bg-orange-500 text-white' : 'border-orange-300 text-orange-700 hover:bg-orange-50'}`}
+                >
+                  {lang.flag} {lang.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {isRecording && (
-            <div className="flex items-center gap-2 text-red-600 font-medium">
+            <div className="flex items-center gap-2 text-red-600 font-medium mt-2">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <span>Listening... Click the microphone to stop</span>
             </div>
@@ -447,6 +583,146 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                 )}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Voice Confirmation Modal */}
+      {showConfirmation && extractedDetails && (
+        <Card className="border-2 border-blue-200 shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardTitle className="text-xl font-bold text-blue-800 flex items-center gap-2">
+              <Check className="h-5 w-5" />
+              Please confirm your request details
+            </CardTitle>
+            <p className="text-blue-600 text-sm">
+              We've extracted the following information from your voice input. Please review and confirm.
+            </p>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {/* Original Text */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-600 mb-1">Original voice input:</p>
+                <p className="text-gray-800 italic">"{extractedDetails.originalText}"</p>
+              </div>
+
+              {/* Extracted Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <span className="font-medium text-gray-700">Event Type:</span>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                      {extractedDetails.eventType}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-purple-600" />
+                    <span className="font-medium text-gray-700">Services:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {extractedDetails.services.map((service: string, index: number) => (
+                        <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
+                          {service}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-green-600" />
+                    <span className="font-medium text-gray-700">Budget:</span>
+                    {extractedDetails.budget ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-800">
+                        ₹{extractedDetails.budget.min.toLocaleString()} - ₹{extractedDetails.budget.max.toLocaleString()}
+                      </Badge>
+                    ) : (
+                      <span className="text-gray-500 text-sm">Not specified</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-indigo-600" />
+                    <span className="font-medium text-gray-700">Duration:</span>
+                    <span className="text-sm text-gray-600">{extractedDetails.duration}</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-purple-600" />
+                    <span className="font-medium text-gray-700">Location:</span>
+                    <Badge variant="outline" className="bg-green-100 text-green-800">
+                      {extractedDetails.location}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-purple-600" />
+                    <span className="font-medium text-gray-700">Guest Count:</span>
+                    <span className="text-sm text-gray-600">{extractedDetails.guestCount}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Requirements */}
+              {extractedDetails.additionalRequirements && extractedDetails.additionalRequirements.length > 0 && (
+                <div>
+                  <span className="font-medium text-gray-700">Additional Requirements:</span>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {extractedDetails.additionalRequirements.map((req: string, index: number) => (
+                      <Badge key={index} variant="outline" className="bg-gray-100 text-gray-800 text-xs">
+                        {req}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Errors for incomplete requests */}
+              {extractedDetails.isIncomplete && extractedDetails.errors && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-yellow-800 font-medium text-sm mb-2">Some information is missing:</p>
+                  <ul className="text-yellow-700 text-sm space-y-1">
+                    {extractedDetails.errors.map((error: string, index: number) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <X className="h-3 w-3" />
+                        {error}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  onClick={handleConfirmDetails}
+                  className="bg-green-500 hover:bg-green-600 text-white flex-1"
+                  disabled={!parsedRequest}
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Confirm & Find Vendors
+                </Button>
+                <Button
+                  onClick={handleEditDetails}
+                  variant="outline"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Edit Details
+                </Button>
+                <Button
+                  onClick={handleReRecord}
+                  variant="outline"
+                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                  <Mic className="h-4 w-4 mr-2" />
+                  Re-record
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

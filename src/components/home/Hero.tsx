@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Camera, Building2, MapPin, Users, LogIn, Shield } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle, Calendar, Sparkles } from 'lucide-react';
 import VendorLogin from '../VendorLogin';
 import {
   Carousel,
@@ -19,17 +19,29 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
-// Vendor types for dropdown
-const vendorTypes = [
-  { value: 'all', label: 'All Categories' },
-  { value: 'photography', label: 'Photographers' },
-  { value: 'venues', label: 'Venues' },
-  { value: 'catering', label: 'Catering' },
-  { value: 'decor', label: 'Decor & Design' },
-  { value: 'attire', label: 'Attire & Accessories' },
-  { value: 'makeup', label: 'Makeup & Hair' },
-  { value: 'music', label: 'Music & Entertainment' },
-  { value: 'guest', label: 'Guest Tracker' },
+// Event types for dropdown
+const eventTypes = [
+  { value: 'all', label: 'All Events' },
+  { value: 'wedding', label: 'Wedding' },
+  { value: 'birthday', label: 'Birthday Party' },
+  { value: 'corporate', label: 'Corporate Event' },
+  { value: 'baby-shower', label: 'Baby Shower' },
+  { value: 'anniversary', label: 'Anniversary' },
+  { value: 'festival', label: 'Festival Celebration' },
+  { value: 'graduation', label: 'Graduation' },
+];
+
+// Service types for dropdown
+const serviceTypes = [
+  { value: 'all', label: 'All Services' },
+  { value: 'photography', label: 'Photographer' },
+  { value: 'makeup', label: 'Makeup Artist' },
+  { value: 'decor', label: 'Decorator' },
+  { value: 'catering', label: 'Caterer' },
+  { value: 'venues', label: 'Venue' },
+  { value: 'music', label: 'DJ/Music' },
+  { value: 'attire', label: 'Clothing Designer' },
+  { value: 'planning', label: 'Event Planner' },
 ];
 
 // Cities for dropdown
@@ -68,8 +80,10 @@ const heroBackgrounds = [
 ];
 
 const Hero = () => {
-  const [vendorType, setVendorType] = useState('all');
+  const [eventType, setEventType] = useState('all');
+  const [serviceType, setServiceType] = useState('all');
   const [city, setCity] = useState('all');
+  const [eventDate, setEventDate] = useState('');
   const [activeBackground, setActiveBackground] = useState(0);
   const [showVendorLogin, setShowVendorLogin] = useState(false);
   const navigate = useNavigate();
@@ -84,9 +98,15 @@ const Hero = () => {
   }, []);
 
   const handleSearch = () => {
-    console.log('Searching for:', { vendorType, city });
-    // Navigate to search results page (redirects to home for now)
-    navigate('/vendors');
+    console.log('Searching for:', { eventType, serviceType, city, eventDate });
+    // Navigate to vendors page with search parameters
+    const params = new URLSearchParams();
+    if (eventType !== 'all') params.append('event', eventType);
+    if (serviceType !== 'all') params.append('service', serviceType);
+    if (city !== 'all') params.append('location', city);
+    if (eventDate) params.append('date', eventDate);
+    
+    navigate(`/vendors?${params.toString()}`);
   };
 
   return (
@@ -119,21 +139,22 @@ const Hero = () => {
           </div>
           
           {/* Search section positioned centrally below heading */}
-          <div className="w-full max-w-3xl animate-fade-up" style={{ animationDelay: '200ms' }}>
-            <div className="bg-white/90 backdrop-blur-md p-5 md:p-7 rounded-2xl shadow-lg">
-              <div className="flex flex-col md:flex-row md:items-end md:space-x-5 space-y-5 md:space-y-0">
-                {/* Vendor type dropdown with placeholder */}
+          <div className="w-full max-w-4xl animate-fade-up" style={{ animationDelay: '200ms' }}>
+            <div className="bg-white/95 backdrop-blur-md p-6 md:p-8 rounded-3xl shadow-xl border border-white/20">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {/* Event Type */}
                 <div className="flex-1">
-                  <label htmlFor="vendor-type" className="block text-wedding-navy text-sm font-medium mb-2.5 text-left">
-                    What are you looking for?
+                  <label htmlFor="event-type" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-orange-500" />
+                    What's your event?
                   </label>
-                  <Select value={vendorType} onValueChange={setVendorType}>
-                    <SelectTrigger id="vendor-type" className="w-full h-12 border border-gray-200 bg-white/80 text-wedding-navy/80 hover:bg-white transition-colors duration-200">
-                      <SelectValue placeholder="Select vendor category" />
+                  <Select value={eventType} onValueChange={setEventType}>
+                    <SelectTrigger id="event-type" className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl">
+                      <SelectValue placeholder="Select event type" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border border-gray-200">
-                      {vendorTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
+                    <SelectContent className="bg-white border-2 border-gray-200 rounded-xl">
+                      {eventTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="rounded-lg">
                           {type.label}
                         </SelectItem>
                       ))}
@@ -141,18 +162,39 @@ const Hero = () => {
                   </Select>
                 </div>
                 
-                {/* City dropdown with placeholder */}
+                {/* Service Type */}
                 <div className="flex-1">
-                  <label htmlFor="city" className="block text-wedding-navy text-sm font-medium mb-2.5 text-left">
+                  <label htmlFor="service-type" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
+                    <Camera className="h-4 w-4 text-orange-500" />
+                    What do you need?
+                  </label>
+                  <Select value={serviceType} onValueChange={setServiceType}>
+                    <SelectTrigger id="service-type" className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl">
+                      <SelectValue placeholder="Select service" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-2 border-gray-200 rounded-xl">
+                      {serviceTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value} className="rounded-lg">
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Location */}
+                <div className="flex-1">
+                  <label htmlFor="city" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-orange-500" />
                     Where?
                   </label>
                   <Select value={city} onValueChange={setCity}>
-                    <SelectTrigger id="city" className="w-full h-12 border border-gray-200 bg-white/80 text-wedding-navy/80 hover:bg-white transition-colors duration-200">
-                      <SelectValue placeholder="Choose a location" />
+                    <SelectTrigger id="city" className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl">
+                      <SelectValue placeholder="Choose location" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border border-gray-200">
+                    <SelectContent className="bg-white border-2 border-gray-200 rounded-xl">
                       {cities.map((city) => (
-                        <SelectItem key={city.value} value={city.value}>
+                        <SelectItem key={city.value} value={city.value} className="rounded-lg">
                           {city.label}
                         </SelectItem>
                       ))}
@@ -160,29 +202,49 @@ const Hero = () => {
                   </Select>
                 </div>
                 
-                {/* Enhanced CTA button with hover effects */}
+                {/* Event Date */}
+                <div className="flex-1">
+                  <label htmlFor="event-date" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-orange-500" />
+                    When? (Optional)
+                  </label>
+                  <input
+                    id="event-date"
+                    type="date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl px-3 focus:outline-none focus:border-orange-500"
+                    placeholder="Select date"
+                  />
+                </div>
+              </div>
+              
+              {/* CTA Button */}
+              <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
                 <Button
                   onClick={handleSearch}
-                  className="bg-wedding-orange hover:bg-wedding-orange-hover text-white py-4 px-8 rounded-lg transition-all duration-300 text-lg font-semibold h-14 mt-2 md:mt-0 shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-                  aria-label="Search for wedding vendors"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white py-4 px-8 rounded-xl transition-all duration-300 text-lg font-bold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+                  aria-label="Find vendors for your event"
                 >
-                  Get Started
+                  <Users className="h-5 w-5" />
+                  Find My Vendors
                 </Button>
+                
+                {/* Smart Request Secondary CTA */}
+                <div className="text-center sm:text-left">
+                  <p className="text-gray-600 text-sm mb-2">Don't want to search?</p>
+                  <Link
+                    to="/smart-request"
+                    className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold text-sm transition-colors duration-200"
+                  >
+                    <Mic className="h-4 w-4" />
+                    <MessageCircle className="h-3 w-3" />
+                    Try Smart Request → Tell us what you need
+                  </Link>
+                </div>
               </div>
             </div>
 
-            {/* Vendor Login Section */}
-            <div className="mt-8 text-center">
-              <p className="text-white/80 mb-4">Are you a vendor?</p>
-              <Button
-                onClick={() => setShowVendorLogin(true)}
-                variant="outline"
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20 backdrop-blur-sm"
-              >
-                <LogIn className="w-4 h-4 mr-2" />
-                Vendor Login
-              </Button>
-            </div>
           </div>
         </div>
 

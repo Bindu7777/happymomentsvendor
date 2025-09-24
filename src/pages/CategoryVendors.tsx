@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, User, Calendar, Shield, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -17,11 +17,20 @@ const CategoryVendors = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [locationFilter, setLocationFilter] = useState('all');
   const [priceFilter, setPriceFilter] = useState('all');
+  const [genderPreference, setGenderPreference] = useState('all');
+  const [serviceDuration, setServiceDuration] = useState('all');
+  const [eventType, setEventType] = useState('all');
+  const [ratingFilter, setRatingFilter] = useState('all');
+  const [availabilityFilter, setAvailabilityFilter] = useState('all');
+  const [negotiableFilter, setNegotiableFilter] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [comparisonVendors, setComparisonVendors] = useState<Vendor[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Fetch vendors from Supabase
   useEffect(() => {
@@ -87,7 +96,25 @@ const CategoryVendors = () => {
           (priceFilter === 'premium' && vendor.starting_price > 45000)
         ));
       
-      return matchesSearch && matchesLocation && matchesPrice;
+      const matchesGender = genderPreference === 'all' || 
+                           (genderPreference === 'male' && vendor.spoc_name && vendor.spoc_name.toLowerCase().includes('male')) ||
+                           (genderPreference === 'female' && vendor.spoc_name && vendor.spoc_name.toLowerCase().includes('female'));
+      
+      const matchesRating = ratingFilter === 'all' || (() => {
+        const rating = vendor.rating || 0;
+        switch (ratingFilter) {
+          case '4+': return rating >= 4;
+          case '3+': return rating >= 3;
+          case '2+': return rating >= 2;
+          default: return true;
+        }
+      })();
+      
+      const matchesAvailability = availabilityFilter === 'all' || 
+                                 (availabilityFilter === 'available' && vendor.currently_available) ||
+                                 (availabilityFilter === 'busy' && !vendor.currently_available);
+      
+      return matchesSearch && matchesLocation && matchesPrice && matchesGender && matchesRating && matchesAvailability;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -115,6 +142,40 @@ const CategoryVendors = () => {
         ? prev.filter(id => id !== vendorId)
         : [...prev, vendorId]
     );
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setLocationFilter('all');
+    setPriceFilter('all');
+    setGenderPreference('all');
+    setServiceDuration('all');
+    setEventType('all');
+    setRatingFilter('all');
+    setAvailabilityFilter('all');
+    setNegotiableFilter('all');
+    setSortBy('rating');
+  };
+
+  // Comparison functions
+  const addToComparison = (vendor: Vendor) => {
+    if (comparisonVendors.length >= 3) {
+      alert('You can compare maximum 3 vendors at a time');
+      return;
+    }
+    if (!comparisonVendors.find(v => v.vendor_id === vendor.vendor_id)) {
+      setComparisonVendors([...comparisonVendors, vendor]);
+    }
+  };
+
+  const removeFromComparison = (vendorId: number) => {
+    setComparisonVendors(comparisonVendors.filter(v => v.vendor_id !== vendorId));
+  };
+
+  const clearComparison = () => {
+    setComparisonVendors([]);
+    setShowComparison(false);
   };
 
   // Navigate to individual vendor profile
@@ -258,6 +319,110 @@ const CategoryVendors = () => {
         }}></div>
       </div>
 
+      {/* Advanced Filters Section */}
+      <div className="container mx-auto px-4 py-4 -mt-2">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-orange-200 p-4 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <SlidersHorizontal className="w-5 h-5 text-orange-500" />
+              Advanced Filters
+            </h3>
+            <Button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              variant="outline"
+              size="sm"
+              className="border-orange-200 text-orange-600 hover:bg-orange-50 flex items-center gap-2"
+            >
+              <span>{showAdvancedFilters ? 'Hide' : 'Show'} Options</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+            </Button>
+          </div>
+          
+          {showAdvancedFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Gender Preference */}
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                <Select value={genderPreference} onValueChange={setGenderPreference}>
+                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
+                    <SelectValue placeholder="Gender Preference" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Gender</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Service Duration */}
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                <Select value={serviceDuration} onValueChange={setServiceDuration}>
+                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
+                    <SelectValue placeholder="Duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Duration</SelectItem>
+                    <SelectItem value="half-day">Half Day (4-6 hrs)</SelectItem>
+                    <SelectItem value="full-day">Full Day (8+ hrs)</SelectItem>
+                    <SelectItem value="multi-day">Multi Day</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Event Type */}
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                <Select value={eventType} onValueChange={setEventType}>
+                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
+                    <SelectValue placeholder="Event Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Event</SelectItem>
+                    <SelectItem value="wedding">Wedding</SelectItem>
+                    <SelectItem value="birthday">Birthday</SelectItem>
+                    <SelectItem value="corporate">Corporate</SelectItem>
+                    <SelectItem value="festival">Festival</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Rating Filter */}
+              <div className="relative">
+                <Star className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
+                    <SelectValue placeholder="Rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Rating</SelectItem>
+                    <SelectItem value="4+">4+ Stars</SelectItem>
+                    <SelectItem value="3+">3+ Stars</SelectItem>
+                    <SelectItem value="2+">2+ Stars</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Availability */}
+              <div className="relative">
+                <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
+                <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
+                    <SelectValue placeholder="Availability" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Status</SelectItem>
+                    <SelectItem value="available">Available Now</SelectItem>
+                    <SelectItem value="busy">Currently Busy</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Compact Results Summary */}
       <div className="container mx-auto px-4 py-4 -mt-2">
         <div className="flex items-center justify-between mb-4">
@@ -276,10 +441,35 @@ const CategoryVendors = () => {
               </div>
             </div>
           </div>
+
+          {/* Comparison Controls */}
+          <div className="flex items-center gap-3">
+            {comparisonVendors.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">
+                  {comparisonVendors.length} selected for comparison
+                </span>
+                <Button
+                  onClick={() => setShowComparison(true)}
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                >
+                  Compare Now
+                </Button>
+                <Button
+                  onClick={clearComparison}
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-500 hover:text-red-600"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+          </div>
           
           {/* Active Filters Display */}
           <div className="flex items-center gap-2">
-            {(searchQuery || locationFilter !== 'all' || priceFilter !== 'all') && (
+            {(searchQuery || locationFilter !== 'all' || priceFilter !== 'all' || genderPreference !== 'all' || ratingFilter !== 'all' || availabilityFilter !== 'all') && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Filters:</span>
                 {searchQuery && (
@@ -297,15 +487,25 @@ const CategoryVendors = () => {
                     💰 {priceFilter}
                   </Badge>
                 )}
+                {genderPreference !== 'all' && (
+                  <Badge variant="secondary" className="text-xs">
+                    👤 {genderPreference}
+                  </Badge>
+                )}
+                {ratingFilter !== 'all' && (
+                  <Badge variant="secondary" className="text-xs">
+                    ⭐ {ratingFilter}
+                  </Badge>
+                )}
+                {availabilityFilter !== 'all' && (
+                  <Badge variant="secondary" className="text-xs">
+                    🟢 {availabilityFilter}
+                  </Badge>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setLocationFilter('all');
-                    setPriceFilter('all');
-                    setSortBy('rating');
-                  }}
+                  onClick={clearAllFilters}
                   className="text-xs text-gray-500 hover:text-gray-700 p-1"
                 >
                   Clear all
@@ -497,6 +697,24 @@ const CategoryVendors = () => {
                             View Profile
                           </Button>
                         </div>
+                        <Button
+                          variant="outline"
+                          className={`w-full py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                            comparisonVendors.find(v => v.vendor_id === vendor.vendor_id)
+                              ? 'bg-orange-100 border-orange-300 text-orange-700'
+                              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (comparisonVendors.find(v => v.vendor_id === vendor.vendor_id)) {
+                              removeFromComparison(vendor.vendor_id);
+                            } else {
+                              addToComparison(vendor);
+                            }
+                          }}
+                        >
+                          {comparisonVendors.find(v => v.vendor_id === vendor.vendor_id) ? 'Remove from Compare' : 'Add to Compare'}
+                        </Button>
                         
                         {/* Project Count & Quick Info */}
                         <div className="flex items-center justify-between text-xs text-gray-500">
@@ -530,6 +748,117 @@ const CategoryVendors = () => {
           </>
         )}
       </div>
+
+      {/* Comparison Modal */}
+      {showComparison && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-800">Compare Vendors</h2>
+              <Button
+                onClick={() => setShowComparison(false)}
+                variant="ghost"
+                size="sm"
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {comparisonVendors.map((vendor) => (
+                  <div key={vendor.vendor_id} className="border border-gray-200 rounded-xl p-4">
+                    <div className="text-center mb-4">
+                      <img
+                        src={vendor.avatar_url || vendor.cover_image_url || "/images/vendor-placeholder.jpg"}
+                        alt={vendor.brand_name}
+                        className="w-16 h-16 rounded-full mx-auto mb-3 object-cover"
+                      />
+                      <h3 className="text-lg font-bold text-gray-800">{vendor.brand_name}</h3>
+                      <p className="text-sm text-gray-600">{vendor.category}</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Rating:</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 text-amber-400 fill-current" />
+                          <span className="font-semibold">{vendor.rating?.toFixed(1) || 'New'}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Price:</span>
+                        <span className="font-semibold text-orange-600">
+                          {vendor.starting_price ? `₹${vendor.starting_price.toLocaleString()}` : 'Contact for pricing'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Experience:</span>
+                        <span className="font-medium">{vendor.experience || 'Not specified'}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Location:</span>
+                        <span className="font-medium">{vendor.location || 'Not specified'}</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Availability:</span>
+                        <span className={`font-medium ${vendor.currently_available ? 'text-green-600' : 'text-red-600'}`}>
+                          {vendor.currently_available ? 'Available' : 'Busy'}
+                        </span>
+                      </div>
+                      
+                      {vendor.languages_spoken && vendor.languages_spoken.length > 0 && (
+                        <div>
+                          <span className="text-sm text-gray-600">Languages:</span>
+                          <p className="text-sm font-medium mt-1">{vendor.languages_spoken.join(', ')}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-4 space-y-2">
+                      <Button
+                        onClick={() => handleCardClick(vendor.vendor_id)}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2 text-sm font-semibold rounded-lg"
+                      >
+                        View Full Profile
+                      </Button>
+                      <Button
+                        onClick={() => openWhatsApp(vendor)}
+                        variant="outline"
+                        className="w-full border-green-500 text-green-600 hover:bg-green-50 py-2 text-sm font-semibold rounded-lg"
+                      >
+                        <MessageCircle className="w-4 h-4 mr-1" />
+                        WhatsApp
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between p-6 border-t border-gray-200">
+              <Button
+                onClick={clearComparison}
+                variant="outline"
+                className="text-gray-600 hover:text-gray-800"
+              >
+                Clear All
+              </Button>
+              <Button
+                onClick={() => setShowComparison(false)}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom CTA Section */}
       <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white py-12 mt-16">

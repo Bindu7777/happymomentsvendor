@@ -3,7 +3,9 @@ import { useEffect } from 'react';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
 import Hero from '../components/home/Hero';
+import SmartRequestSection from '../components/home/SmartRequestSection';
 import CategorySection from '../components/home/CategorySection';
+import TrendingSection from '../components/home/TrendingSection';
 import VendorSection from '../components/home/VendorSection';
 import TestimonialSection from '../components/home/TestimonialSection';
 import { Link } from 'react-router-dom';
@@ -28,7 +30,9 @@ const Index = () => {
       
       <main className="flex-grow">
         <Hero />
+        <SmartRequestSection />
         <CategorySection />
+        <TrendingSection />
         <VendorSection />
         <TestimonialSection />
         

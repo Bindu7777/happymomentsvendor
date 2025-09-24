@@ -25,6 +25,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [recordingTimeout, setRecordingTimeout] = useState<NodeJS.Timeout | null>(null);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -36,9 +37,10 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
       const recognitionInstance = new SpeechRecognition();
       
-      recognitionInstance.continuous = false;
+      recognitionInstance.continuous = true;
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'en-IN';
+      recognitionInstance.maxAlternatives = 1;
 
       recognitionInstance.onstart = () => {
         setIsListening(true);
@@ -67,19 +69,49 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       };
 
       recognitionInstance.onend = () => {
+        console.log('Speech recognition ended');
         setIsListening(false);
-        setIsRecording(false);
+        // Don't automatically set isRecording to false for continuous mode
+        // Let the user manually stop recording
       };
 
       recognitionInstance.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         setIsRecording(false);
+        
+        // Handle specific errors
+        if (event.error === 'no-speech') {
+          console.log('No speech detected, continuing to listen...');
+          // Restart recognition for continuous mode
+          if (isRecording) {
+            setTimeout(() => {
+              try {
+                recognitionInstance.start();
+              } catch (e) {
+                console.error('Error restarting recognition:', e);
+              }
+            }, 100);
+          }
+        } else if (event.error === 'audio-capture') {
+          alert('Microphone not accessible. Please check your microphone permissions.');
+        } else if (event.error === 'not-allowed') {
+          alert('Microphone access denied. Please allow microphone access and try again.');
+        }
       };
 
       setRecognition(recognitionInstance);
     }
   }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingTimeout) {
+        clearTimeout(recordingTimeout);
+      }
+    };
+  }, [recordingTimeout]);
 
   const handleTextChange = (newText: string) => {
     setText(newText);
@@ -120,15 +152,43 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       return;
     }
 
-    setIsRecording(true);
-    recognition.start();
+    try {
+      setIsRecording(true);
+      setIsListening(true);
+      setTranscript('');
+      recognition.start();
+      
+      // Set a timeout to stop recording after 30 seconds
+      const timeout = setTimeout(() => {
+        console.log('Recording timeout reached, stopping...');
+        stopRecording();
+      }, 30000); // 30 seconds
+      
+      setRecordingTimeout(timeout);
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      setIsRecording(false);
+      setIsListening(false);
+    }
   };
 
   const stopRecording = () => {
-    if (recognition) {
-      recognition.stop();
+    if (recognition && isListening) {
+      try {
+        recognition.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
     }
+    
+    // Clear the timeout
+    if (recordingTimeout) {
+      clearTimeout(recordingTimeout);
+      setRecordingTimeout(null);
+    }
+    
     setIsRecording(false);
+    setIsListening(false);
   };
 
   const handleSubmit = () => {
@@ -183,6 +243,12 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
           <p className="text-orange-600">
             Describe your event requirements naturally. We'll understand and find the perfect vendors for you.
           </p>
+          {isRecording && (
+            <div className="flex items-center gap-2 text-red-600 font-medium">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span>Listening... Click the microphone to stop</span>
+            </div>
+          )}
         </CardHeader>
         <CardContent className="p-6">
           <div className="space-y-4">
@@ -206,7 +272,8 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                     size="sm"
                     onClick={startRecording}
                     disabled={isLoading}
-                    className="bg-white hover:bg-gray-50"
+                    className="bg-white hover:bg-gray-50 border-orange-300 hover:border-orange-400"
+                    title="Start voice recording"
                   >
                     <Mic className="h-4 w-4" />
                   </Button>
@@ -216,7 +283,8 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                     variant="destructive"
                     size="sm"
                     onClick={stopRecording}
-                    className="animate-pulse"
+                    className="animate-pulse bg-red-500 hover:bg-red-600"
+                    title="Stop voice recording"
                   >
                     <MicOff className="h-4 w-4" />
                   </Button>

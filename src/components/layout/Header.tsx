@@ -8,7 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout } from "@/services/supabaseService";
@@ -21,6 +22,8 @@ const Header = () => {
   const [vendorLoginLoading, setVendorLoginLoading] = useState(false);
   const [vendorLoginError, setVendorLoginError] = useState('');
   const [loggedInVendor, setLoggedInVendor] = useState(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginType, setLoginType] = useState<'customer' | 'vendor'>('customer');
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
@@ -135,9 +138,11 @@ const Header = () => {
           <nav className="hidden md:flex items-center space-x-8">
             <Link
               to="/smart-request"
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl"
+              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
             >
-              🎯 Smart Request
+              <Mic className="h-5 w-5" />
+              <MessageCircle className="h-4 w-4" />
+              Smart Request
             </Link>
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
@@ -179,156 +184,25 @@ const Header = () => {
 
             <Link
               to="/vendors"
-              className="text-white hover:text-wedding-orange transition-custom"
+              className="text-white hover:text-wedding-orange transition-custom font-medium"
             >
               All Vendors
-            </Link>
-            <Link
-              to="/guestTracker"
-              className="text-white hover:text-wedding-orange transition-custom"
-            >
-              Guests Tracker
-            </Link>
-            <Link
-              to="/login"
-              className="text-white hover:text-wedding-orange transition-custom"
-            >
-              Login
             </Link>
           </nav>
         </div>
 
         {/* Auth buttons - kept on right */}
         <div className="hidden md:flex items-center space-x-4">
-          {/* Vendor Login/Dashboard */}
-          {loggedInVendor ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
-                <User className="w-4 h-4 mr-2" />
-                {loggedInVendor.brand_name}
-                <ChevronDown className="ml-1 h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-56 animate-fade-in">
-                <DropdownMenuItem 
-                  className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2"
-                  onClick={() => navigate('/vendor-dashboard')}
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Dashboard
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="hover:bg-red-50 rounded-lg transition-custom cursor-pointer px-3 py-2 text-red-600"
-                  onClick={handleVendorLogout}
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
-                <User className="w-4 h-4 mr-2" />
-                Vendor Login
-                <ChevronDown className="ml-1 h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-4 rounded-xl w-80 animate-fade-in">
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <h3 className="font-semibold text-gray-800">Vendor Login</h3>
-                    <p className="text-sm text-gray-600">Access your vendor dashboard</p>
-                  </div>
-                  
-                  {vendorLoginError && (
-                    <div className="flex items-center gap-2 p-2 text-red-700 bg-red-50 border border-red-200 rounded-lg">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span className="text-sm">{vendorLoginError}</span>
-                    </div>
-                  )}
-                  
-                  <form onSubmit={handleVendorLogin} className="space-y-3">
-                    <div>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                          type="text"
-                          value={vendorUsername}
-                          onChange={(e) => setVendorUsername(e.target.value)}
-                          placeholder="Username"
-                          className="pl-10 h-9"
-                          disabled={vendorLoginLoading}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                          type="password"
-                          value={vendorPassword}
-                          onChange={(e) => setVendorPassword(e.target.value)}
-                          placeholder="Password"
-                          className="pl-10 h-9"
-                          disabled={vendorLoginLoading}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white h-9"
-                      disabled={vendorLoginLoading}
-                    >
-                      {vendorLoginLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Logging in...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <LogIn className="w-4 h-4" />
-                          Login
-                        </div>
-                      )}
-                    </Button>
-                  </form>
-
-                  <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs text-blue-800 font-medium mb-1">Demo:</p>
-                    <div className="text-xs text-blue-700">
-                      <div><strong>User:</strong> HMP002</div>
-                      <div><strong>Pass:</strong> HMP002@777</div>
-                    </div>
-                  </div>
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
 
           {user == null && (
             <Button
-              onClick={() => {
-                navigate("/login");
-              }}
+              onClick={() => setShowLoginModal(true)}
               className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-6 py-2 rounded-lg font-semibold"
             >
               Sign In
             </Button>
           )}
         </div>
-        {user && (
-          <div className="hidden md:flex items-center space-x-4">
-            <Button
-              onClick={() => navigate("/addVendor")}
-              className="bg-wedding-orange hover:bg-wedding-orange-hover text-white"
-            >
-              Add Vendor
-            </Button>
-          </div>
-        )}
         {/* Mobile menu button */}
         <button
           onClick={toggleMobileMenu}
@@ -353,10 +227,12 @@ const Header = () => {
             <div className="flex flex-col space-y-2">
               <Link
                 to="/smart-request"
-                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-3 rounded-lg font-semibold text-center transition-all duration-300 shadow-lg hover:shadow-xl"
+                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-3 rounded-lg font-bold text-center transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                🎯 Smart Request
+                <Mic className="h-5 w-5" />
+                <MessageCircle className="h-4 w-4" />
+                Smart Request
               </Link>
               <div className="py-2">
                 <div className="font-medium mb-2 text-white">Categories</div>
@@ -403,7 +279,7 @@ const Header = () => {
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
               <Button
                 onClick={() => {
-                  navigate("/login");
+                  setShowLoginModal(true);
                   setMobileMenuOpen(false);
                 }}
                 className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-6 py-3 rounded-lg font-semibold text-center"
@@ -414,6 +290,116 @@ const Header = () => {
           </div>
         </div>
       )}
+
+      {/* Login Modal */}
+      <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-gray-800">
+              Welcome to Happy Moments
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Login Type Toggle */}
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setLoginType('customer')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  loginType === 'customer'
+                    ? 'bg-white text-orange-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Login as Customer
+              </button>
+              <button
+                onClick={() => setLoginType('vendor')}
+                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all ${
+                  loginType === 'vendor'
+                    ? 'bg-white text-orange-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Login as Vendor
+              </button>
+            </div>
+
+            {/* Customer Login */}
+            {loginType === 'customer' && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Customer Login</h3>
+                  <p className="text-sm text-gray-600">Access your account to manage bookings</p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    navigate('/login');
+                  }}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  Continue to Customer Login
+                </Button>
+              </div>
+            )}
+
+            {/* Vendor Login */}
+            {loginType === 'vendor' && (
+              <div className="space-y-4">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Vendor Login</h3>
+                  <p className="text-sm text-gray-600">Access your vendor dashboard</p>
+                </div>
+                
+                {vendorLoginError && (
+                  <div className="flex items-center gap-2 p-2 text-red-700 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-sm">{vendorLoginError}</span>
+                  </div>
+                )}
+                
+                <form onSubmit={handleVendorLogin} className="space-y-3">
+                  <div>
+                    <Input
+                      type="text"
+                      placeholder="Vendor Username"
+                      value={vendorUsername}
+                      onChange={(e) => setVendorUsername(e.target.value)}
+                      required
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      value={vendorPassword}
+                      onChange={(e) => setVendorPassword(e.target.value)}
+                      required
+                      className="w-full"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={vendorLoginLoading}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    {vendorLoginLoading ? 'Signing In...' : 'Sign In as Vendor'}
+                  </Button>
+                </form>
+                
+                <div className="text-center">
+                  <p className="text-xs text-blue-800 font-medium mb-1">Demo Credentials:</p>
+                  <div className="text-xs text-blue-700">
+                    <div><strong>User:</strong> HMP002</div>
+                    <div><strong>Pass:</strong> HMP002@777</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };

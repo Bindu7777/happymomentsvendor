@@ -46,6 +46,8 @@ export interface Vendor {
   review_count?: number
   verified?: boolean
   currently_available?: boolean
+  starting_price?: number
+  languages_spoken?: string[]
   
   // Media URLs
   avatar_url?: string

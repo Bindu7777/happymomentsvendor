@@ -214,6 +214,35 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
   }
 };
 
+// Get vendor counts by category for homepage
+export const getVendorCounts = async (): Promise<Record<string, number>> => {
+  try {
+    const { data, error } = await supabase
+      .from('vendors')
+      .select('category')
+      .eq('verified', true)
+      .eq('currently_available', true);
+
+    if (error) {
+      console.error('Error fetching vendor counts:', error);
+      return {};
+    }
+
+    // Count vendors by category
+    const counts: Record<string, number> = {};
+    data.forEach(vendor => {
+      if (vendor.category) {
+        counts[vendor.category] = (counts[vendor.category] || 0) + 1;
+      }
+    });
+
+    return counts;
+  } catch (error) {
+    console.error('Error fetching vendor counts:', error);
+    return {};
+  }
+};
+
 // Get vendor media
 export const getVendorMedia = async (vendorId: string, category?: string): Promise<VendorMedia[]> => {
   try {

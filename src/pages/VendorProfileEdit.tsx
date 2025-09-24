@@ -36,6 +36,8 @@ type VendorEditForm = {
   caption?: string;
   detailed_intro?: string;
   highlight_features?: string[];
+  starting_price?: number;
+  languages_spoken?: string[];
   
   // JSON Fields
   services?: Array<{
@@ -317,6 +319,8 @@ const VendorProfileEdit: React.FC = () => {
       quick_intro: vendorData.quick_intro || '',
       caption: vendorData.caption || '',
       detailed_intro: vendorData.detailed_intro || '',
+      starting_price: vendorData.starting_price || 0,
+      languages_spoken: vendorData.languages_spoken || [],
       currently_available: vendorData.currently_available || false,
       
       // Array fields
@@ -1668,6 +1672,38 @@ const VendorProfileEdit: React.FC = () => {
                     {...register("experience")}
                     placeholder="e.g., 5+ Years"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Starting Price (₹)
+                  </label>
+                  <Input
+                    {...register("starting_price", { valueAsNumber: true })}
+                    type="number"
+                    placeholder="e.g., 35000"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Languages Spoken
+                  </label>
+                  <Input
+                    {...register("languages_spoken")}
+                    placeholder="e.g., English, Hindi, Telugu (comma separated)"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const languages = value.split(',').map(lang => lang.trim()).filter(lang => lang);
+                      setValue('languages_spoken', languages);
+                    }}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Enter languages separated by commas
+                  </p>
                 </div>
 
                 <div className="flex items-center">

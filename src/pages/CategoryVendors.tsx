@@ -80,7 +80,12 @@ const CategoryVendors = () => {
       const matchesLocation = locationFilter === 'all' || 
                              (vendor.address && vendor.address.toLowerCase().includes(locationFilter.toLowerCase()));
       
-      const matchesPrice = priceFilter === 'all' || true; // We'll implement this based on packages
+      const matchesPrice = priceFilter === 'all' || 
+        (vendor.starting_price && (
+          (priceFilter === 'budget' && vendor.starting_price < 35000) ||
+          (priceFilter === 'mid' && vendor.starting_price >= 35000 && vendor.starting_price <= 45000) ||
+          (priceFilter === 'premium' && vendor.starting_price > 45000)
+        ));
       
       return matchesSearch && matchesLocation && matchesPrice;
     })
@@ -89,21 +94,9 @@ const CategoryVendors = () => {
         case 'rating':
           return (b.rating || 0) - (a.rating || 0);
         case 'price-low':
-          const aPrice = a.packages && Array.isArray(a.packages) && a.packages.length > 0 
-            ? parseInt((a.packages[0].price || '0').replace(/[^\d]/g, '')) 
-            : 0;
-          const bPrice = b.packages && Array.isArray(b.packages) && b.packages.length > 0 
-            ? parseInt((b.packages[0].price || '0').replace(/[^\d]/g, '')) 
-            : 0;
-          return aPrice - bPrice;
+          return (a.starting_price || 0) - (b.starting_price || 0);
         case 'price-high':
-          const aPriceHigh = a.packages && Array.isArray(a.packages) && a.packages.length > 0 
-            ? parseInt((a.packages[0].price || '0').replace(/[^\d]/g, '')) 
-            : 0;
-          const bPriceHigh = b.packages && Array.isArray(b.packages) && b.packages.length > 0 
-            ? parseInt((b.packages[0].price || '0').replace(/[^\d]/g, '')) 
-            : 0;
-          return bPriceHigh - aPriceHigh;
+          return (b.starting_price || 0) - (a.starting_price || 0);
         case 'experience':
           const aExp = parseInt((a.experience || '0').replace(/[^\d]/g, ''));
           const bExp = parseInt((b.experience || '0').replace(/[^\d]/g, ''));
@@ -452,7 +445,12 @@ const CategoryVendors = () => {
                         </div>
                         <div className="flex items-center gap-2 text-gray-600">
                           <Users className="w-4 h-4" />
-                          <span className="text-xs">Languages: {vendor.languages_spoken || 'Not specified'}</span>
+                          <span className="text-xs">
+                            Languages: {vendor.languages_spoken && Array.isArray(vendor.languages_spoken) 
+                              ? vendor.languages_spoken.join(', ')
+                              : 'Not specified'
+                            }
+                          </span>
                         </div>
                       </div>
 
@@ -470,8 +468,8 @@ const CategoryVendors = () => {
                       {/* Price & Enhanced Response Time */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="text-lg font-bold text-amber-600">
-                          {vendor.packages && Array.isArray(vendor.packages) && vendor.packages.length > 0
-                            ? `From ${vendor.packages[0].price || 'Contact for pricing'}`
+                          {vendor.starting_price 
+                            ? `Starting ₹${vendor.starting_price.toLocaleString()}`
                             : 'Contact for pricing'
                           }
                         </div>

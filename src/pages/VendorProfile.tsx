@@ -1138,7 +1138,12 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       <span className="text-white text-sm font-bold">₹</span>
                     </div>
                     <div className="text-center">
-                      <div className="text-2xl font-black text-blue-800">Starting ₹35,000</div>
+                      <div className="text-2xl font-black text-blue-800">
+                        {vendor.starting_price 
+                          ? `Starting ₹${vendor.starting_price.toLocaleString()}`
+                          : 'Contact for pricing'
+                        }
+                      </div>
                       <div className="text-sm text-blue-600 font-semibold">Premium Wedding Photography</div>
                     </div>
                     <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">

@@ -2,6 +2,8 @@
 import { Link } from 'react-router-dom';
 import { Camera, Building2, Utensils, Flower2, ShoppingBag, Music, Users, Sparkles, Mic, Car, Tent } from 'lucide-react';
 import { CATEGORY_LIST } from '@/constants/categories';
+import { useState, useEffect } from 'react';
+import { getVendorCounts } from '@/services/supabaseService';
 
 // Icon mapping for categories
 const categoryIcons = {
@@ -18,17 +20,38 @@ const categoryIcons = {
   'Tent & Equipment Rentals': Tent
 };
 
-// Generate categories from constants with icons and styling
-const categories = CATEGORY_LIST.map((category, index) => ({
-  id: parseInt(category.code),
-  title: category.name,
-  icon: categoryIcons[category.name as keyof typeof categoryIcons] || Users,
-  color: 'bg-wedding-orange-light',
-  iconColor: 'text-wedding-orange',
-  count: 0 // Will be populated dynamically in the future
-}));
-
 const CategorySection = () => {
+  const [vendorCounts, setVendorCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+
+  // Generate categories from constants with icons and styling
+  const categories = CATEGORY_LIST.map((category, index) => ({
+    id: parseInt(category.code),
+    title: category.name,
+    icon: categoryIcons[category.name as keyof typeof categoryIcons] || Users,
+    color: 'bg-wedding-orange-light',
+    iconColor: 'text-wedding-orange',
+    count: vendorCounts[category.name] || 0
+  }));
+
+  // Fetch vendor counts for each category
+  useEffect(() => {
+    const fetchVendorCounts = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching vendor counts...');
+        const counts = await getVendorCounts();
+        console.log('Vendor counts by category:', counts);
+        setVendorCounts(counts);
+      } catch (error) {
+        console.error('Error fetching vendor counts:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVendorCounts();
+  }, []);
   const planPulseTools = [
     { title: 'Guest Tracking', icon: '👥', link: 'https://www.happymomentsindia.com/guestTracker' },
     { title: 'Designs & Themes', icon: '🎨', link: 'https://www.happymomentsindia.com/designs-themes' },
@@ -62,7 +85,9 @@ const CategorySection = () => {
                 <category.icon className={`h-7 w-7 ${category.iconColor}`} />
               </div>
               <h3 className="mb-1 font-semibold text-wedding-navy group-hover:text-wedding-orange transition-custom">{category.title}</h3>
-              <p className="text-sm text-wedding-gray">{category.count} vendors</p>
+              <p className="text-sm text-wedding-gray">
+                {loading ? 'Loading...' : `${category.count} vendors`}
+              </p>
 
               {/* Background hover effect */}
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-wedding-orange/0 to-wedding-orange/0 opacity-0 group-hover:opacity-5 transition-all duration-300"></div>

@@ -11,6 +11,19 @@ const VendorSection = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Indian event images for highlights
+  const indianEventImages = [
+    "/videos/abhilash/GardenParty.jpg",
+    "/videos/abhilash/GetToGether.jpg", 
+    "/images/image1.jpeg",
+    "/images/image2.jpeg",
+    // Additional Indian event images (using placeholder URLs for now)
+    "https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=300&fit=crop&crop=center",
+    "https://images.unsplash.com/photo-1519167758481-83f1426e4a3e?w=400&h=300&fit=crop&crop=center",
+    "https://images.unsplash.com/photo-1606800052052-a08af7148866?w=400&h=300&fit=crop&crop=center",
+    "https://images.unsplash.com/photo-1581833971358-2c8b550f87b3?w=400&h=300&fit=crop&crop=center"
+  ];
+
   useEffect(() => {
     const fetchVendors = async () => {
       try {
@@ -41,10 +54,10 @@ const VendorSection = () => {
       <div className="container-custom">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-wedding-navy mb-4">
-            Highlights
+            🎊 Event Highlights
           </h2>
           <p className="text-wedding-gray max-w-2xl mx-auto">
-            We celebrate your event.
+            Discover amazing Indian celebrations and find your perfect vendors.
           </p>
         </div>
 
@@ -53,7 +66,9 @@ const VendorSection = () => {
             // Loading skeleton
             Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="bg-white rounded-xl shadow-subtle overflow-hidden animate-pulse">
-                <div className="h-56 bg-gray-200"></div>
+                <div className="h-56 bg-gradient-to-br from-orange-100 to-amber-100 flex items-center justify-center">
+                  <div className="text-orange-400 text-4xl">🎉</div>
+                </div>
                 <div className="p-5">
                   <div className="h-4 bg-gray-200 rounded mb-2"></div>
                   <div className="h-3 bg-gray-200 rounded mb-4"></div>
@@ -74,10 +89,19 @@ const VendorSection = () => {
             >
               <div className="relative h-56 overflow-hidden">
                 <img
-                  src={vendor.avatar_url || "/images/vendor-placeholder.jpg"}
-                  alt={vendor.brand_name}
+                  src={indianEventImages[index % indianEventImages.length]}
+                  alt={`Indian event showcase for ${vendor.brand_name}`}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/images/image1.jpeg"; // Fallback to local image
+                  }}
                 />
+                {/* Indian event overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+                <div className="absolute top-2 left-2 text-white text-xs font-semibold bg-orange-500/80 px-2 py-1 rounded-full">
+                  {index === 0 ? "🎊 Wedding" : index === 1 ? "🎉 Party" : index === 2 ? "💃 Celebration" : "🌟 Event"}
+                </div>
                 <button
                   onClick={() => toggleFavorite(Number(vendor.vendor_id))}
                   className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white"

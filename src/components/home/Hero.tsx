@@ -138,9 +138,129 @@ const Hero = () => {
             </p>
           </div>
           
-          {/* Search section positioned centrally below heading */}
-          <div className="w-full max-w-4xl animate-fade-up" style={{ animationDelay: '200ms' }}>
-            <div className="bg-white/95 backdrop-blur-md p-6 md:p-8 rounded-3xl shadow-xl border border-white/20">
+          {/* Smart Search - Central Focus */}
+          <div className="w-full max-w-5xl animate-fade-up" style={{ animationDelay: '200ms' }}>
+            {/* Smart Search Panel */}
+            <div className="bg-gradient-to-br from-white/95 to-orange-50/95 backdrop-blur-xl p-8 md:p-10 rounded-3xl shadow-2xl border-2 border-orange-200/50 relative overflow-hidden">
+              {/* Decorative Elements */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200/20 to-amber-200/20 rounded-full -translate-y-16 translate-x-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-amber-200/20 to-orange-200/20 rounded-full translate-y-12 -translate-x-12"></div>
+              
+              <div className="relative z-10">
+                {/* Smart Search Header */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white px-6 py-3 rounded-full text-lg font-bold mb-4 shadow-lg">
+                    <Mic className="h-6 w-6 animate-pulse" />
+                    <MessageCircle className="h-5 w-5" />
+                    <span>Smart Search</span>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
+                    Tell us what you need - we'll find it!
+                  </h2>
+                  <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Describe your event naturally using voice or text. Our AI will understand and match you with perfect vendors instantly.
+                  </p>
+                </div>
+
+                {/* Smart Search Options */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  {/* Voice Input */}
+                  <div className="text-center p-6 bg-white/80 rounded-2xl border border-orange-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <Mic className="h-8 w-8 text-white animate-pulse" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">Voice Input</h3>
+                    <p className="text-sm text-gray-600 mb-4">Speak naturally and let our AI understand your exact needs</p>
+                    <Link
+                      to="/smart-request"
+                      className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                    >
+                      <Mic className="h-4 w-4" />
+                      Start Speaking
+                    </Link>
+                  </div>
+
+                  {/* Text Input */}
+                  <div className="text-center p-6 bg-white/80 rounded-2xl border border-orange-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <MessageCircle className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">Text Input</h3>
+                    <p className="text-sm text-gray-600 mb-4">Type your requirements in plain English, just like chatting</p>
+                    <Link
+                      to="/smart-request"
+                      className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      Start Typing
+                    </Link>
+                  </div>
+
+                  {/* Smart Matching */}
+                  <div className="text-center p-6 bg-white/80 rounded-2xl border border-orange-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
+                    <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                      <Sparkles className="h-8 w-8 text-white" />
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-2">Smart Matching</h3>
+                    <p className="text-sm text-gray-600 mb-4">Get perfect vendor matches based on your specific requirements</p>
+                    <Link
+                      to="/smart-request"
+                      className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Get Matches
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Example Queries */}
+                <div className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl border border-orange-200/50 mb-8">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">Try these examples:</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
+                      <p className="text-sm text-gray-700 font-medium">
+                        "Wedding photographer in Mumbai, budget 50k, traditional style"
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
+                      <p className="text-sm text-gray-700 font-medium">
+                        "Birthday party decorator for 50 guests, Delhi, next month"
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
+                      <p className="text-sm text-gray-700 font-medium">
+                        "Corporate event caterer, vegetarian, 200 people, Bangalore"
+                      </p>
+                    </div>
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
+                      <p className="text-sm text-gray-700 font-medium">
+                        "Mehendi artist for wedding, traditional designs, Hyderabad"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main CTA Button */}
+                <div className="text-center">
+                  <Link
+                    to="/smart-request"
+                    className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-4 rounded-xl text-xl font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                  >
+                    <Mic className="h-6 w-6" />
+                    <MessageCircle className="h-5 w-5" />
+                    Make a Smart Request
+                    <Sparkles className="h-5 w-5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Traditional Search - Secondary */}
+            <div className="mt-8 bg-white/90 backdrop-blur-md p-6 rounded-2xl shadow-lg border border-white/20">
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">Or search the traditional way</h3>
+                <p className="text-gray-600">Use our filters to browse vendors by category and location</p>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {/* Event Type */}
                 <div className="flex-1">
@@ -219,29 +339,16 @@ const Hero = () => {
                 </div>
               </div>
               
-              {/* CTA Button */}
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+              {/* Traditional Search CTA */}
+              <div className="text-center">
                 <Button
                   onClick={handleSearch}
-                  className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white py-4 px-8 rounded-xl transition-all duration-300 text-lg font-bold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+                  className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-3 px-8 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto"
                   aria-label="Find vendors for your event"
                 >
                   <Users className="h-5 w-5" />
-                  Find My Vendors
+                  Browse Vendors
                 </Button>
-                
-                {/* Smart Request Secondary CTA */}
-                <div className="text-center sm:text-left">
-                  <p className="text-gray-600 text-sm mb-2">Don't want to search?</p>
-                  <Link
-                    to="/smart-request"
-                    className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-semibold text-sm transition-colors duration-200"
-                  >
-                    <Mic className="h-4 w-4" />
-                    <MessageCircle className="h-3 w-3" />
-                    Try Smart Request → Tell us what you need
-                  </Link>
-                </div>
               </div>
             </div>
 

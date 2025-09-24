@@ -19,15 +19,16 @@ import {
   Zap,
   Sparkles,
   Sword,
-  Flower2,
   Crown,
-  Rainbow,
-  Sun,
-  RefreshCw
+  RefreshCw,
+  Archive
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Vendor } from "@/lib/supabase";
 import { getAllVendorsForAdmin, updateVendor, deleteVendor, getAllPendingChanges, reviewVendorProfileChange } from "@/services/supabaseService";
+import ConfirmationModal from "@/components/ConfirmationModal";
+import SuccessModal from "@/components/SuccessModal";
+import InputModal from "@/components/InputModal";
 
 interface DashboardStats {
   totalVendors: number;
@@ -51,13 +52,46 @@ const AdminDashboard = () => {
   const [currentGreeting, setCurrentGreeting] = useState("");
   const [demonControlLevel, setDemonControlLevel] = useState(0);
   const [adminName, setAdminName] = useState("");
-  const [countUpValues, setCountUpValues] = useState({
-    totalVendors: 0,
-    verifiedVendors: 0,
-    activeVendors: 0,
-    featuredVendors: 0
-  });
   const navigate = useNavigate();
+
+  // Modal states
+  const [confirmationModal, setConfirmationModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'warning' | 'danger' | 'success' | 'info';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: () => {}
+  });
+
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: ''
+  });
+
+  const [inputModal, setInputModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    placeholder: string;
+    onConfirm: (input: string) => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    placeholder: '',
+    onConfirm: () => {}
+  });
 
   // Demon-themed admin names and greetings
   const demonNames = [
@@ -109,57 +143,14 @@ const AdminDashboard = () => {
     filterVendors();
   }, [vendors, searchTerm, filterStatus, filterCategory]);
 
-  // Count-up animation effect
-  useEffect(() => {
-    const stats = {
-      totalVendors: vendors.length,
-      verifiedVendors: vendors.filter(v => v.verified).length,
-      activeVendors: vendors.filter(v => v.currently_available).length,
-      featuredVendors: vendors.filter(v => v.verified && v.currently_available).length,
-    };
-
-    const animateCountUp = () => {
-      const duration = 1000; // 1 second
-      const steps = 60;
-      const stepDuration = duration / steps;
-      
-      Object.keys(stats).forEach(key => {
-        const targetValue = stats[key as keyof typeof stats];
-        const startValue = countUpValues[key as keyof typeof countUpValues];
-        const increment = (targetValue - startValue) / steps;
-        
-        let currentStep = 0;
-        const timer = setInterval(() => {
-          currentStep++;
-          const newValue = Math.round(startValue + (increment * currentStep));
-          
-          setCountUpValues(prev => ({
-            ...prev,
-            [key]: newValue
-          }));
-          
-          if (currentStep >= steps) {
-            clearInterval(timer);
-            setCountUpValues(prev => ({
-              ...prev,
-              [key]: targetValue
-            }));
-          }
-        }, stepDuration);
-      });
-    };
-
-    if (vendors.length > 0) {
-      animateCountUp();
-    }
-  }, [vendors.length]);
 
   const fetchVendors = async () => {
     try {
       const vendorData = await getAllVendorsForAdmin();
       console.log('Fetched vendors for admin:', vendorData);
+      console.log('Sample vendor data:', vendorData[0]);
       setVendors(vendorData);
-      setFilteredVendors(vendorData);
+      // Don't set filteredVendors here - let the useEffect handle it
       setLoading(false);
     } catch (error) {
       console.error("Error fetching vendors:", error);
@@ -177,13 +168,30 @@ const AdminDashboard = () => {
   };
 
   const filterVendors = () => {
+    if (!vendors || vendors.length === 0) {
+      setFilteredVendors([]);
+      return;
+    }
+    
     let filtered = vendors;
 
-    // Search filter
+    // Search filter - search by vendor ID, brand name, or contact person name
     if (searchTerm) {
-      filtered = filtered.filter(vendor =>
-        vendor.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vendor.category.toLowerCase().includes(searchTerm.toLowerCase())
+      const searchLower = searchTerm.toLowerCase();
+      
+      filtered = filtered.filter(vendor => 
+        // Search by vendor ID (exact match or partial)
+        vendor.vendor_id.toString().includes(searchTerm) ||
+        // Search by brand name
+        vendor.brand_name.toLowerCase().includes(searchLower) ||
+        // Search by contact person name (spoc_name)
+        (vendor.spoc_name && vendor.spoc_name.toLowerCase().includes(searchLower)) ||
+        // Search by category
+        vendor.category.toLowerCase().includes(searchLower) ||
+        // Search by email
+        (vendor.email && vendor.email.toLowerCase().includes(searchLower)) ||
+        // Search by phone number
+        (vendor.phone_number && vendor.phone_number.includes(searchTerm))
       );
     }
 
@@ -199,6 +207,8 @@ const AdminDashboard = () => {
             return vendor.currently_available;
           case "inactive":
             return !vendor.currently_available;
+          case "archived":
+            return !vendor.currently_available; // Archived vendors are inactive
           default:
             return true;
         }
@@ -262,15 +272,62 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteVendor = async (vendorId: string, vendorName: string) => {
-    if (window.confirm(`Are you sure you want to delete ${vendorName}?`)) {
-      try {
-        await deleteVendor(vendorId);
-        await fetchVendors();
-      } catch (error) {
-        console.error("Error deleting vendor:", error);
+  const handleDeleteVendor = (vendorId: string, vendorName: string) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Delete Vendor',
+      message: `Are you sure you want to permanently delete ${vendorName}? This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteVendor(vendorId);
+          await fetchVendors();
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setSuccessModal({
+            isOpen: true,
+            title: 'Vendor Deleted',
+            message: `${vendorName} has been deleted successfully!`
+          });
+        } catch (error) {
+          console.error("Error deleting vendor:", error);
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setSuccessModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error deleting vendor. Please try again.'
+          });
+        }
       }
-    }
+    });
+  };
+
+  const handleArchiveVendor = (vendorId: string, vendorName: string) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Archive Vendor',
+      message: `Are you sure you want to archive ${vendorName}? This will make their profile inactive and they won't be visible to customers.`,
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          await updateVendor(vendorId, { currently_available: false });
+          await fetchVendors();
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setSuccessModal({
+            isOpen: true,
+            title: 'Vendor Archived',
+            message: `${vendorName} has been archived successfully!`
+          });
+        } catch (error) {
+          console.error("Error archiving vendor:", error);
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setSuccessModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error archiving vendor. Please try again.'
+          });
+        }
+      }
+    });
   };
 
   const handleLogout = () => {
@@ -279,58 +336,96 @@ const AdminDashboard = () => {
     navigate("/admin/login");
   };
 
-  const handleApproveChange = async (changeId: number, vendorId: number, proposedChanges: any) => {
-    setReviewingChange(changeId);
-    try {
-      // Approve the change and update vendor profile
-      const result = await reviewVendorProfileChange(
-        changeId, 
-        'approved', 
-        'admin', // adminUsername
-        'Changes approved by admin' // adminComments
-      );
-      
-      if (result.success) {
-        // Refresh both vendors and pending changes
-        await fetchVendors();
-        await fetchPendingChanges();
-        
-        alert('Changes approved and vendor profile updated successfully!');
-      } else {
-        alert('Failed to approve changes: ' + (result.message || 'Unknown error'));
+  const handleApproveChange = (changeId: number, vendorId: number, proposedChanges: any) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Approve Changes',
+      message: 'Are you sure you want to approve these vendor profile changes? This will update the vendor\'s profile with the proposed changes.',
+      type: 'success',
+      onConfirm: async () => {
+        setReviewingChange(changeId);
+        try {
+          const result = await reviewVendorProfileChange(
+            changeId, 
+            'approved', 
+            'admin',
+            'Changes approved by admin'
+          );
+          
+          if (result.success) {
+            await fetchVendors();
+            await fetchPendingChanges();
+            setConfirmationModal({ ...confirmationModal, isOpen: false });
+            setSuccessModal({
+              isOpen: true,
+              title: 'Changes Approved',
+              message: 'Vendor profile changes have been approved successfully!'
+            });
+          } else {
+            setConfirmationModal({ ...confirmationModal, isOpen: false });
+            setSuccessModal({
+              isOpen: true,
+              title: 'Error',
+              message: 'Failed to approve changes: ' + (result.message || 'Unknown error')
+            });
+          }
+        } catch (error) {
+          console.error('Error approving change:', error);
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setSuccessModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error approving changes. Please try again.'
+          });
+        } finally {
+          setReviewingChange(null);
+        }
       }
-    } catch (error) {
-      console.error('Error approving change:', error);
-      alert('Error approving changes. Please try again.');
-    } finally {
-      setReviewingChange(null);
-    }
+    });
   };
 
-  const handleRejectChange = async (changeId: number) => {
-    const reason = prompt('Please provide a reason for rejection (optional):');
-    
-    setReviewingChange(changeId);
-    try {
-      const result = await reviewVendorProfileChange(
-        changeId, 
-        'rejected', 
-        'admin', // adminUsername
-        reason || 'Changes rejected by admin' // adminComments
-      );
-      
-      if (result.success) {
-        await fetchPendingChanges();
-        alert('Changes rejected successfully.');
-      } else {
-        alert('Failed to reject changes: ' + (result.message || 'Unknown error'));
+  const handleRejectChange = (changeId: number) => {
+    setInputModal({
+      isOpen: true,
+      title: 'Reject Changes',
+      message: 'Please provide a reason for rejecting these vendor profile changes (optional):',
+      placeholder: 'Enter rejection reason...',
+      onConfirm: async (reason: string) => {
+        setReviewingChange(changeId);
+        try {
+          const result = await reviewVendorProfileChange(
+            changeId, 
+            'rejected', 
+            'admin',
+            reason || 'Changes rejected by admin'
+          );
+          
+          if (result.success) {
+            await fetchPendingChanges();
+            setSuccessModal({
+              isOpen: true,
+              title: 'Changes Rejected',
+              message: 'Vendor profile changes have been rejected successfully!'
+            });
+          } else {
+            setSuccessModal({
+              isOpen: true,
+              title: 'Error',
+              message: 'Failed to reject changes: ' + (result.message || 'Unknown error')
+            });
+          }
+        } catch (error) {
+          console.error('Error rejecting change:', error);
+          setSuccessModal({
+            isOpen: true,
+            title: 'Error',
+            message: 'Error rejecting changes. Please try again.'
+          });
+        } finally {
+          setReviewingChange(null);
+        }
       }
-    } catch (error) {
-      console.error('Error rejecting change:', error);
-      alert('Error rejecting changes. Please try again.');
-    } finally {
-      setReviewingChange(null);
-    }
+    });
   };
 
   const stats: DashboardStats = {
@@ -583,104 +678,6 @@ const AdminDashboard = () => {
         {/* Main Content Area */}
         <div className="flex-1 overflow-auto relative z-10">
           <div className="max-w-none px-3 sm:px-4 lg:px-6 py-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="group bg-white/70 backdrop-blur-xl border border-white/30 overflow-hidden shadow-xl rounded-2xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 hover:border-blue-200/50">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-shrink-0">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg group-hover:shadow-blue-500/25 transition-all duration-300">
-                    <Flower2 className="h-6 w-6 text-white" />
-                </div>
-                </div>
-                <div className="ml-4 w-0 flex-1 text-right">
-                  <dl>
-                    <dt className="text-sm font-semibold text-slate-600 truncate">
-                      Active Vendors Today
-                    </dt>
-                    <dd className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                      {countUpValues.totalVendors}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="group bg-white/70 backdrop-blur-xl border border-white/30 overflow-hidden shadow-xl rounded-2xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 hover:border-green-200/50">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-shrink-0">
-                  <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl shadow-lg group-hover:shadow-green-500/25 transition-all duration-300">
-                    <Sun className="h-6 w-6 text-white" />
-                </div>
-                </div>
-                <div className="ml-4 w-0 flex-1 text-right">
-                  <dl>
-                    <dt className="text-sm font-semibold text-slate-600 truncate">
-                      Verified Vendors
-                    </dt>
-                    <dd className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                      {countUpValues.verifiedVendors}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="group bg-white/70 backdrop-blur-xl border border-white/30 overflow-hidden shadow-xl rounded-2xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 hover:border-purple-200/50">
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-shrink-0">
-                  <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg group-hover:shadow-purple-500/25 transition-all duration-300">
-                    <Rainbow className="h-6 w-6 text-white" />
-                </div>
-                </div>
-                <div className="ml-4 w-0 flex-1 text-right">
-                  <dl>
-                    <dt className="text-sm font-semibold text-slate-600 truncate">
-                      Active Warriors
-                    </dt>
-                    <dd className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                      {countUpValues.activeVendors}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div 
-            className="group bg-white/70 backdrop-blur-xl border border-white/30 overflow-hidden shadow-xl rounded-2xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 hover:border-red-200/50 cursor-pointer"
-            onClick={() => setActiveTab("approvals")}
-          >
-            <div className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex-shrink-0">
-                  <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl shadow-lg group-hover:shadow-red-500/25 transition-all duration-300">
-                    <Heart className="h-6 w-6 text-white" />
-                </div>
-                </div>
-                <div className="ml-4 w-0 flex-1 text-right">
-                  <dl>
-                    <dt className="text-sm font-semibold text-slate-600 truncate">
-                      Events Completed
-                    </dt>
-                    <dd className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent flex items-center justify-end">
-                      {pendingChanges.length}
-                      {pendingChanges.length > 0 && (
-                        <span className="ml-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs px-3 py-1 rounded-full shadow-lg">
-                          Action Required
-                        </span>
-                      )}
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Tab Navigation */}
         <div className="bg-white/70 backdrop-blur-xl border border-white/30 shadow-2xl rounded-2xl mb-8 overflow-hidden">
@@ -726,12 +723,22 @@ const AdminDashboard = () => {
               <Search className="absolute left-3 top-3 h-4 w-4 text-wedding-orange" />
               <input
                 type="text"
-                placeholder="Search vendors..."
+                placeholder="Search by ID, name, contact person, email, or phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-3 bg-white border border-wedding-orange/50 rounded-lg w-full focus:ring-wedding-orange focus:border-wedding-orange text-wedding-navy placeholder-wedding-gray transition-all duration-200"
+                className="pl-10 pr-10 py-3 bg-white border border-wedding-orange/50 rounded-lg w-full focus:ring-wedding-orange focus:border-wedding-orange text-wedding-navy placeholder-wedding-gray transition-all duration-200"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-3 h-4 w-4 text-wedding-orange hover:text-wedding-navy transition-colors duration-200"
+                  title="Clear search"
+                >
+                  <XCircle className="h-4 w-4" />
+                </button>
+              )}
             </div>
+
 
             <select
               value={filterStatus}
@@ -743,6 +750,7 @@ const AdminDashboard = () => {
               <option value="unverified">Unverified Vendors</option>
               <option value="active">Active Vendors</option>
               <option value="inactive">Inactive Vendors</option>
+              <option value="archived">Archived Vendors</option>
             </select>
 
             <select
@@ -877,8 +885,13 @@ const AdminDashboard = () => {
                           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-wedding-orange rounded-full border-2 border-white"></div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-bold text-wedding-navy">
+                          <div className="text-sm font-bold text-wedding-navy flex items-center gap-2">
                             {vendor.brand_name}
+                            {!vendor.currently_available && (
+                              <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full font-medium">
+                                Archived
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-wedding-gray">
                             {vendor.spoc_name} • ID: {vendor.vendor_id}
@@ -927,25 +940,25 @@ const AdminDashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => navigate(`/admin/vendor/${vendor.vendor_id}`)}
+                          onClick={() => window.open(`/vendor/${vendor.vendor_id}`, '_blank')}
                           className="p-2 bg-wedding-navy hover:bg-wedding-navy-hover text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
-                          title="View Vendor Details"
+                          title="View Vendor Profile"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => navigate(`/admin/vendor/${vendor.vendor_id}/edit`)}
+                          onClick={() => navigate('/vendor-profile-edit')}
                           className="p-2 bg-wedding-orange hover:bg-wedding-orange-hover text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
-                          title="Edit Vendor"
+                          title="Edit Vendor Profile"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteVendor(vendor.vendor_id, vendor.brand_name)}
+                          onClick={() => handleArchiveVendor(vendor.vendor_id, vendor.brand_name)}
                           className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
-                          title="Delete Vendor"
+                          title="Archive Vendor"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Archive className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -1396,6 +1409,32 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}
+        onConfirm={confirmationModal.onConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+      />
+
+      <SuccessModal
+        isOpen={successModal.isOpen}
+        onClose={() => setSuccessModal({ ...successModal, isOpen: false })}
+        title={successModal.title}
+        message={successModal.message}
+      />
+
+      <InputModal
+        isOpen={inputModal.isOpen}
+        onClose={() => setInputModal({ ...inputModal, isOpen: false })}
+        onConfirm={inputModal.onConfirm}
+        title={inputModal.title}
+        message={inputModal.message}
+        placeholder={inputModal.placeholder}
+      />
     </div>
   );
 };

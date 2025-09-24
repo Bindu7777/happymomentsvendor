@@ -1030,7 +1030,7 @@ const VendorDashboard: React.FC = () => {
                       </div>
                     </Button>
                     <p className="text-sm text-gray-600 text-center">
-                      Update your shop name, contact details, or services easily.
+                      Update your details here
                     </p>
                   </div>
 

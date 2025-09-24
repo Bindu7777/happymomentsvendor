@@ -974,18 +974,17 @@ const VendorDashboard: React.FC = () => {
         {/* Profile Management Tab */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
-            <Card className="overflow-hidden">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <User className="w-6 h-6 text-[#001B5E]" />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="w-5 h-5 text-[#001B5E]" />
                   My Vendor Profile
                 </CardTitle>
               </CardHeader>
-              
               <CardContent className="space-y-6">
-                {/* Status Banner - Horizontal at top */}
+                {/* Pending Changes Status */}
                 {pendingChanges.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {pendingChanges.map((change) => (
                       <div key={change.id} className="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div className="flex items-center gap-3">
@@ -1003,79 +1002,52 @@ const VendorDashboard: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between p-5 bg-gradient-to-r from-green-50 to-green-100 border border-green-200 rounded-xl">
-                    <div className="flex items-center gap-4">
-                      <CheckCircle className="w-6 h-6 text-green-600" />
+                  <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
                       <div>
-                        <p className="font-semibold text-green-800 text-lg">Your Profile is Up to Date</p>
+                        <p className="font-medium text-green-800">Your Profile is Up to Date</p>
                         <p className="text-sm text-green-700">No pending updates</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <Badge className="bg-green-100 text-green-800 px-3 py-1 text-sm font-medium">
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Active
-                      </Badge>
-                      <p className="text-xs text-green-600 mt-2 font-medium">Visible to Customers</p>
+                      <Badge className="bg-green-100 text-green-800">Active</Badge>
+                      <p className="text-xs text-green-600 mt-1">Visible to Customers</p>
                     </div>
                   </div>
                 )}
 
-                {/* Mini Summary Strip */}
-                {vendor && (
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
-                          <User className="w-6 h-6 text-[#001B5E]" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{vendor.brand_name}</h3>
-                          <p className="text-sm text-gray-600">{vendor.category}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">{vendor.spoc_name}</p>
-                        <p className="text-xs text-gray-500">Contact Person</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons - Vertical Layout */}
-                <div className="space-y-6">
-                  {/* Update My Details Button */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <Button 
                       onClick={handleEditProfile}
-                      className="flex items-center gap-3 h-16 bg-orange-500 hover:bg-orange-600 text-white shadow-lg w-full rounded-xl"
+                      className="flex items-center gap-2 h-20 bg-orange-500 hover:bg-orange-600 text-white shadow-lg w-full"
                     >
                       <Edit className="w-6 h-6" />
-                      <div className="text-left flex-1">
-                        <div className="font-semibold text-lg">Update My Details</div>
+                      <div className="text-left">
+                        <div className="font-medium">Update My Details</div>
                         <div className="text-sm opacity-90">Send for Approval</div>
                       </div>
                     </Button>
-                    <p className="text-sm text-gray-600 text-center px-4">
-                      Make changes to shop name, contact, or services.
+                    <p className="text-sm text-gray-600 text-center">
+                      Update your shop name, contact details, or services easily.
                     </p>
                   </div>
 
-                  {/* Preview Profile Button */}
                   <div className="space-y-3">
                     <Button 
                       onClick={handleViewProfile}
                       variant="outline"
-                      className="flex items-center gap-3 h-16 w-full rounded-xl border-2 border-[#001B5E] hover:bg-[#001B5E] hover:text-white transition-all duration-200"
+                      className="flex items-center gap-2 h-20 w-full"
                     >
                       <Eye className="w-6 h-6" />
-                      <div className="text-left flex-1">
-                        <div className="font-semibold text-lg">See How Customers View You</div>
+                      <div className="text-left">
+                        <div className="font-medium">See How Customers View You</div>
                         <div className="text-sm text-gray-600">Preview Profile (Customer View)</div>
                       </div>
                     </Button>
-                    <p className="text-sm text-gray-600 text-center px-4">
-                      See exactly how your profile appears to customers.
+                    <p className="text-sm text-gray-600 text-center">
+                      Check your public information and make sure everything is correct.
                     </p>
                   </div>
                 </div>

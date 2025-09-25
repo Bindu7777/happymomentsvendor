@@ -340,13 +340,13 @@ const VendorProfileEdit: React.FC = () => {
       additional_info: {
         working_hours: vendorData.additional_info?.working_hours || '',
         languages: Array.isArray(vendorData.additional_info?.languages) 
-          ? vendorData.additional_info.languages 
+          ? vendorData.additional_info.languages.join(', ')
           : (vendorData.additional_info?.languages || ''),
         awards: Array.isArray(vendorData.additional_info?.awards)
-          ? vendorData.additional_info.awards
+          ? vendorData.additional_info.awards.join(', ')
           : (vendorData.additional_info?.awards || ''),
         certifications: Array.isArray(vendorData.additional_info?.certifications)
-          ? vendorData.additional_info.certifications
+          ? vendorData.additional_info.certifications.join(', ')
           : (vendorData.additional_info?.certifications || ''),
         custom_fields: vendorData.additional_info?.custom_fields || []
       }
@@ -1695,7 +1695,7 @@ const VendorProfileEdit: React.FC = () => {
                   <Input
                     {...register("languages_spoken")}
                     placeholder="e.g., English, Hindi, Telugu (comma separated)"
-                    onChange={(e) => {
+                    onBlur={(e) => {
                       const value = e.target.value;
                       const languages = value.split(',').map(lang => lang.trim()).filter(lang => lang);
                       setValue('languages_spoken', languages);
@@ -2341,7 +2341,15 @@ const VendorProfileEdit: React.FC = () => {
                 <Input
                   {...register("additional_info.languages")}
                   placeholder="e.g., English, Hindi, Telugu (comma-separated)"
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    const languages = value.split(',').map(lang => lang.trim()).filter(lang => lang);
+                    setValue('additional_info.languages', languages);
+                  }}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter languages separated by commas
+                </p>
               </div>
 
               <div>
@@ -2351,7 +2359,15 @@ const VendorProfileEdit: React.FC = () => {
                 <Input
                   {...register("additional_info.awards")}
                   placeholder="List any awards received (comma-separated)"
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    const awards = value.split(',').map(award => award.trim()).filter(award => award);
+                    setValue('additional_info.awards', awards);
+                  }}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter awards separated by commas
+                </p>
               </div>
 
               <div>
@@ -2361,7 +2377,15 @@ const VendorProfileEdit: React.FC = () => {
                 <Input
                   {...register("additional_info.certifications")}
                   placeholder="List any certifications (comma-separated)"
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    const certifications = value.split(',').map(cert => cert.trim()).filter(cert => cert);
+                    setValue('additional_info.certifications', certifications);
+                  }}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter certifications separated by commas
+                </p>
               </div>
 
               {/* Custom Fields */}
@@ -2530,6 +2554,8 @@ const VendorProfileEdit: React.FC = () => {
                             return value ? 'Yes' : 'No';
                           } else if (key.includes('_url') && value) {
                             return 'Image updated';
+                          } else if (Array.isArray(value)) {
+                            return value.join(', ');
                           }
                           return String(value);
                         })()}

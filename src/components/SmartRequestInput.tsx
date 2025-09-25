@@ -41,7 +41,6 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
     // Common Telugu to English mappings for better understanding
     const teluguMappings: { [key: string]: string } = {
       'kavali': 'need',
-      'kavali': 'want',
       'pelli': 'wedding',
       'pelli ki': 'for wedding',
       'budget lo': 'within budget',

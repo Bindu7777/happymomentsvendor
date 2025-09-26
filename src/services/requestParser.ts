@@ -181,6 +181,82 @@ const GENDER_PREFERENCES = [
   { keywords: ['female', 'women', 'lady', 'madam', 'female artist'], preference: 'female' as const }
 ];
 
+// Telugu number mappings
+const TELUGU_NUMBERS: { [key: string]: number } = {
+  'oka': 1,
+  'rendu': 2,
+  'moodu': 3,
+  'naalugu': 4,
+  'aidhu': 5,
+  'aaru': 6,
+  'eedhu': 7,
+  'enimidi': 8,
+  'thommidhi': 9,
+  'padi': 10,
+  'padunara': 11,
+  'pannendu': 12,
+  'padhunaalugu': 13,
+  'padhunaidhu': 14,
+  'padhunaaru': 15,
+  'padhunaarudu': 16,
+  'padhunaarudu': 17,
+  'padhunaarudu': 18,
+  'padhunaarudu': 19,
+  'iravai': 20,
+  'iravai oka': 21,
+  'iravai rendu': 22,
+  'iravai moodu': 23,
+  'iravai naalugu': 24,
+  'iravai aidhu': 25,
+  'iravai aaru': 26,
+  'iravai eedhu': 27,
+  'iravai enimidi': 28,
+  'iravai thommidhi': 29,
+  'muppai': 30,
+  'nalabhai': 40,
+  'aidabhai': 50,
+  'aaruvaai': 60,
+  'eedabhai': 70,
+  'enabhai': 80,
+  'thombhai': 90,
+  'vanda': 100,
+  'vanda oka': 101,
+  'vanda rendu': 102,
+  'rendu vanda': 200,
+  'moodu vanda': 300,
+  'naalugu vanda': 400,
+  'aidhu vanda': 500,
+  'aaru vanda': 600,
+  'eedhu vanda': 700,
+  'enimidi vanda': 800,
+  'thommidhi vanda': 900,
+  'vanda vanda': 1000,
+  'rendu vanda vanda': 2000,
+  'moodu vanda vanda': 3000,
+  'naalugu vanda vanda': 4000,
+  'aidhu vanda vanda': 5000,
+  'aaru vanda vanda': 6000,
+  'eedhu vanda vanda': 7000,
+  'enimidi vanda vanda': 8000,
+  'thommidhi vanda vanda': 9000,
+  'padi vanda vanda': 10000,
+  'laksha': 100000,
+  'oka laksha': 100000,
+  'rendu laksha': 200000,
+  'moodu laksha': 300000,
+  'naalugu laksha': 400000,
+  'aidhu laksha': 500000,
+  'aaru laksha': 600000,
+  'eedhu laksha': 700000,
+  'enimidi laksha': 800000,
+  'thommidhi laksha': 900000,
+  'padi laksha': 1000000,
+  'koti': 10000000,
+  'oka koti': 10000000,
+  'rendu koti': 20000000,
+  'moodu koti': 30000000
+};
+
 // Budget range patterns with Telugu and mixed language support
 const BUDGET_PATTERNS = [
   { pattern: /(\d+)\s*k\b/i, multiplier: 1000 },
@@ -212,6 +288,11 @@ const BUDGET_PATTERNS = [
   { pattern: /(\d{1,3}(?:,\d{3})*)\s*(?:budget|budgetw)/i, multiplier: 1 }, // Matches "60000 budget" or "60000 budgetw"
   // Standalone large numbers that are likely budgets
   { pattern: /\b(\d{4,6})\b/g, multiplier: 1 }, // Matches 4-6 digit numbers like 60000
+  // Telugu number patterns
+  { pattern: /oka\s+laksha/i, multiplier: 100000 }, // Matches "oka laksha" = 1 lakh
+  { pattern: /(\d+)\s+laksha/i, multiplier: 100000 }, // Matches "2 laksha" = 2 lakh
+  { pattern: /oka\s+koti/i, multiplier: 10000000 }, // Matches "oka koti" = 1 crore
+  { pattern: /(\d+)\s+koti/i, multiplier: 10000000 }, // Matches "2 koti" = 2 crore
 ];
 
 // Location patterns with Telugu and mixed language support
@@ -333,6 +414,9 @@ export class RequestParser {
     let maxBudget: number | undefined;
     const foundAmounts: number[] = [];
 
+    // First, check for Telugu numbers
+    this.extractTeluguNumbers(foundAmounts);
+
     // Look for budget patterns
     for (const pattern of BUDGET_PATTERNS) {
       // Make sure the pattern is global for matchAll
@@ -427,6 +511,48 @@ export class RequestParser {
       case 'lakh': return 100000;
       case 'crore': return 10000000;
       default: return 1;
+    }
+  }
+
+  private extractTeluguNumbers(foundAmounts: number[]): void {
+    // Check for Telugu number patterns in the text
+    const teluguPatterns = [
+      /oka\s+laksha/i, // "oka laksha" = 1 lakh
+      /(\d+)\s+laksha/i, // "2 laksha" = 2 lakh
+      /oka\s+koti/i, // "oka koti" = 1 crore
+      /(\d+)\s+koti/i, // "2 koti" = 2 crore
+      /(\d+)\s+vanda/i, // "5 vanda" = 500
+      /(\d+)\s+vanda\s+vanda/i, // "5 vanda vanda" = 5000
+    ];
+
+    for (const pattern of teluguPatterns) {
+      const match = this.text.match(pattern);
+      if (match) {
+        if (pattern.source.includes('oka\\s+laksha')) {
+          foundAmounts.push(100000); // 1 lakh
+        } else if (pattern.source.includes('oka\\s+koti')) {
+          foundAmounts.push(10000000); // 1 crore
+        } else if (match[1]) {
+          const number = parseInt(match[1]);
+          if (pattern.source.includes('laksha')) {
+            foundAmounts.push(number * 100000); // lakh
+          } else if (pattern.source.includes('koti')) {
+            foundAmounts.push(number * 10000000); // crore
+          } else if (pattern.source.includes('vanda\\s+vanda')) {
+            foundAmounts.push(number * 1000); // thousands
+          } else if (pattern.source.includes('vanda')) {
+            foundAmounts.push(number * 100); // hundreds
+          }
+        }
+      }
+    }
+
+    // Also check for direct Telugu number mappings
+    for (const [teluguNumber, value] of Object.entries(TELUGU_NUMBERS)) {
+      const regex = new RegExp(`\\b${teluguNumber}\\b`, 'i');
+      if (regex.test(this.text)) {
+        foundAmounts.push(value);
+      }
     }
   }
 
@@ -629,6 +755,17 @@ export const testParser = (text: string): void => {
   console.log('Location:', result.location);
   console.log('Budget Range:', result.budgetRange);
   console.log('Additional Requirements:', result.additionalRequirements);
+  
+  // Test Telugu number extraction specifically
+  if (text.includes('oka laksha')) {
+    console.log('✅ Telugu number "oka laksha" detected and converted to ₹1,00,000');
+  }
+  if (text.includes('rendu laksha')) {
+    console.log('✅ Telugu number "rendu laksha" detected and converted to ₹2,00,000');
+  }
+  if (text.includes('oka koti')) {
+    console.log('✅ Telugu number "oka koti" detected and converted to ₹1,00,00,000');
+  }
 };
 
 export const validateParsedRequest = (request: ParsedRequest): { isValid: boolean; errors: string[] } => {

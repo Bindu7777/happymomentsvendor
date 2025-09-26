@@ -205,6 +205,13 @@ const BUDGET_PATTERNS = [
   { pattern: /(\d{1,3}(?:,\d{3})*)\s*budget\s*lo/i, multiplier: 1 }, // Matches "20,000 budget lo"
   { pattern: /(\d+)\s*(?:k|thousand|thousands?)\s*budget/i, multiplier: 1000 }, // Matches "20k budget"
   { pattern: /(\d+)\s*(?:lakh|lakhs?)\s*budget/i, multiplier: 100000 }, // Matches "1 lakh budget"
+  // Enhanced patterns for better extraction
+  { pattern: /within\s+(\d{1,3}(?:,\d{3})*)\s*budget/i, multiplier: 1 }, // Matches "within 60000 budget"
+  { pattern: /(\d{1,3}(?:,\d{3})*)\s*budget\s*w/i, multiplier: 1 }, // Matches "60000 budgetw" (speech recognition error)
+  { pattern: /budget\s*w\s*(\d{1,3}(?:,\d{3})*)/i, multiplier: 1 }, // Matches "budgetw 60000"
+  { pattern: /(\d{1,3}(?:,\d{3})*)\s*(?:budget|budgetw)/i, multiplier: 1 }, // Matches "60000 budget" or "60000 budgetw"
+  // Standalone large numbers that are likely budgets
+  { pattern: /\b(\d{4,6})\b/g, multiplier: 1 }, // Matches 4-6 digit numbers like 60000
 ];
 
 // Location patterns with Telugu and mixed language support
@@ -219,7 +226,15 @@ const LOCATION_PATTERNS = [
   /([^,]+)\s+lo/i, // "Hyderabad lo" = "in Hyderabad"
   /([^,]+)\s+ki/i, // "Hyderabad ki" = "for Hyderabad"
   /([^,]+)\s+location/i, // "Hyderabad location"
-  /location\s+([^,]+)/i // "location Hyderabad"
+  /location\s+([^,]+)/i, // "location Hyderabad"
+  // Enhanced patterns for better city-state extraction
+  /([a-zA-Z]+)\s+([a-zA-Z]+)\s+lo/i, // "Hyderabad Telangana lo" = "Hyderabad Telangana"
+  /([a-zA-Z]+)\s+([a-zA-Z]+)\s+ki/i, // "Hyderabad Telangana ki" = "Hyderabad Telangana"
+  /([a-zA-Z]+)\s+([a-zA-Z]+)/i, // "Hyderabad Telangana" = "Hyderabad Telangana"
+  // Pattern for "hyderabad telangana lo" specifically
+  /([a-zA-Z]+)\s+([a-zA-Z]+)\s+lo/i, // "hyderabad telangana lo"
+  // Pattern for "hyderabad telangana ki" specifically  
+  /([a-zA-Z]+)\s+([a-zA-Z]+)\s+ki/i // "hyderabad telangana ki"
 ];
 
 // Date patterns
@@ -419,15 +434,31 @@ export class RequestParser {
     for (const pattern of LOCATION_PATTERNS) {
       const match = this.text.match(pattern);
       if (match) {
-        const location = match[1].trim();
+        let location = '';
+        
+        // Handle patterns that capture city-state combinations
+        if (match[2]) {
+          // Pattern like "Hyderabad Telangana lo" - capture both city and state
+          location = `${match[1].trim()} ${match[2].trim()}`;
+        } else {
+          // Single capture group patterns
+          location = match[1].trim();
+        }
+        
         // Clean up location - remove common words that might be captured
         const cleanLocation = location
-          .replace(/\b(budget|kavali|ki|lo|for|in|at|near)\b/gi, '')
+          .replace(/\b(budget|kavali|ki|lo|for|in|at|near|need|manchi|aravai|velu|within)\b/gi, '')
           .replace(/\s+/g, ' ')
           .trim();
         
         if (cleanLocation && cleanLocation.length > 1) {
-          this.parsedRequest.location = cleanLocation;
+          // Capitalize first letter of each word for better display
+          const capitalizedLocation = cleanLocation
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+          
+          this.parsedRequest.location = capitalizedLocation;
           return;
         }
       }
@@ -584,6 +615,20 @@ export class RequestParser {
 export const parseRequest = (text: string): ParsedRequest => {
   const parser = new RequestParser(text);
   return parser.parse();
+};
+
+// Test function for debugging - can be removed in production
+export const testParser = (text: string): void => {
+  console.log('Testing parser with text:', text);
+  const result = parseRequest(text);
+  console.log('Parsed result:', result);
+  
+  // Test specific extraction
+  console.log('Service Types:', result.serviceTypes);
+  console.log('Event Type:', result.eventType);
+  console.log('Location:', result.location);
+  console.log('Budget Range:', result.budgetRange);
+  console.log('Additional Requirements:', result.additionalRequirements);
 };
 
 export const validateParsedRequest = (request: ParsedRequest): { isValid: boolean; errors: string[] } => {

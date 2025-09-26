@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { ArrowLeft, Save, AlertCircle, CheckCircle, Trash2, X, FileText, Plus, Star } from 'lucide-react';
-import { getVendorByFieldId, updateVendor, getVendorMedia, updateVendorCatalogImages, toggleImageHighlight, deleteVendorMedia } from '../services/supabaseService';
+import { getVendorByFieldId, updateVendor, updateVendorVerified, getVendorMedia, updateVendorCatalogImages, toggleImageHighlight, deleteVendorMedia } from '../services/supabaseService';
 import ImageUpload from '../components/ImageUpload';
 import { Vendor } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
@@ -679,7 +679,7 @@ const AdminVendorEdit: React.FC = () => {
                       setValue('verified', checked);
                       if (vendor) {
                         try {
-                          const result = await updateVendor(vendor.vendor_id, { verified: checked });
+                          const result = await updateVendorVerified(vendor.vendor_id, checked);
                           if (result) {
                             setSuccessMessage(`Vendor ${checked ? 'verified' : 'unverified'} successfully!`);
                             setTimeout(() => setSuccessMessage(''), 3000);

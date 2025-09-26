@@ -440,15 +440,72 @@ export const toggleImageHighlight = async (imageId: string, isHighlighted: boole
   }
 };
 
+// Test function to update just verified status
+export const updateVendorVerified = async (vendorId: string, verified: boolean): Promise<boolean> => {
+  try {
+    console.log('Testing verified update for vendor:', vendorId, 'verified:', verified);
+    
+    const { data, error } = await supabase
+      .from('vendors')
+      .update({ verified })
+      .eq('vendor_id', vendorId)
+      .select();
+
+    if (error) {
+      console.error('Supabase error updating verified status:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+      return false;
+    }
+
+    console.log('Verified status updated successfully:', data);
+    return true;
+  } catch (error) {
+    console.error('Error updating verified status:', error);
+    return false;
+  }
+};
+
 // Update vendor
 export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>): Promise<boolean> => {
   try {
     console.log('Updating vendor with ID:', vendorId);
     console.log('Vendor data to update:', vendorData);
     
+    // Define allowed fields for update (based on actual database schema)
+    const allowedFields = [
+      'brand_name', 'spoc_name', 'category', 'subcategory',
+      'phone_number', 'alternate_number', 'whatsapp_number', 'email', 'instagram', 'address',
+      'experience', 'quick_intro', 'caption', 'detailed_intro', 'highlight_features',
+      'starting_price', 'languages_spoken', 'verified', 'currently_available',
+      'avatar_url', 'cover_image_url', 'brand_logo_url', 'contact_person_image_url',
+      'services', 'packages', 'deliverables', 'customer_reviews', 'booking_policies', 'additional_info'
+    ];
+    
+    // Filter data to only include allowed fields and non-empty values
+    const cleanedData = Object.fromEntries(
+      Object.entries(vendorData).filter(([key, value]) => 
+        allowedFields.includes(key) && 
+        value !== undefined && 
+        value !== null && 
+        value !== ''
+      )
+    );
+    
+    console.log('Cleaned vendor data:', cleanedData);
+    
+    if (Object.keys(cleanedData).length === 0) {
+      console.log('No valid fields to update');
+      return true; // Nothing to update, consider it successful
+    }
+    
     const { data, error } = await supabase
       .from('vendors')
-      .update(vendorData)
+      .update(cleanedData)
       .eq('vendor_id', vendorId)
       .select();
 
@@ -460,6 +517,7 @@ export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>
         hint: error.hint,
         code: error.code
       });
+      console.error('Failed data:', cleanedData);
       return false;
     }
 

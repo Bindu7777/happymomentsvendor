@@ -84,107 +84,89 @@ const VendorSection = () => {
             vendors.map((vendor, index) => (
             <div
               key={vendor.vendor_id}
-              className="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl group border border-gray-200"
+              className="bg-white rounded-xl shadow-subtle overflow-hidden transition-all duration-300 hover:shadow-card group animate-fade-up border border-wedding-orange/10"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              {/* Profile/Logo Image */}
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative h-56 overflow-hidden">
                 <img
-                  src={vendor.brand_logo_url || vendor.avatar_url || indianEventImages[index % indianEventImages.length]}
-                  alt={`${vendor.brand_name} profile`}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  src={indianEventImages[index % indianEventImages.length]}
+                  alt={`Indian event showcase for ${vendor.brand_name}`}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = "/images/image1.jpeg";
+                    target.src = "/images/image1.jpeg"; // Fallback to local image
                   }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
-                
-                {/* Availability Status */}
-                {vendor.currently_available && (
-                  <div className="absolute top-3 left-3">
-                    <div className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                      <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                      <span>Available Now</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Verified Badge */}
-                {vendor.verified && (
-                  <div className="absolute top-3 right-3">
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">✓</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Price Tag */}
+                {/* Indian event overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
+                <div className="absolute top-2 left-2 text-white text-xs font-semibold bg-orange-500/80 px-2 py-1 rounded-full">
+                  {index === 0 ? "🎊 Wedding" : index === 1 ? "🎉 Party" : index === 2 ? "💃 Celebration" : "🌟 Event"}
+                </div>
+                <button
+                  onClick={() => toggleFavorite(Number(vendor.vendor_id))}
+                  className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white"
+                >
+                  <Heart
+                    className={`h-5 w-5 ${
+                      favorites.includes(Number(vendor.vendor_id))
+                        ? "fill-wedding-orange text-wedding-orange"
+                        : "text-wedding-gray"
+                    }`}
+                  />
+                </button>
                 <div className="absolute bottom-3 right-3">
-                  <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-semibold text-gray-800">
-                    {vendor.starting_price 
-                      ? `₹${vendor.starting_price.toLocaleString()}+`
-                      : 'Contact for Pricing'
-                    }
-                  </div>
+                  <Badge
+                    variant="outline"
+                    className="bg-white/90 backdrop-blur-xs border-0 text-wedding-navy"
+                  >
+                    {vendor.packages && Array.isArray(vendor.packages) && vendor.packages.length > 0
+                      ? `From ${vendor.packages[0].price || 'Contact for pricing'}`
+                      : 'Contact for pricing'}
+                  </Badge>
                 </div>
               </div>
 
-              <div className="p-4">
-                {/* Business Name & Category */}
-                <div className="mb-3">
-                  <h3 className="text-lg font-bold text-gray-900 mb-1">
-                    {vendor.brand_name}
-                  </h3>
-                  <div className="text-sm text-orange-600 font-medium">
-                    {vendor.category}
+              <div className="p-5">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-semibold text-lg text-wedding-navy group-hover:text-wedding-orange transition-custom">
+                      {vendor.brand_name}
+                    </h3>
+                    <Badge variant="secondary" className="mt-1 bg-wedding-orange-light text-wedding-orange border-0">
+                      {vendor.category}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center">
+                    <Star className="h-4 w-4 text-wedding-orange fill-wedding-orange mr-1" />
+                    <span className="text-sm font-medium text-wedding-navy">
+                      {vendor.rating || 4.5}
+                    </span>
+                    <span className="text-xs text-wedding-gray ml-1">
+                      ({vendor.review_count || 0})
+                    </span>
                   </div>
                 </div>
 
-                {/* Star Rating (only if > 0 reviews) */}
-                {vendor.review_count && vendor.review_count > 0 && (
-                  <div className="flex items-center gap-1 mb-3">
-                    <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-semibold text-gray-700">
-                      {vendor.rating || 4.5}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      ({vendor.review_count} reviews)
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center mb-4 text-wedding-gray text-sm">
+                  <MapPin className="h-4 w-4 mr-1" />
+                  {vendor.address}
+                </div>
 
-                {/* Years of Experience */}
-                {vendor.experience && (
-                  <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
-                    <Award className="h-4 w-4 text-amber-500" />
-                    <span>{vendor.experience}</span>
-                  </div>
-                )}
-
-                {/* Location */}
-                {vendor.address && (
-                  <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="truncate">{vendor.address}</span>
-                  </div>
-                )}
-
-                {/* WhatsApp Button (Primary Action) */}
-                <Button 
-                  onClick={() => {
-                    const phoneNumber = vendor.whatsapp_number || vendor.phone_number;
-                    if (phoneNumber) {
-                      const message = `Hi ${vendor.spoc_name}! I found your ${vendor.category} services and I'm interested in learning more.`;
-                      const whatsappUrl = `https://wa.me/${phoneNumber.replace(/[^\d]/g, '')}?text=${encodeURIComponent(message)}`;
-                      window.open(whatsappUrl, '_blank');
-                    }
-                  }}
-                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 font-semibold rounded-lg transition-all duration-200 hover:scale-105"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  WhatsApp
-                </Button>
+                <div className="flex items-stretch">
+                  {" "}
+                  <Button 
+                    onClick={() => navigate(`/vendor/${vendor.vendor_id}`)}
+                    className="w-full bg-wedding-orange text-white hover:bg-wedding-orange-hover transition-custom"
+                  >
+                    More details
+                  </Button>
+                  <span className="px-1"></span>
+                  <Button className="w-full bg-wedding-orange text-white hover:bg-wedding-orange-hover transition-custom">
+                    <Link to="/" className="w-full text-white">
+                      Enquire now
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
             ))

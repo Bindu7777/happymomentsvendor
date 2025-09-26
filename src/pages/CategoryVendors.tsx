@@ -528,98 +528,204 @@ const CategoryVendors = () => {
               {filteredAndSortedVendors.map((vendor) => (
                 <Card 
                   key={vendor.vendor_id}
-                  className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border border-gray-200 bg-white overflow-hidden"
+                  className={`group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 bg-white overflow-hidden ${
+                    vendor.verified 
+                      ? 'border-green-200 hover:border-green-400' 
+                      : 'border-amber-100 hover:border-amber-300'
+                  } ${hoveredCard === vendor.vendor_id ? 'ring-2 ring-amber-300' : ''}`}
                   onClick={() => handleCardClick(vendor.vendor_id)}
+                  onMouseEnter={() => setHoveredCard(vendor.vendor_id)}
+                  onMouseLeave={() => setHoveredCard(null)}
                 >
                   <CardContent className="p-0">
-                    {/* Profile/Logo Image */}
+                    {/* Enhanced Portfolio Gallery */}
                     <div className="relative h-48 overflow-hidden">
+                      {/* Main Portfolio Image */}
                       <img
-                        src={vendor.brand_logo_url || vendor.avatar_url || vendor.cover_image_url || "/images/vendor-placeholder.jpg"}
-                        alt={`${vendor.brand_name} profile`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        src={vendor.avatar_url || vendor.cover_image_url || "/images/vendor-placeholder.jpg"}
+                        alt={`${vendor.brand_name} portfolio`}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       
-                      {/* Availability Status */}
-                      {vendor.currently_available && (
-                        <div className="absolute top-3 left-3">
-                          <div className="flex items-center gap-1 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                            <span>Available Now</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Verified Badge */}
-                      {vendor.verified && (
-                        <div className="absolute top-3 right-3">
-                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-xs font-bold">✓</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Price Tag */}
-                      <div className="absolute bottom-3 right-3">
-                        <div className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-semibold text-gray-800">
-                          {vendor.starting_price 
-                            ? `₹${vendor.starting_price.toLocaleString()}+`
-                            : 'Contact for Pricing'
-                          }
-                        </div>
+                      {/* Top Left - Availability Status */}
+                      <div className="absolute top-3 left-3">
+                        {vendor.currently_available ? (
+                          <Badge className="bg-green-500 text-white px-2 py-1 text-xs animate-pulse">
+                            🟢 Available Now
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-gray-500 text-white px-2 py-1 text-xs">
+                            Busy
+                          </Badge>
+                        )}
                       </div>
+
+                      {/* Top Right Actions */}
+                      <div className="absolute top-3 right-3 flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="w-8 h-8 bg-white/90 hover:bg-white text-gray-700 hover:text-red-500 transition-all duration-200"
+                          onClick={(e) => { e.stopPropagation(); toggleFavorite(vendor.vendor_id); }}
+                        >
+                          <Heart className={`w-4 h-4 transition-all duration-200 ${favorites.includes(vendor.vendor_id) ? 'fill-red-500 text-red-500 scale-110' : ''}`} />
+                        </Button>
+                      </div>
+
+                      {/* Enhanced Verified Badge */}
+                      {vendor.verified && (
+                        <div className="absolute bottom-3 right-3">
+                          <div className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-full shadow-lg border-2 border-white/50">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            <span className="text-xs font-bold">Verified Pro</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Card Content */}
+                    {/* Enhanced Card Content */}
                     <div className="p-4">
-                      {/* Business Name & Category */}
+                      {/* Vendor Name & Tagline */}
                       <div className="mb-3">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors">
                           {vendor.brand_name}
                         </h3>
-                        <div className="text-sm text-orange-600 font-medium">
-                          {vendor.category}
+                        <p className="text-xs text-amber-600 font-medium mb-1">{vendor.category}</p>
+                        <p className="text-sm text-gray-600">by {vendor.spoc_name}</p>
+                      </div>
+
+                      {/* Enhanced Rating & Reviews */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                className={`w-4 h-4 ${i < Math.floor(vendor.rating || 4.5) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                              />
+                            ))}
+                          </div>
+                          <span className="text-sm font-bold text-gray-700">{vendor.rating || 4.5}</span>
+                          <span className="text-xs text-gray-500">({vendor.review_count || 0})</span>
+                        </div>
+                        {vendor.rating && vendor.rating >= 4.7 && (
+                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs px-2 py-1 font-bold">
+                            ⭐ Top Rated
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Specialty Tags as Colored Chips */}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {vendor.specialties && Array.isArray(vendor.specialties) && 
+                         vendor.specialties.slice(0, 4).map((tag: string, index: number) => {
+                          const colors = [
+                            'bg-pink-100 text-pink-700 border-pink-200',
+                            'bg-blue-100 text-blue-700 border-blue-200', 
+                            'bg-green-100 text-green-700 border-green-200',
+                            'bg-purple-100 text-purple-700 border-purple-200'
+                          ];
+                          return (
+                            <span 
+                              key={index}
+                              className={`text-xs px-2 py-1 rounded-full border font-medium ${colors[index % colors.length]}`}
+                            >
+                              {tag}
+                            </span>
+                          );
+                        })}
+                      </div>
+
+                      {/* Location & Languages */}
+                      <div className="mb-3 space-y-2">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <MapPin className="w-4 h-4" />
+                          <span className="text-sm">{vendor.address || 'Location not specified'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Users className="w-4 h-4" />
+                          <span className="text-xs">
+                            Languages: {vendor.languages_spoken && Array.isArray(vendor.languages_spoken) 
+                              ? vendor.languages_spoken.join(', ')
+                              : 'Not specified'
+                            }
+                          </span>
                         </div>
                       </div>
 
-                      {/* Star Rating (only if > 0 reviews) */}
-                      {vendor.review_count && vendor.review_count > 0 && (
-                        <div className="flex items-center gap-1 mb-3">
-                          <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                          <span className="text-sm font-semibold text-gray-700">
-                            {vendor.rating || 4.5}
+                      {/* Experience & Availability */}
+                      <div className="flex items-center justify-between mb-3 text-sm">
+                        <div className="flex items-center gap-1 text-gray-600">
+                          <Award className="w-4 h-4" />
+                          <span>{vendor.experience || 'Experience not specified'}</span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Available: {vendor.currently_available ? 'Yes' : 'No'}
+                        </div>
+                      </div>
+
+                      {/* Price & Enhanced Response Time */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="text-lg font-bold text-amber-600">
+                          {vendor.starting_price 
+                            ? `Starting ₹${vendor.starting_price.toLocaleString()}`
+                            : 'Contact for pricing'
+                          }
+                        </div>
+                        <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700 border border-green-200">
+                          <Clock className="w-3 h-3" />
+                          <span>Fast Response</span>
+                        </div>
+                      </div>
+
+                      {/* Enhanced Quick Actions */}
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Button
+                            className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 text-sm font-semibold rounded-lg shadow-sm hover:scale-105 transition-all duration-200"
+                            onClick={(e) => { e.stopPropagation(); openWhatsApp(vendor); }}
+                          >
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            WhatsApp
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-amber-300 text-amber-700 hover:bg-amber-50 py-2 text-sm font-semibold rounded-lg hover:scale-105 transition-all duration-200"
+                            onClick={(e) => { e.stopPropagation(); handleCardClick(vendor.vendor_id); }}
+                          >
+                            View Profile
+                          </Button>
+                        </div>
+                        
+                        <Button
+                          variant="outline"
+                          className={`w-full py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${
+                            comparisonVendors.find(v => v.vendor_id === vendor.vendor_id)
+                              ? 'bg-orange-100 border-orange-300 text-orange-700'
+                              : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            if (comparisonVendors.find(v => v.vendor_id === vendor.vendor_id)) {
+                              removeFromComparison(vendor.vendor_id);
+                            } else {
+                              addToComparison(vendor);
+                            }
+                          }}
+                        >
+                          {comparisonVendors.find(v => v.vendor_id === vendor.vendor_id) ? 'Remove from Compare' : 'Add to Compare'}
+                        </Button>
+                        
+                        {/* Project Count & Quick Info */}
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>{vendor.total_events || 0} completed events</span>
+                          <span className="flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            Verified Professional
                           </span>
-                          <span className="text-xs text-gray-500">
-                            ({vendor.review_count} reviews)
-                          </span>
                         </div>
-                      )}
-
-                      {/* Years of Experience */}
-                      {vendor.experience && (
-                        <div className="flex items-center gap-2 mb-3 text-sm text-gray-600">
-                          <Award className="h-4 w-4 text-amber-500" />
-                          <span>{vendor.experience}</span>
-                        </div>
-                      )}
-
-                      {/* Location */}
-                      {vendor.address && (
-                        <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4 text-gray-400" />
-                          <span className="truncate">{vendor.address}</span>
-                        </div>
-                      )}
-
-                      {/* WhatsApp Button (Primary Action) */}
-                      <Button
-                        className="w-full bg-green-500 hover:bg-green-600 text-white py-3 font-semibold rounded-lg transition-all duration-200 hover:scale-105"
-                        onClick={(e) => { e.stopPropagation(); openWhatsApp(vendor); }}
-                      >
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        WhatsApp
-                      </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

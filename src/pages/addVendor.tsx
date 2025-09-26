@@ -32,6 +32,7 @@ type VendorFormInputs = {
   detailed_intro?: string;
   highlight_features?: string[];
   service_areas?: string;
+  starting_price?: number;
   
   // JSON Fields (will be stored as JSON)
   services?: Array<{
@@ -112,6 +113,7 @@ export default function AddVendor() {
       detailed_intro: "",
       highlight_features: [],
       service_areas: "",
+      starting_price: 0,
       
       // JSON Fields
       services: [],
@@ -441,6 +443,25 @@ export default function AddVendor() {
                 />
                 {errors.experience && (
                   <p className="text-red-500 text-sm mt-1">{errors.experience.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Starting Price (₹) *</label>
+                <input
+                  {...register("starting_price", { 
+                    required: "Starting price is required",
+                    min: { value: 1, message: "Starting price must be greater than 0" },
+                    valueAsNumber: true
+                  })}
+                  type="number"
+                  min="1"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 25000"
+                />
+                <p className="text-sm text-gray-500 mt-1">Enter your starting price in rupees</p>
+                {errors.starting_price && (
+                  <p className="text-red-500 text-sm mt-1">{errors.starting_price.message}</p>
                 )}
               </div>
             </div>

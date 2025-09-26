@@ -36,7 +36,7 @@ type VendorEditForm = {
   caption?: string;
   detailed_intro?: string;
   highlight_features?: string[];
-  starting_price?: number;
+  starting_price: number;
   languages_spoken?: string[];
   
   // JSON Fields
@@ -1639,14 +1639,21 @@ const VendorProfileEdit: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Starting Price (₹)
+                    Starting Price (₹) *
                   </label>
                   <Input
-                    {...register("starting_price", { valueAsNumber: true })}
+                    {...register("starting_price", { 
+                      required: "Starting price is required",
+                      min: { value: 1, message: "Starting price must be greater than 0" },
+                      valueAsNumber: true 
+                    })}
                     type="number"
                     placeholder="e.g., 35000"
-                    min="0"
+                    min="1"
                   />
+                  {errors.starting_price && (
+                    <p className="text-red-500 text-sm mt-1">{errors.starting_price.message}</p>
+                  )}
                 </div>
               </div>
 

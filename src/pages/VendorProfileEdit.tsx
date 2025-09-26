@@ -2416,6 +2416,7 @@ const VendorProfileEdit: React.FC = () => {
                                 return `${value.length} service(s): ${value.map(s => s.name).join(', ')}`;
                               } else if (key === 'packages') {
                                 return `${value.length} package(s): ${value.map(p => p.name).join(', ')}`;
+                              }
                               return `${value.length} items`;
                             }
                             return value.join(', ');

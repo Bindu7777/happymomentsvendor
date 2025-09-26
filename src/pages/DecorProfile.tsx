@@ -86,30 +86,7 @@ const DecorProfile = () => {
       "/images/image1.jpeg",
       "/images/image2.jpeg"
     ],
-    reviews: [
-      {
-        name: "Priya R.",
-        rating: 5,
-        text: "Elegant Events made my daughter's birthday magical! The balloon theme setup was vibrant and beautiful. Highly recommended.",
-        date: "2 weeks ago",
-        images: ["/images/wedding.webp"],
-        verified: true
-      },
-      {
-        name: "Corporate Client",
-        rating: 5,
-        text: "Professional service for our corporate event. The backdrop was exactly what we needed and setup was quick and efficient.",
-        date: "1 month ago",
-        verified: true
-      },
-      {
-        name: "Anitha & Suresh",
-        rating: 5,
-        text: "Beautiful wedding stage decoration! The floral arrangements were stunning and exactly matched our theme. Worth every penny.",
-        date: "3 weeks ago",
-        verified: true
-      }
-    ],
+    reviews: [],
     contact: {
       phone: "+91 98765 43210",
       email: "info@elegantevents.com",
@@ -835,34 +812,42 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 </div>
                 
                 <div className="space-y-6">
-                  {decorator.reviews.map((review, index) => (
-                    <div key={index} className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold text-lg">
-                              {review.name.split(' ').map(n => n[0]).join('')}
-                            </span>
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-lg text-gray-800">{review.name}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
-                                ))}
+                  {decorator.reviews && decorator.reviews.length > 0 ? (
+                    decorator.reviews.map((review, index) => (
+                      <div key={index} className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                              <span className="text-white font-bold text-lg">
+                                {review.name.split(' ').map(n => n[0]).join('')}
+                              </span>
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-lg text-gray-800">{review.name}</h4>
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="flex">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                                  ))}
+                                </div>
+                                <span className="text-sm text-gray-500">{review.date}</span>
+                                {review.verified && (
+                                  <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
+                                )}
                               </div>
-                              <span className="text-sm text-gray-500">{review.date}</span>
-                              {review.verified && (
-                                <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
-                              )}
                             </div>
                           </div>
                         </div>
+                        <p className="text-gray-700 leading-relaxed text-lg">{review.text}</p>
                       </div>
-                      <p className="text-gray-700 leading-relaxed text-lg">{review.text}</p>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="text-gray-400 text-6xl mb-4">📝</div>
+                      <h3 className="text-xl font-semibold text-gray-600 mb-2">No Reviews Yet</h3>
+                      <p className="text-gray-500">This vendor hasn't received any reviews yet. Be the first to share your experience!</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

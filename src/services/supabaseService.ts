@@ -98,16 +98,43 @@ export const getVendorByFieldId = async (
   }
 };
 
+// Generate simple, memorable password
+const generatePassword = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let password = '';
+  for (let i = 0; i < 6; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+
+// Generate slug from brand name
+const generateSlug = (brandName: string): string => {
+  return brandName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+};
+
 export const addVendor = async (vendorData: Omit<Vendor, 'created_at' | 'updated_at'>) => {
   try {
     console.log("Attempting to add vendor with data:", vendorData);
     
+    // Generate slug if not provided
+    const slug = vendorData.slug || generateSlug(vendorData.brand_name);
+    
     // Remove vendor_id from the data to let the database auto-generate it
     const { vendor_id, ...dataWithoutVendorId } = vendorData;
     
+    // Add slug to the data
+    const vendorDataWithSlug = {
+      ...dataWithoutVendorId,
+      slug: slug
+    };
+    
     const { data, error } = await supabase
       .from('vendors')
-      .insert([dataWithoutVendorId])
+      .insert([vendorDataWithSlug])
       .select()
       .single();
 
@@ -123,6 +150,34 @@ export const addVendor = async (vendorData: Omit<Vendor, 'created_at' | 'updated
     }
 
     console.log("Vendor added successfully with ID:", data.vendor_id);
+    
+    // Create vendor credentials
+    const password = generatePassword();
+    const credentialsData = {
+      vendor_id: data.vendor_id,
+      username: data.vendor_id.toString(), // Use vendor_id as username
+      password: password,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      last_login: null
+    };
+
+    const { error: credentialsError } = await supabase
+      .from('vendor_credentials')
+      .insert([credentialsData]);
+
+    if (credentialsError) {
+      console.error("Error creating vendor credentials:", credentialsError);
+      // Don't throw error here, just log it - vendor is already created
+      console.warn("Vendor created but credentials creation failed. Credentials can be created manually.");
+    } else {
+      console.log("Vendor credentials created successfully");
+      console.log("Generated credentials:", {
+        username: credentialsData.username,
+        password: credentialsData.password
+      });
+    }
+
     return data.vendor_id;
   } catch (error) {
     console.error("Error adding vendor:", error);

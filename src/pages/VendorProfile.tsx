@@ -1030,43 +1030,18 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 </div>
                 
                 <div className="space-y-6">
-                  {[
-                    {
-                      name: "Priya & Rajesh",
-                      rating: 5,
-                      date: "2 weeks ago",
-                      verified: true,
-                      text: "Rajesh captured our Telugu wedding beautifully! His understanding of our traditions like Mangalsutra tying and Oonjal ceremony was amazing. The photos are stunning and we got them the same day. Highly recommended for South Indian weddings!",
-                      location: "Hyderabad"
-                    },
-                    {
-                      name: "Anitha & Suresh",
-                      rating: 5,
-                      date: "1 month ago",
-                      verified: true,
-                      text: "Professional photographer who knows South Indian wedding customs perfectly. He captured every moment from Haldi to reception. The drone shots of our venue were incredible. Worth every rupee!",
-                      location: "Chennai"
-                    },
-                    {
-                      name: "Deepa & Kumar",
-                      rating: 5,
-                      date: "2 months ago",
-                      verified: true,
-                      text: "Rajesh's team was punctual and professional. They understood our Malayali wedding traditions and captured the Muhurtham ceremony beautifully. The editing quality is top-notch. We're so happy with our photos!",
-                      location: "Bangalore"
-                    }
-                  ].map((review, index) => (
+                  {vendor.customer_reviews && vendor.customer_reviews.length > 0 ? (
+                    vendor.customer_reviews.map((review, index) => (
                     <div key={index} className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-4">
                           <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                             <span className="text-white font-bold text-lg">
-                              {review.name.split(' ').map(n => n[0]).join('')}
+                              {review.customer_name.split(' ').map(n => n[0]).join('')}
                             </span>
                           </div>
                           <div>
-                            <h4 className="font-bold text-lg text-gray-800">{review.name}</h4>
-                            <p className="text-sm text-gray-600">{review.location}</p>
+                            <h4 className="font-bold text-lg text-gray-800">{review.customer_name}</h4>
                             <div className="flex items-center gap-2 mt-1">
                               <div className="flex">
                                 {[...Array(5)].map((_, i) => (
@@ -1074,16 +1049,21 @@ I'm really excited to connect and explore working with you soon! ✨`;
                                 ))}
                               </div>
                               <span className="text-sm text-gray-500">{review.date}</span>
-                              {review.verified && (
-                                <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
-                              )}
+                              <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
                             </div>
                           </div>
                         </div>
                       </div>
-                      <p className="text-gray-700 leading-relaxed text-lg">{review.text}</p>
+                      <p className="text-gray-700 leading-relaxed text-lg">{review.review}</p>
                     </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="text-gray-400 text-6xl mb-4">📝</div>
+                      <h3 className="text-xl font-semibold text-gray-600 mb-2">No Reviews Yet</h3>
+                      <p className="text-gray-500">This vendor hasn't received any reviews yet. Be the first to share your experience!</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -1403,3 +1383,4 @@ I'm really excited to connect and explore working with you soon! ✨`;
 };
 
 export default VendorProfile;
+

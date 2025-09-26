@@ -994,56 +994,36 @@ const VendorProfile = () => {
               </div>
                 
                 <div className="space-y-6">
-                  {[
-                    {
-                      name: "Priya & Rajesh",
-                      rating: 5,
-                      date: "2 weeks ago",
-                      verified: true,
-                      text: `Amazing ${vendor.category.toLowerCase()} service! Professional team with attention to detail. They understood our requirements perfectly and delivered exceptional results. Highly recommended!`,
-                      location: "Hyderabad"
-                    },
-                    {
-                      name: "Anitha & Suresh",
-                      rating: 5,
-                      date: "1 month ago",
-                      verified: true,
-                      text: `Professional ${vendor.category.toLowerCase()} service. They captured every moment perfectly. The quality is top-notch and worth every rupee!`,
-                      location: "Chennai"
-                    },
-                    {
-                      name: "Deepa & Kumar",
-                      rating: 5,
-                      date: "2 months ago",
-                      verified: true,
-                      text: `${vendor.spoc_name}'s team was punctual and professional. They understood our requirements and delivered excellent ${vendor.category.toLowerCase()} service. We're so happy with the results!`,
-                      location: "Bangalore"
-                    }
-                  ].map((review, index) => (
+                  {vendor.customer_reviews && vendor.customer_reviews.length > 0 ? (
+                    vendor.customer_reviews.map((review, index) => (
                     <div key={index} className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-4">
                           <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                             <span className="text-white font-bold text-lg">
-                              {review.name.split(' ').map(n => n[0]).join('')}
+                              {review.customer_name.split(' ').map(n => n[0]).join('')}
                             </span>
                           </div>
                           <div>
-                            <h4 className="font-bold text-lg text-gray-800">{review.name}</h4>
-                            <p className="text-sm text-gray-600">{review.location}</p>
+                            <h4 className="font-bold text-lg text-gray-800">{review.customer_name}</h4>
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-sm font-bold text-amber-600">{review.rating}/5</span>
                               <span className="text-sm text-gray-500">{review.date}</span>
-                              {review.verified && (
-                                <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
-            )}
-          </div>
-        </div>
+                              <Badge className="bg-green-600 text-white px-2 py-1 text-xs">✓ Verified</Badge>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      <p className="text-gray-700 leading-relaxed text-lg">{review.text}</p>
+                      <p className="text-gray-700 leading-relaxed text-lg">{review.review}</p>
                     </div>
-                  ))}
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className="text-gray-400 text-6xl mb-4">📝</div>
+                      <h3 className="text-xl font-semibold text-gray-600 mb-2">No Reviews Yet</h3>
+                      <p className="text-gray-500">This vendor hasn't received any reviews yet. Be the first to share your experience!</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

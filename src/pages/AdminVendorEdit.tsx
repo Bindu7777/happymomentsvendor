@@ -83,20 +83,41 @@ const AdminVendorEdit = () => {
     if (!vendorId) return;
 
     try {
+      console.log('Fetching vendor data for ID:', vendorId);
       const vendorData = await getVendorByFieldId(vendorId);
+      console.log('Fetched vendor data:', vendorData);
       if (vendorData) {
         setVendor(vendorData);
-        // Populate form with existing data
-        Object.keys(vendorData).forEach(key => {
-          if (key in vendorData) {
-            setValue(key as keyof VendorEditForm, vendorData[key as keyof Vendor]);
-          }
-        });
+        // Populate form with existing data - specific field mapping
+        setValue('brand_name', vendorData.brand_name || '');
+        setValue('spoc_name', vendorData.spoc_name || '');
+        setValue('category', vendorData.category || '');
+        setValue('subcategory', vendorData.subcategory || '');
+        setValue('phone_number', vendorData.phone_number || '');
+        setValue('alternate_number', vendorData.alternate_number || '');
+        setValue('whatsapp_number', vendorData.whatsapp_number || '');
+        setValue('email', vendorData.email || '');
+        setValue('instagram', vendorData.instagram || '');
+        setValue('address', vendorData.address || '');
+        setValue('experience', vendorData.experience || '');
+        setValue('quick_intro', vendorData.quick_intro || '');
+        setValue('caption', vendorData.caption || '');
+        setValue('detailed_intro', vendorData.detailed_intro || '');
+        setValue('verified', vendorData.verified || false);
+        setValue('currently_available', vendorData.currently_available || false);
         
-        // Handle deliverables array separately
-        if (vendorData.deliverables && Array.isArray(vendorData.deliverables)) {
-          vendorData.deliverables.forEach((deliverable, index) => {
-            appendDeliverable(deliverable);
+        // Handle JSON fields
+        setValue('services', vendorData.services || []);
+        setValue('packages', vendorData.packages || []);
+        setValue('deliverables', vendorData.deliverables || []);
+        setValue('customer_reviews', vendorData.customer_reviews || []);
+        setValue('booking_policies', vendorData.booking_policies || {});
+        setValue('additional_info', vendorData.additional_info || {});
+        
+        // Handle highlight features
+        if (vendorData.highlight_features && Array.isArray(vendorData.highlight_features)) {
+          vendorData.highlight_features.forEach((feature, index) => {
+            appendHighlight(feature);
           });
         }
       }

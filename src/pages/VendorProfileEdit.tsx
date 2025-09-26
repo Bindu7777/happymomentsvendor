@@ -53,12 +53,6 @@ type VendorEditForm = {
   }>;
   deliverables?: string[];
   catalog_images?: string[];
-  customer_reviews?: Array<{
-    customer_name: string;
-    rating: number;
-    review: string;
-    date: string;
-  }>;
   booking_policies?: {
     cancellation_policy?: string;
     payment_terms?: string;
@@ -144,7 +138,6 @@ const VendorProfileEdit: React.FC = () => {
       packages: [],
       deliverables: [],
       catalog_images: [],
-      customer_reviews: [],
       booking_policies: {
         cancellation_policy: '',
         payment_terms: '',
@@ -181,10 +174,6 @@ const VendorProfileEdit: React.FC = () => {
     name: "catalog_images" as any
   });
 
-  const { fields: reviewFields, append: appendReview, remove: removeReview } = useFieldArray({
-    control,
-    name: "customer_reviews" as any
-  });
 
   const { fields: customFields, append: appendCustomField, remove: removeCustomField } = useFieldArray({
     control,
@@ -329,7 +318,6 @@ const VendorProfileEdit: React.FC = () => {
       packages: vendorData.packages || [],
       deliverables: vendorData.deliverables || [],
       catalog_images: catalogImagesData || [],
-      customer_reviews: vendorData.customer_reviews || [],
       
       // Object fields - ensure proper structure
       booking_policies: {
@@ -434,13 +422,6 @@ const VendorProfileEdit: React.FC = () => {
         console.log('Error clearing deliverables:', e);
       }
       
-      try {
-    while (reviewFields.length > 0) {
-      removeReview(0);
-        }
-      } catch (e) {
-        console.log('Error clearing reviews:', e);
-    }
     
       try {
     while (customFields.length > 0) {
@@ -544,29 +525,6 @@ const VendorProfileEdit: React.FC = () => {
     });
 
     // Add sample customer reviews
-    const sampleReviews = [
-      {
-        customer_name: "Ananya & Vikram",
-        rating: 5,
-        review: "Priya captured our wedding beautifully! The candid shots were amazing and she made us feel so comfortable throughout the day.",
-        date: "2024-08-15"
-      },
-      {
-        customer_name: "Meera & Rajesh",
-        rating: 5,
-        review: "Absolutely stunning photography! The traditional ceremony shots and couple portraits were beyond our expectations.",
-        date: "2024-07-22"
-      },
-      {
-        customer_name: "Kavya & Arjun",
-        rating: 5,
-        review: "Professional, creative, and so easy to work with. Our wedding album is a treasure we'll cherish forever!",
-        date: "2024-06-10"
-      }
-    ];
-    sampleReviews.forEach(review => {
-        appendReview(review);
-      });
 
     // Set sample booking policies
     setValue('booking_policies.cancellation_policy', 'Cancellation allowed up to 30 days before the event with 50% refund. No refund for cancellations within 30 days.');
@@ -776,7 +734,6 @@ const VendorProfileEdit: React.FC = () => {
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
         catalog_images: originalCatalogImages || [],
-        customer_reviews: vendor.customer_reviews || [],
         booking_policies: vendor.booking_policies || undefined,
         additional_info: vendor.additional_info || undefined,
         currently_available: vendor.currently_available || false,
@@ -812,9 +769,6 @@ const VendorProfileEdit: React.FC = () => {
         })) || [],
         deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
         catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls],
-        customer_reviews: data.customer_reviews?.filter(r => 
-          r.customer_name && r.customer_name.trim() !== '' && r.review && r.review.trim() !== ''
-        ) || [],
         booking_policies: data.booking_policies ? {
           cancellation_policy: data.booking_policies.cancellation_policy || '',
           payment_terms: data.booking_policies.payment_terms || '',
@@ -2213,69 +2167,6 @@ const VendorProfileEdit: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Customer Reviews */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Customer Reviews</span>
-                <Button
-                  type="button"
-                  onClick={() => appendReview({ customer_name: "", rating: 5, review: "", date: new Date().toISOString().split('T')[0] })}
-                  variant="outline"
-                  size="sm"
-                >
-                  Add Review
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {reviewFields.map((field, index) => (
-                  <div key={field.id} className="p-4 border rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                      <Input
-                        {...register(`customer_reviews.${index}.customer_name` as const)}
-                        placeholder="Customer name"
-                      />
-                      <select
-                        {...register(`customer_reviews.${index}.rating` as const, { valueAsNumber: true })}
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value={5}>5 Stars</option>
-                        <option value={4}>4 Stars</option>
-                        <option value={3}>3 Stars</option>
-                        <option value={2}>2 Stars</option>
-                        <option value={1}>1 Star</option>
-                      </select>
-                      <Input
-                        {...register(`customer_reviews.${index}.date` as const)}
-                        type="date"
-                      />
-                    </div>
-                    <Textarea
-                      {...register(`customer_reviews.${index}.review` as const)}
-                      placeholder="Customer review"
-                      rows={3}
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => removeReview(index)}
-                      variant="outline"
-                      size="sm"
-                      className="mt-2"
-                    >
-                      Remove Review
-                    </Button>
-                  </div>
-                ))}
-                {reviewFields.length === 0 && (
-                  <p className="text-gray-500 text-center py-4">
-                    No reviews added yet. Click "Add Review" to get started.
-                  </p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Booking Policies */}
           <Card>
@@ -2504,7 +2395,6 @@ const VendorProfileEdit: React.FC = () => {
                       'services': 'Services',
                       'packages': 'Packages',
                       'deliverables': 'Deliverables',
-                      'customer_reviews': 'Customer Reviews',
                       'booking_policies': 'Booking Policies',
                       'additional_info': 'Additional Information',
                       'currently_available': 'Currently Available'
@@ -2526,9 +2416,6 @@ const VendorProfileEdit: React.FC = () => {
                                 return `${value.length} service(s): ${value.map(s => s.name).join(', ')}`;
                               } else if (key === 'packages') {
                                 return `${value.length} package(s): ${value.map(p => p.name).join(', ')}`;
-                              } else if (key === 'customer_reviews') {
-                                return `${value.length} review(s) from: ${value.map(r => r.customer_name).join(', ')}`;
-                              }
                               return `${value.length} items`;
                             }
                             return value.join(', ');

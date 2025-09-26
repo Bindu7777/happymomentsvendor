@@ -615,7 +615,9 @@ const CategoryVendors = () => {
                             ))}
                           </div>
                           <span className="text-sm font-bold text-gray-700">{vendor.rating || 4.5}</span>
-                          <span className="text-xs text-gray-500">({vendor.review_count || 0})</span>
+                          {vendor.review_count && vendor.review_count > 0 && (
+                            <span className="text-xs text-gray-500">({vendor.review_count})</span>
+                          )}
                         </div>
                         {vendor.rating && vendor.rating >= 4.7 && (
                           <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs px-2 py-1 font-bold">
@@ -725,9 +727,11 @@ const CategoryVendors = () => {
                         </Button>
                         
                         {/* Project Count & Quick Info */}
-                        {vendor.total_events && vendor.total_events > 0 && (
+                        {(vendor.total_events && vendor.total_events > 0) || vendor.verified ? (
                           <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span>{vendor.total_events} completed events</span>
+                            {vendor.total_events && vendor.total_events > 0 && (
+                              <span>{vendor.total_events} completed events</span>
+                            )}
                             {vendor.verified && (
                               <span className="flex items-center gap-1">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -735,7 +739,7 @@ const CategoryVendors = () => {
                               </span>
                             )}
                           </div>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                   </CardContent>

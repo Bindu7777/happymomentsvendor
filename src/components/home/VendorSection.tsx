@@ -151,9 +151,11 @@ const VendorSection = () => {
                     <span className="text-sm font-medium text-wedding-navy">
                       {vendor.rating || 4.5}
                     </span>
-                    <span className="text-xs text-wedding-gray ml-1">
-                      ({vendor.review_count || 0})
-                    </span>
+                    {vendor.review_count && vendor.review_count > 0 && (
+                      <span className="text-xs text-wedding-gray ml-1">
+                        ({vendor.review_count})
+                      </span>
+                    )}
                   </div>
                 </div>
 

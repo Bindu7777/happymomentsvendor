@@ -1,51 +1,115 @@
-import React, { useState, useEffect } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
-import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Save, 
-  Eye, 
-  Trash2, 
-  CheckCircle, 
-  XCircle,
-  AlertTriangle,
-  Shield
-} from "lucide-react";
-import { Vendor } from "@/lib/supabase";
-import { getVendorByFieldId, updateVendor, deleteVendor } from "@/services/supabaseService";
-import { CATEGORY_LIST } from "@/constants/categories";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useForm, useFieldArray } from 'react-hook-form';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { ArrowLeft, Save, AlertCircle, CheckCircle, Trash2, X, FileText, Plus, Star } from 'lucide-react';
+import { getVendorByFieldId, updateVendor, getVendorMedia, updateVendorCatalogImages, toggleImageHighlight, deleteVendorMedia } from '../services/supabaseService';
+import ImageUpload from '../components/ImageUpload';
+import { Vendor } from '../lib/supabase';
+import { CATEGORY_LIST } from '@/constants/categories';
 
 type VendorEditForm = {
+  // Basic Information
   brand_name: string;
   spoc_name: string;
   category: string;
   subcategory?: string;
   brand_logo_url?: string;
   contact_person_image_url?: string;
+  
+  // Contact Information
   phone_number: string;
+  alternate_number?: string;  // Admin-only field
   whatsapp_number?: string;
   email?: string;
   instagram?: string;
   address?: string;
+  
+  // Business Details
   experience?: string;
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
   highlight_features?: string[];
+  starting_price?: number;
+  languages_spoken?: string[];
+  
+  // JSON Fields
+  services?: Array<{
+    name: string;
+    description: string;
+    price?: string;
+  }>;
+  packages?: Array<{
+    name: string;
+    price: string;
+    description: string;
+    features: string[];
+  }>;
   deliverables?: string[];
+  catalog_images?: string[];
+  customer_reviews?: Array<{
+    customer_name: string;
+    rating: number;
+    review: string;
+    date: string;
+  }>;
+  booking_policies?: {
+    cancellation_policy?: string;
+    payment_terms?: string;
+    booking_requirements?: string;
+  };
+  additional_info?: {
+    working_hours?: string;
+    languages?: string[];
+    awards?: string[];
+    certifications?: string[];
+    custom_fields?: Array<{
+      field_name: string;
+      field_value: string;
+    }>;
+  };
+  
+  // Status Fields
   verified: boolean;
   currently_available: boolean;
-  rating?: number;
-  review_count?: number;
 };
 
-const AdminVendorEdit = () => {
+// Utility function to remove duplicates from string arrays (case-insensitive)
+const deduplicateStringArray = (array: string[]): string[] => {
+  if (!Array.isArray(array)) return [];
+  
+  return array.filter((item, index, arr) => {
+    if (!item || typeof item !== 'string' || item.trim() === '') return false;
+    const trimmedLower = item.trim().toLowerCase();
+    return arr.findIndex(arrItem => arrItem && typeof arrItem === 'string' && arrItem.trim().toLowerCase() === trimmedLower) === index;
+  }).map(item => item.trim());
+};
+
+const AdminVendorEdit: React.FC = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const navigate = useNavigate();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [catalogImages, setCatalogImages] = useState<string[]>([]);
+  const [originalCatalogImages, setOriginalCatalogImages] = useState<string[]>([]);
+  const [catalogImagesWithMeta, setCatalogImagesWithMeta] = useState<any[]>([]);
+  const [forceRefresh, setForceRefresh] = useState(0);
+  const [isLoadingFormData, setIsLoadingFormData] = useState(false);
+  const [highlightMessage, setHighlightMessage] = useState<string>('');
+  const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
+  const [currentHighlightStatus, setCurrentHighlightStatus] = useState<Array<{id: string, media_url: string, is_highlighted: boolean}>>([]);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmType, setDeleteConfirmType] = useState<'brand_logo' | 'contact_person' | 'catalog'>('brand_logo');
+  const [deleteConfirmData, setDeleteConfirmData] = useState<any>(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const {
     register,
@@ -56,14 +120,34 @@ const AdminVendorEdit = () => {
     control,
   } = useForm<VendorEditForm>();
 
-  const { fields: deliverableFields, append: appendDeliverable, remove: removeDeliverable } = useFieldArray({
+  const { fields: serviceFields, append: appendService, remove: removeService } = useFieldArray({
     control,
-    name: "deliverables"
+    name: "services"
+  });
+
+  const { fields: packageFields, append: appendPackage, remove: removePackage } = useFieldArray({
+    control,
+    name: "packages"
+  });
+
+  const { fields: reviewFields, append: appendReview, remove: removeReview } = useFieldArray({
+    control,
+    name: "customer_reviews"
+  });
+
+  const { fields: customFields, append: appendCustomField, remove: removeCustomField } = useFieldArray({
+    control,
+    name: "additional_info.custom_fields"
   });
 
   const { fields: highlightFields, append: appendHighlight, remove: removeHighlight } = useFieldArray({
     control,
     name: "highlight_features"
+  });
+
+  const { fields: deliverableFields, append: appendDeliverable, remove: removeDeliverable } = useFieldArray({
+    control,
+    name: "deliverables"
   });
 
   useEffect(() => {
@@ -88,38 +172,8 @@ const AdminVendorEdit = () => {
       console.log('Fetched vendor data:', vendorData);
       if (vendorData) {
         setVendor(vendorData);
-        // Populate form with existing data - specific field mapping
-        setValue('brand_name', vendorData.brand_name || '');
-        setValue('spoc_name', vendorData.spoc_name || '');
-        setValue('category', vendorData.category || '');
-        setValue('subcategory', vendorData.subcategory || '');
-        setValue('phone_number', vendorData.phone_number || '');
-        setValue('alternate_number', vendorData.alternate_number || '');
-        setValue('whatsapp_number', vendorData.whatsapp_number || '');
-        setValue('email', vendorData.email || '');
-        setValue('instagram', vendorData.instagram || '');
-        setValue('address', vendorData.address || '');
-        setValue('experience', vendorData.experience || '');
-        setValue('quick_intro', vendorData.quick_intro || '');
-        setValue('caption', vendorData.caption || '');
-        setValue('detailed_intro', vendorData.detailed_intro || '');
-        setValue('verified', vendorData.verified || false);
-        setValue('currently_available', vendorData.currently_available || false);
-        
-        // Handle JSON fields
-        setValue('services', vendorData.services || []);
-        setValue('packages', vendorData.packages || []);
-        setValue('deliverables', vendorData.deliverables || []);
-        setValue('customer_reviews', vendorData.customer_reviews || []);
-        setValue('booking_policies', vendorData.booking_policies || {});
-        setValue('additional_info', vendorData.additional_info || {});
-        
-        // Handle highlight features
-        if (vendorData.highlight_features && Array.isArray(vendorData.highlight_features)) {
-          vendorData.highlight_features.forEach((feature, index) => {
-            appendHighlight(feature);
-          });
-        }
+        loadVendorData(vendorData);
+        loadCatalogImages();
       }
       setLoading(false);
     } catch (error) {
@@ -129,66 +183,248 @@ const AdminVendorEdit = () => {
     }
   };
 
-  const onSubmit = async (data: VendorEditForm) => {
+  const loadVendorData = async (vendorData: Vendor) => {
+    try {
+      setIsLoadingFormData(true);
+      
+      // Process services from both services and specialties
+      const allServices: Array<{name: string, description: string, price?: string}> = [];
+      
+      if (vendorData.services && Array.isArray(vendorData.services)) {
+        vendorData.services.forEach(service => {
+          if (service && service.name && service.name.trim() !== '') {
+            allServices.push({
+              name: service.name.trim(),
+              description: service.description || '',
+              price: service.price || ''
+            });
+          }
+        });
+      }
+
+      // Remove duplicates based on service name (case-insensitive)
+      const uniqueServices = allServices.filter((service, index, array) => {
+        const trimmedLowerName = service.name.toLowerCase();
+        return array.findIndex(s => s.name.toLowerCase() === trimmedLowerName) === index;
+      });
+
+      const formData = {
+        // Basic Information
+        brand_name: vendorData.brand_name || '',
+        spoc_name: vendorData.spoc_name || '',
+        category: vendorData.category || '',
+        subcategory: vendorData.subcategory || '',
+        brand_logo_url: vendorData.brand_logo_url || '',
+        contact_person_image_url: vendorData.contact_person_image_url || '',
+        
+        // Contact Information
+        phone_number: vendorData.phone_number || '',
+        alternate_number: vendorData.alternate_number || '',
+        whatsapp_number: vendorData.whatsapp_number || '',
+        email: vendorData.email || '',
+        instagram: vendorData.instagram || '',
+        address: vendorData.address || '',
+        
+        // Business Details
+        experience: vendorData.experience || '',
+        quick_intro: vendorData.quick_intro || '',
+        caption: vendorData.caption || '',
+        detailed_intro: vendorData.detailed_intro || '',
+        starting_price: vendorData.starting_price || 0,
+        languages_spoken: vendorData.languages_spoken || [],
+        highlight_features: vendorData.highlight_features || [],
+        services: uniqueServices,
+        packages: vendorData.packages || [],
+        deliverables: vendorData.deliverables || [],
+        catalog_images: vendorData.catalog_images || [],
+        customer_reviews: vendorData.customer_reviews || [],
+        booking_policies: vendorData.booking_policies || {
+          cancellation_policy: '',
+          payment_terms: '',
+          booking_requirements: ''
+        },
+        additional_info: vendorData.additional_info || {
+          working_hours: '',
+          languages: [],
+          awards: [],
+          certifications: [],
+          custom_fields: []
+        },
+        verified: vendorData.verified || false,
+        currently_available: vendorData.currently_available || false,
+      };
+
+      // Set form values
+      Object.keys(formData).forEach(key => {
+        setValue(key as keyof VendorEditForm, formData[key as keyof VendorEditForm]);
+      });
+
+      // Load highlight features
+      if (formData.highlight_features && Array.isArray(formData.highlight_features)) {
+        formData.highlight_features.forEach(feature => {
+          if (feature && feature.trim() !== '') {
+            appendHighlight(feature.trim());
+          }
+        });
+      }
+
+      // Load deliverables
+      if (formData.deliverables && Array.isArray(formData.deliverables)) {
+        formData.deliverables.forEach(deliverable => {
+          if (deliverable && deliverable.trim() !== '') {
+            appendDeliverable(deliverable.trim());
+          }
+        });
+      }
+
+      // Load custom fields
+      if (formData.additional_info?.custom_fields && Array.isArray(formData.additional_info.custom_fields)) {
+        formData.additional_info.custom_fields.forEach(field => {
+          if (field && field.field_name && field.field_value) {
+            appendCustomField({
+              field_name: field.field_name.trim(),
+              field_value: field.field_value.trim()
+            });
+          }
+        });
+      }
+
+      setIsLoadingFormData(false);
+    } catch (error) {
+      console.error('Error loading vendor data:', error);
+      setIsLoadingFormData(false);
+    }
+  };
+
+  const loadCatalogImages = async () => {
     if (!vendorId) return;
 
+    try {
+      const mediaData = await getVendorMedia(vendorId);
+      const catalogImages = mediaData
+        .filter(media => media.category === 'catalog')
+        .map(media => media.media_url);
+      
+      setCatalogImages(catalogImages);
+      setOriginalCatalogImages([...catalogImages]);
+      setCatalogImagesWithMeta(mediaData.filter(media => media.category === 'catalog'));
+      
+      // Load highlight status
+      const highlightStatus = mediaData
+        .filter(media => media.category === 'catalog')
+        .map(media => ({
+          id: media.id,
+          media_url: media.media_url,
+          is_highlighted: media.is_highlighted || false
+        }));
+      setCurrentHighlightStatus(highlightStatus);
+    } catch (error) {
+      console.error('Error loading catalog images:', error);
+    }
+  };
+
+  const onSubmit = async (data: VendorEditForm) => {
+    if (!vendor) return;
+
     setSaving(true);
-    setError("");
+    setError('');
 
     try {
-      await updateVendor(vendorId, data);
-      navigate("/admin/dashboard");
+      // Process the form data
+      const processedData = {
+        ...data,
+        highlight_features: data.highlight_features?.filter(f => f && f.trim() !== '') || [],
+        deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
+        services: data.services?.filter(s => s && s.name && s.name.trim() !== '') || [],
+        packages: data.packages?.filter(p => p && p.name && p.name.trim() !== '') || [],
+        customer_reviews: data.customer_reviews?.filter(r => r && r.customer_name && r.review && r.customer_name.trim() !== '' && r.review.trim() !== '') || [],
+        additional_info: {
+          ...data.additional_info,
+          languages: data.additional_info?.languages?.filter(l => l && l.trim() !== '') || [],
+          awards: data.additional_info?.awards?.filter(a => a && a.trim() !== '') || [],
+          certifications: data.additional_info?.certifications?.filter(c => c && c.trim() !== '') || [],
+          custom_fields: data.additional_info?.custom_fields?.filter(f => f && f.field_name && f.field_value && f.field_name.trim() !== '' && f.field_value.trim() !== '') || []
+        }
+      };
+
+      // Update vendor directly (no approval workflow for admin)
+      await updateVendor(vendor.vendor_id, processedData);
+      
+      setSuccessMessage('Vendor profile updated successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
     } catch (error) {
-      console.error("Error updating vendor:", error);
-      setError("Failed to update vendor");
+      console.error('Error updating vendor:', error);
+      setError('Failed to update vendor profile. Please try again.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!vendorId || !vendor) return;
+  const handleImageUpload = async (urls: string[]) => {
+    if (!vendorId) return;
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${vendor.brand_name}? This action cannot be undone.`
-    );
-
-    if (confirmed) {
-      try {
-        await deleteVendor(vendorId);
-        navigate("/admin/dashboard");
-      } catch (error) {
-        console.error("Error deleting vendor:", error);
-        setError("Failed to delete vendor");
-      }
+    try {
+      const newCatalogImages = [...catalogImages, ...urls];
+      setCatalogImages(newCatalogImages);
+      
+      // Update in database
+      await updateVendorCatalogImages(vendorId, newCatalogImages);
+      
+      // Refresh the catalog images
+      await loadCatalogImages();
+      setForceRefresh(prev => prev + 1);
+    } catch (error) {
+      console.error('Error uploading images:', error);
     }
   };
 
-  const watchedValues = watch();
+  const handleToggleHighlight = async (imageUrl: string) => {
+    if (!vendorId) return;
+
+    try {
+      await toggleImageHighlight(vendorId, imageUrl);
+      await loadCatalogImages();
+      setHighlightMessage('Highlight status updated successfully!');
+      setTimeout(() => setHighlightMessage(''), 3000);
+      } catch (error) {
+      console.error('Error toggling highlight:', error);
+    }
+  };
+
+  const handleDeleteImage = async (imageUrl: string) => {
+    if (!vendorId) return;
+
+    try {
+      await deleteVendorMedia(vendorId, imageUrl);
+      await loadCatalogImages();
+    } catch (error) {
+      console.error('Error deleting image:', error);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mb-4"></div>
+          <p className="text-lg text-gray-600">Loading vendor data...</p>
+        </div>
       </div>
     );
   }
 
-  if (!vendor) {
+  if (error && !vendor) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <AlertTriangle className="mx-auto h-12 w-12 text-red-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Vendor not found</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            The vendor you're looking for doesn't exist.
-          </p>
-          <button
-            onClick={() => navigate("/admin/dashboard")}
-            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
-          >
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => navigate('/admin/dashboard')}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -197,97 +433,85 @@ const AdminVendorEdit = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <button
-                onClick={() => navigate("/admin/dashboard")}
-                className="mr-4 p-2 text-gray-400 hover:text-gray-600"
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/dashboard')}
+                className="flex items-center space-x-2"
               >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <Shield className="h-8 w-8 text-blue-600 mr-3" />
+                <ArrowLeft className="w-4 h-4" />
+                <span>Back to Dashboard</span>
+              </Button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Edit Vendor: {vendor.brand_name}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Vendor ID: {vendor.vendor_id}
-                </p>
+                <h1 className="text-2xl font-bold text-gray-900">Edit Vendor Profile</h1>
+                <p className="text-sm text-gray-500">Admin Edit - Changes Applied Immediately</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={() => navigate(`/vendor/${vendor.vendor_id}`)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center"
+              {successMessage && (
+                <div className="flex items-center space-x-2 text-green-600">
+                  <CheckCircle className="w-5 h-5" />
+                  <span className="text-sm font-medium">{successMessage}</span>
+                </div>
+              )}
+              <Button
+                onClick={handleSubmit(onSubmit)}
+                disabled={saving}
+                className="flex items-center space-x-2"
               >
-                <Eye className="h-4 w-4 mr-2" />
-                View Public Profile
-              </button>
-              <button
-                onClick={handleDelete}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md flex items-center"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Vendor
-              </button>
+                <Save className="w-4 h-4" />
+                <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+              </Button>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Form */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 rounded-md p-4">
-            <div className="flex">
-              <XCircle className="h-5 w-5 text-red-400" />
-              <div className="ml-3">
-                <p className="text-sm text-red-800">{error}</p>
-              </div>
-            </div>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <span className="text-red-700">{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Basic Information</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Basic Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Brand Name *
-                </label>
-                <input
-                  {...register("brand_name", { required: "Brand name is required" })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name *</label>
+                  <Input
+                    {...register('brand_name', { required: 'Brand name is required' })}
+                    placeholder="Enter brand name"
                 />
                 {errors.brand_name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.brand_name.message}</p>
+                    <p className="text-red-500 text-sm mt-1">{errors.brand_name.message}</p>
                 )}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contact Person Name *
-                </label>
-                <input
-                  {...register("spoc_name", { required: "Contact person name is required" })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person Name *</label>
+                  <Input
+                    {...register('spoc_name', { required: 'Contact person name is required' })}
+                    placeholder="Enter contact person name"
                 />
                 {errors.spoc_name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.spoc_name.message}</p>
+                    <p className="text-red-500 text-sm mt-1">{errors.spoc_name.message}</p>
                 )}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
-                </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
                 <select
-                  {...register("category", { required: "Category is required" })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    {...register('category', { required: 'Category is required' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Category</option>
                   {CATEGORY_LIST.map((category) => (
@@ -297,408 +521,336 @@ const AdminVendorEdit = () => {
                   ))}
                 </select>
                 {errors.category && (
-                  <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
+                    <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>
                 )}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subcategory
-                </label>
-                <input
-                  {...register("subcategory")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subcategory</label>
+                  <Input
+                    {...register('subcategory')}
                   placeholder="Enter subcategory (optional)"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Brand/Company Logo Image
-                </label>
-                <input
-                  {...register("brand_logo_url")}
-                  type="url"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://example.com/brand-logo.jpg"
-                />
-                <p className="text-sm text-gray-500 mt-1">Upload your brand/company logo</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contact Person Image
-                </label>
-                <input
-                  {...register("contact_person_image_url")}
-                  type="url"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://example.com/contact-person.jpg"
-                />
-                <p className="text-sm text-gray-500 mt-1">Upload contact person's photo</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Content</h3>
-            
-            
-            <div className="grid grid-cols-1 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quick Intro <span className="text-red-500">*</span>
-                </label>
-                <input
-                  {...register("quick_intro", { 
-                    required: "Quick intro is required",
-                    maxLength: { value: 60, message: "Quick intro must not exceed 60 characters" }
-                  })}
-                  maxLength={60}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., Creative wedding photography with artistic vision"
-                />
-                <div className="flex justify-between items-center mt-1">
-                  <p className="text-sm text-gray-500">Short catchy intro line for services</p>
-                  <span className="text-xs text-gray-400">{watch("quick_intro")?.length || 0}/60</span>
                 </div>
-                {errors.quick_intro && (
-                  <p className="text-red-500 text-sm mt-1">{errors.quick_intro.message}</p>
-                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Caption <span className="text-sm text-gray-500">(Optional)</span>
-                  </label>
-                  <input
-                    {...register("caption", {
-                      maxLength: { value: 60, message: "Caption must not exceed 60 characters" }
-                    })}
-                    maxLength={60}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="e.g., Namaskaram! Capturing moments with expertise"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Brand Logo URL</label>
+                  <Input
+                    {...register('brand_logo_url')}
+                    placeholder="https://example.com/logo.jpg"
                   />
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-sm text-gray-500">Cultural greeting or tagline</p>
-                    <span className="text-xs text-gray-400">{watch("caption")?.length || 0}/60</span>
-                  </div>
-                  {errors.caption && (
-                    <p className="text-red-500 text-sm mt-1">{errors.caption.message}</p>
-                  )}
                 </div>
-
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Detailed Intro <span className="text-sm text-gray-500">(Optional)</span>
-                  </label>
-                  <textarea
-                    {...register("detailed_intro", {
-                      maxLength: { value: 300, message: "Detailed intro must not exceed 300 characters" }
-                    })}
-                    maxLength={300}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Professional services with years of experience..."
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person Image URL</label>
+                  <Input
+                    {...register('contact_person_image_url')}
+                    placeholder="https://example.com/person.jpg"
                   />
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-sm text-gray-500">Detailed description of services</p>
-                    <span className="text-xs text-gray-400">{watch("detailed_intro")?.length || 0}/300</span>
-                  </div>
-                  {errors.detailed_intro && (
-                    <p className="text-red-500 text-sm mt-1">{errors.detailed_intro.message}</p>
-                  )}
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Contact Information */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Contact Information</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number *
-                </label>
-                <input
-                  {...register("phone_number", { required: "Phone number is required" })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number *</label>
+                  <Input
+                    {...register('phone_number', { required: 'Phone number is required' })}
+                    placeholder="Enter phone number"
                 />
                 {errors.phone_number && (
-                  <p className="mt-1 text-sm text-red-600">{errors.phone_number.message}</p>
+                    <p className="text-red-500 text-sm mt-1">{errors.phone_number.message}</p>
                 )}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  WhatsApp Number
-                </label>
-                <input
-                  {...register("whatsapp_number")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp Number</label>
+                  <Input
+                    {...register('whatsapp_number')}
+                    placeholder="Enter WhatsApp number"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input
-                  {...register("email", {
-                    pattern: {
-                      value: /^\S+@\S+$/i,
-                      message: "Please enter a valid email address"
-                    }
-                  })}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <Input
+                    {...register('email')}
                   type="email"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter email address"
                 />
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-                )}
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Instagram Handle
-                </label>
-                <input
-                  {...register("instagram")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Instagram Handle</label>
+                  <Input
+                    {...register('instagram')}
                   placeholder="@username"
                 />
+                </div>
               </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address
-                </label>
-                <textarea
-                  {...register("address")}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                <Textarea
+                  {...register('address')}
+                  placeholder="Enter full address"
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
           {/* Business Details */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Business Details</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Experience
-                </label>
-                <input
-                  {...register("experience")}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="e.g., 5+ Years"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rating
-                </label>
-                <input
-                  {...register("rating", { valueAsNumber: true })}
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Review Count
-                </label>
-                <input
-                  {...register("review_count", { valueAsNumber: true })}
-                  type="number"
-                  min="0"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              {/* Highlight Features */}
-              <div className="md:col-span-2">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="text-lg font-semibold text-gray-800">Highlight Features</h4>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (highlightFields.length < 4) {
-                          appendHighlight("Award-winning service");
-                        }
-                      }}
-                      disabled={highlightFields.length >= 4}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                        highlightFields.length >= 4 
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                          : 'bg-green-500 hover:bg-green-600 text-white'
-                      }`}
-                    >
-                      Add Highlight {highlightFields.length >= 4 ? '(Max 4)' : `(${highlightFields.length}/4)`}
-                    </button>
-                  </div>
-                  
-                  <p className="text-sm text-gray-600">Add up to 4 key features that make your service stand out</p>
-                  
-                  {highlightFields.map((field, index) => (
-                    <div key={field.id} className="flex gap-2">
-                      <input
-                        {...register(`highlight_features.${index}` as const)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        placeholder={`Highlight feature ${index + 1} (e.g., Award-winning service, Same-day delivery)`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeHighlight(index)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                  
-                  {highlightFields.length === 0 && (
-                    <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
-                      <p>No highlight features added yet. Click "Add Highlight" to start.</p>
-                    </div>
-                  )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Business Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Experience</label>
+                  <Input
+                    {...register('experience')}
+                    placeholder="e.g., 5+ years"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Starting Price</label>
+                  <Input
+                    {...register('starting_price', { valueAsNumber: true })}
+                    type="number"
+                    placeholder="Enter starting price"
+                  />
                 </div>
               </div>
-            </div>
-          </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quick Intro</label>
+                <Input
+                  {...register('quick_intro')}
+                  placeholder="Short catchy intro line"
+                />
+              </div>
 
-          {/* Deliverables */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-medium text-gray-900">Deliverables</h3>
-              <button
-                type="button"
-                onClick={() => appendDeliverable("Professional service delivery")}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm"
-              >
-                Add Deliverable
-              </button>
-            </div>
-            
-            <div className="space-y-3">
-              {deliverableFields.map((field, index) => (
-                <div key={field.id} className="flex gap-2">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Caption</label>
+                <Input
+                  {...register('caption')}
+                  placeholder="Cultural greeting or tagline"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Detailed Intro</label>
+                <Textarea
+                  {...register('detailed_intro')}
+                  placeholder="Detailed description of your services"
+                  rows={3}
+                />
+              </div>
+
+              {/* Status Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
                   <input
-                    {...register(`deliverables.${index}` as const)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter what you will deliver (e.g., High-resolution edited photos, Professional album, etc.)"
+                    {...register('verified')}
+                    type="checkbox"
+                    id="verified"
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <button
+                  <label htmlFor="verified" className="text-sm font-medium text-gray-700">
+                    Verified Vendor
+                  </label>
+                  </div>
+                <div className="flex items-center space-x-2">
+                      <input
+                    {...register('currently_available')}
+                    type="checkbox"
+                    id="currently_available"
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor="currently_available" className="text-sm font-medium text-gray-700">
+                    Currently Available
+                  </label>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Services */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Services</span>
+                <Button
+                type="button"
+                  onClick={() => appendService({ name: '', description: '', price: '' })}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Service</span>
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {serviceFields.map((field, index) => (
+                <div key={field.id} className="border border-gray-200 p-4 rounded-lg space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Input
+                      {...register(`services.${index}.name`)}
+                      placeholder="Service name"
+                    />
+                    <Input
+                      {...register(`services.${index}.price`)}
+                      placeholder="Price (optional)"
+                    />
+            </div>
+                  <Textarea
+                    {...register(`services.${index}.description`)}
+                    placeholder="Service description"
+                    rows={2}
+                  />
+                  <Button
                     type="button"
-                    onClick={() => removeDeliverable(index)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-md"
+                    onClick={() => removeService(index)}
+                    variant="destructive"
+                    size="sm"
                   >
-                    Remove
-                  </button>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove Service
+                  </Button>
                 </div>
               ))}
-              
-              {deliverableFields.length === 0 && (
-                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-md">
-                  <p>No deliverables added yet</p>
-                  <p className="text-sm">Click "Add Deliverable" to specify what this vendor will deliver to clients</p>
+            </CardContent>
+          </Card>
+
+          {/* Packages */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Packages</span>
+                <Button
+                  type="button"
+                  onClick={() => appendPackage({ name: '', price: '', description: '', features: [] })}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Package</span>
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {packageFields.map((field, index) => (
+                <div key={field.id} className="border border-gray-200 p-4 rounded-lg space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <Input
+                      {...register(`packages.${index}.name`)}
+                      placeholder="Package name"
+                    />
+                    <Input
+                      {...register(`packages.${index}.price`)}
+                      placeholder="Package price"
+                    />
+                  </div>
+                  <Textarea
+                    {...register(`packages.${index}.description`)}
+                    placeholder="Package description"
+                    rows={2}
+                  />
+                  <Input
+                    {...register(`packages.${index}.features`)}
+                    placeholder="Features (comma-separated)"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => removePackage(index)}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove Package
+                  </Button>
                 </div>
-              )}
-            </div>
-          </div>
+              ))}
+            </CardContent>
+          </Card>
 
-          {/* Status Settings */}
-          <div className="bg-white shadow rounded-lg p-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Status & Verification</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-center">
-                <input
-                  {...register("verified")}
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">
-                  Verified Vendor
-                </label>
+          {/* Customer Reviews */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Customer Reviews</span>
+                <Button
+                  type="button"
+                  onClick={() => appendReview({ customer_name: '', rating: 5, review: '', date: '' })}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Review</span>
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {reviewFields.map((field, index) => (
+                <div key={field.id} className="border border-gray-200 p-4 rounded-lg space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <Input
+                      {...register(`customer_reviews.${index}.customer_name`)}
+                      placeholder="Customer name"
+                    />
+                    <select
+                      {...register(`customer_reviews.${index}.rating`)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value={5}>5 Stars</option>
+                      <option value={4}>4 Stars</option>
+                      <option value={3}>3 Stars</option>
+                      <option value={2}>2 Stars</option>
+                      <option value={1}>1 Star</option>
+                    </select>
+                    <Input
+                      {...register(`customer_reviews.${index}.date`)}
+                      type="date"
+                    />
               </div>
-
-              <div className="flex items-center">
-                <input
-                  {...register("currently_available")}
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label className="ml-2 block text-sm text-gray-900">
-                  Currently Available
-                </label>
-              </div>
-            </div>
-
-            {/* Status Preview */}
-            <div className="mt-6 p-4 bg-gray-50 rounded-md">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">Status Preview:</h4>
-              <div className="flex flex-wrap gap-2">
-                {watchedValues.verified ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Verified
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    <XCircle className="h-3 w-3 mr-1" />
-                    Unverified
-                  </span>
-                )}
-                
-                {watchedValues.currently_available ? (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Active
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    Inactive
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Submit Buttons */}
-          <div className="flex justify-end space-x-4">
-            <button
+                  <Textarea
+                    {...register(`customer_reviews.${index}.review`)}
+                    placeholder="Customer review"
+                    rows={2}
+                  />
+                  <Button
               type="button"
-              onClick={() => navigate("/admin/dashboard")}
-              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              {saving ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+                    onClick={() => removeReview(index)}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove Review
+                  </Button>
           </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Catalog Images */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Catalog Images</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ImageUpload
+                onUpload={handleImageUpload}
+                existingImages={catalogImages}
+                onToggleHighlight={handleToggleHighlight}
+                onDeleteImage={handleDeleteImage}
+                highlightStatus={currentHighlightStatus}
+                forceRefresh={forceRefresh}
+              />
+            </CardContent>
+          </Card>
         </form>
       </div>
     </div>

@@ -1,7 +1,10 @@
--- Make starting_price field mandatory (NOT NULL) in vendors table
--- This will ensure all vendors must have a starting price
+-- Simple fix for starting_price constraint issue
+-- Run this in your Supabase SQL editor
 
--- First, update any existing vendors that have NULL or 0 starting_price
+-- Step 1: Drop the constraint if it exists (in case it was partially created)
+ALTER TABLE vendors DROP CONSTRAINT IF EXISTS check_starting_price_positive;
+
+-- Step 2: Update all vendors with NULL or 0 starting_price
 UPDATE vendors 
 SET starting_price = CASE 
   WHEN category = 'Photographers' THEN 35000
@@ -19,14 +22,17 @@ SET starting_price = CASE
 END
 WHERE starting_price IS NULL OR starting_price <= 0;
 
--- Now make the column NOT NULL
+-- Step 3: Make the column NOT NULL
 ALTER TABLE vendors 
 ALTER COLUMN starting_price SET NOT NULL;
 
--- Add a check constraint to ensure starting_price is positive
+-- Step 4: Add the check constraint
 ALTER TABLE vendors 
 ADD CONSTRAINT check_starting_price_positive 
 CHECK (starting_price > 0);
 
--- Add comment for clarity
-COMMENT ON COLUMN vendors.starting_price IS 'Starting price for vendor services in rupees (mandatory field)';
+-- Step 5: Verify everything is working
+SELECT COUNT(*) as total_vendors, 
+       MIN(starting_price) as min_price, 
+       MAX(starting_price) as max_price 
+FROM vendors;

@@ -330,6 +330,8 @@ const AdminVendorEdit: React.FC = () => {
     setError('');
 
     try {
+      console.log('Form data received:', data);
+      
       // Process the form data
       const processedData = {
         ...data,
@@ -347,11 +349,23 @@ const AdminVendorEdit: React.FC = () => {
         }
       };
 
+      console.log('Processed data to save:', processedData);
+      console.log('Updating vendor with ID:', vendor.vendor_id);
+
       // Update vendor directly (no approval workflow for admin)
-      await updateVendor(vendor.vendor_id, processedData);
+      const updateResult = await updateVendor(vendor.vendor_id, processedData);
       
-      setSuccessMessage('Vendor profile updated successfully!');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      console.log('Update result:', updateResult);
+      
+      if (updateResult) {
+        setSuccessMessage('Vendor profile updated successfully!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+        
+        // Refresh vendor data
+        await fetchVendor();
+      } else {
+        setError('Failed to update vendor profile. Please try again.');
+      }
       
     } catch (error) {
       console.error('Error updating vendor:', error);
@@ -660,6 +674,24 @@ const AdminVendorEdit: React.FC = () => {
                     type="checkbox"
                     id="verified"
                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      setValue('verified', checked);
+                      if (vendor) {
+                        try {
+                          const result = await updateVendor(vendor.vendor_id, { verified: checked });
+                          if (result) {
+                            setSuccessMessage(`Vendor ${checked ? 'verified' : 'unverified'} successfully!`);
+                            setTimeout(() => setSuccessMessage(''), 3000);
+                          } else {
+                            setError('Failed to update verification status');
+                          }
+                        } catch (error) {
+                          console.error('Error updating verification:', error);
+                          setError('Failed to update verification status');
+                        }
+                      }
+                    }}
                   />
                   <label htmlFor="verified" className="text-sm font-medium text-gray-700">
                     Verified Vendor
@@ -671,6 +703,24 @@ const AdminVendorEdit: React.FC = () => {
                     type="checkbox"
                     id="currently_available"
                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                    onChange={async (e) => {
+                      const checked = e.target.checked;
+                      setValue('currently_available', checked);
+                      if (vendor) {
+                        try {
+                          const result = await updateVendor(vendor.vendor_id, { currently_available: checked });
+                          if (result) {
+                            setSuccessMessage(`Availability ${checked ? 'enabled' : 'disabled'} successfully!`);
+                            setTimeout(() => setSuccessMessage(''), 3000);
+                          } else {
+                            setError('Failed to update availability status');
+                          }
+                        } catch (error) {
+                          console.error('Error updating availability:', error);
+                          setError('Failed to update availability status');
+                        }
+                      }
+                    }}
                   />
                   <label htmlFor="currently_available" className="text-sm font-medium text-gray-700">
                     Currently Available

@@ -443,16 +443,27 @@ export const toggleImageHighlight = async (imageId: string, isHighlighted: boole
 // Update vendor
 export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>): Promise<boolean> => {
   try {
-    const { error } = await supabase
+    console.log('Updating vendor with ID:', vendorId);
+    console.log('Vendor data to update:', vendorData);
+    
+    const { data, error } = await supabase
       .from('vendors')
       .update(vendorData)
-      .eq('vendor_id', vendorId);
+      .eq('vendor_id', vendorId)
+      .select();
 
     if (error) {
-      console.error('Error updating vendor:', error);
+      console.error('Supabase error updating vendor:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return false;
     }
 
+    console.log('Vendor updated successfully:', data);
     return true;
   } catch (error) {
     console.error('Error updating vendor:', error);

@@ -828,60 +828,110 @@ const AdminVendorEdit: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Customer Reviews */}
+          {/* Customer Reviews - Admin Add Reviews Section */}
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
-                <span>Customer Reviews</span>
+                <div className="flex items-center space-x-3">
+                  <span>Customer Reviews (Admin Add Reviews)</span>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    {reviewFields.length} Review{reviewFields.length !== 1 ? 's' : ''} Added
+                  </Badge>
+                </div>
                 <Button
                   type="button"
-                  onClick={() => appendReview({ customer_name: '', rating: 5, review: '', date: '' })}
-                  className="flex items-center space-x-2"
+                  onClick={() => appendReview({ customer_name: '', rating: 5, review: '', date: new Date().toISOString().split('T')[0] })}
+                  className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Add Review</span>
                 </Button>
               </CardTitle>
+              <p className="text-sm text-gray-600 mt-2">
+                Add customer reviews that will be displayed on the vendor's public profile. 
+                These reviews are visible to customers browsing the website.
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {reviewFields.map((field, index) => (
-                <div key={field.id} className="border border-gray-200 p-4 rounded-lg space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <Input
-                      {...register(`customer_reviews.${index}.customer_name`)}
-                      placeholder="Customer name"
-                    />
-                    <select
-                      {...register(`customer_reviews.${index}.rating`)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value={5}>5 Stars</option>
-                      <option value={4}>4 Stars</option>
-                      <option value={3}>3 Stars</option>
-                      <option value={2}>2 Stars</option>
-                      <option value={1}>1 Star</option>
-                    </select>
-                    <Input
-                      {...register(`customer_reviews.${index}.date`)}
-                      type="date"
-                    />
-              </div>
-                  <Textarea
-                    {...register(`customer_reviews.${index}.review`)}
-                    placeholder="Customer review"
-                    rows={2}
-                  />
+              {reviewFields.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-300 rounded-lg">
+                  <Star className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">No Reviews Added Yet</h3>
+                  <p className="text-gray-500 mb-4">Click "Add Review" to add customer reviews for this vendor.</p>
                   <Button
-              type="button"
-                    onClick={() => removeReview(index)}
-                    variant="destructive"
-                    size="sm"
+                    type="button"
+                    onClick={() => appendReview({ customer_name: '', rating: 5, review: '', date: new Date().toISOString().split('T')[0] })}
+                    className="bg-green-600 hover:bg-green-700"
                   >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Remove Review
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Review
                   </Button>
+            </div>
+              ) : (
+                reviewFields.map((field, index) => (
+                  <div key={field.id} className="border border-gray-200 p-6 rounded-lg space-y-4 bg-gradient-to-r from-green-50 to-blue-50">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-lg font-semibold text-gray-800">Review #{index + 1}</h4>
+                      <Button
+                        type="button"
+                        onClick={() => removeReview(index)}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Remove Review
+                      </Button>
           </div>
-              ))}
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name *</label>
+                        <Input
+                          {...register(`customer_reviews.${index}.customer_name`, { required: 'Customer name is required' })}
+                          placeholder="e.g., John & Sarah"
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Rating *</label>
+                        <select
+                          {...register(`customer_reviews.${index}.rating`)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value={5}>⭐⭐⭐⭐⭐ 5 Stars (Excellent)</option>
+                          <option value={4}>⭐⭐⭐⭐ 4 Stars (Very Good)</option>
+                          <option value={3}>⭐⭐⭐ 3 Stars (Good)</option>
+                          <option value={2}>⭐⭐ 2 Stars (Fair)</option>
+                          <option value={1}>⭐ 1 Star (Poor)</option>
+                        </select>
+              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Review Date *</label>
+                        <Input
+                          {...register(`customer_reviews.${index}.date`, { required: 'Review date is required' })}
+                          type="date"
+                          className="w-full"
+                        />
+              </div>
+            </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Review Text *</label>
+                      <Textarea
+                        {...register(`customer_reviews.${index}.review`, { required: 'Review text is required' })}
+                        placeholder="Write the customer's review here..."
+                        rows={3}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 text-sm text-gray-600">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span>This review will be visible on the vendor's public profile</span>
+              </div>
+            </div>
+                ))
+              )}
             </CardContent>
           </Card>
 

@@ -639,43 +639,42 @@ const CategoryVendors = () => {
 
                       {/* Location & Languages */}
                       <div className="mb-3 space-y-2">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <MapPin className="w-4 h-4" />
-                          <span className="text-sm">{vendor.address || 'Location not specified'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Users className="w-4 h-4" />
-                          <span className="text-xs">
-                            Languages: {vendor.languages_spoken && Array.isArray(vendor.languages_spoken) 
-                              ? vendor.languages_spoken.join(', ')
-                              : 'Not specified'
-                            }
-                          </span>
-                        </div>
+                        {vendor.address && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <MapPin className="w-4 h-4" />
+                            <span className="text-sm">{vendor.address}</span>
+                          </div>
+                        )}
+                        {vendor.languages_spoken && Array.isArray(vendor.languages_spoken) && vendor.languages_spoken.length > 0 && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Users className="w-4 h-4" />
+                            <span className="text-xs">
+                              Languages: {vendor.languages_spoken.join(', ')}
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Experience & Availability */}
                       <div className="flex items-center justify-between mb-3 text-sm">
-                        <div className="flex items-center gap-1 text-gray-600">
-                          <Award className="w-4 h-4" />
-                          <span>{vendor.experience || 'Experience not specified'}</span>
-                        </div>
+                        {vendor.experience && (
+                          <div className="flex items-center gap-1 text-gray-600">
+                            <Award className="w-4 h-4" />
+                            <span>{vendor.experience}</span>
+                          </div>
+                        )}
                         <div className="text-xs text-gray-500">
                           Available: {vendor.currently_available ? 'Yes' : 'No'}
                         </div>
                       </div>
 
-                      {/* Price & Enhanced Response Time */}
+                      {/* Price */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="text-lg font-bold text-amber-600">
                           {vendor.starting_price 
                             ? `Starting ₹${vendor.starting_price.toLocaleString()}`
                             : 'Contact for pricing'
                           }
-                        </div>
-                        <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-700 border border-green-200">
-                          <Clock className="w-3 h-3" />
-                          <span>Fast Response</span>
                         </div>
                       </div>
 
@@ -718,13 +717,17 @@ const CategoryVendors = () => {
                         </Button>
                         
                         {/* Project Count & Quick Info */}
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>{vendor.total_events || 0} completed events</span>
-                          <span className="flex items-center gap-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            Verified Professional
-                          </span>
-                        </div>
+                        {vendor.total_events && vendor.total_events > 0 && (
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>{vendor.total_events} completed events</span>
+                            {vendor.verified && (
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                Verified Professional
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

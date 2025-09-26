@@ -898,11 +898,19 @@ const AdminVendorEdit: React.FC = () => {
                           {...register(`customer_reviews.${index}.rating`)}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
-                          <option value={5}>⭐⭐⭐⭐⭐ 5 Stars (Excellent)</option>
-                          <option value={4}>⭐⭐⭐⭐ 4 Stars (Very Good)</option>
-                          <option value={3}>⭐⭐⭐ 3 Stars (Good)</option>
-                          <option value={2}>⭐⭐ 2 Stars (Fair)</option>
-                          <option value={1}>⭐ 1 Star (Poor)</option>
+                          <option value={5.0}>⭐⭐⭐⭐⭐ 5.0 Stars (Excellent)</option>
+                          <option value={4.9}>⭐⭐⭐⭐⭐ 4.9 Stars (Outstanding)</option>
+                          <option value={4.7}>⭐⭐⭐⭐⭐ 4.7 Stars (Exceptional)</option>
+                          <option value={4.5}>⭐⭐⭐⭐⭐ 4.5 Stars (Excellent)</option>
+                          <option value={4.2}>⭐⭐⭐⭐⭐ 4.2 Stars (Very Good)</option>
+                          <option value={4.1}>⭐⭐⭐⭐⭐ 4.1 Stars (Very Good)</option>
+                          <option value={4.0}>⭐⭐⭐⭐ 4.0 Stars (Very Good)</option>
+                          <option value={3.5}>⭐⭐⭐⭐ 3.5 Stars (Good)</option>
+                          <option value={3.0}>⭐⭐⭐ 3.0 Stars (Good)</option>
+                          <option value={2.5}>⭐⭐⭐ 2.5 Stars (Fair)</option>
+                          <option value={2.0}>⭐⭐ 2.0 Stars (Fair)</option>
+                          <option value={1.5}>⭐⭐ 1.5 Stars (Poor)</option>
+                          <option value={1.0}>⭐ 1.0 Star (Poor)</option>
                         </select>
               </div>
                       <div>

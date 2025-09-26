@@ -67,6 +67,7 @@ type VendorEditForm = {
   additional_info?: {
     working_hours?: string;
     languages?: string[];
+    service_areas?: string[];
     awards?: string[];
     certifications?: string[];
     custom_fields?: Array<{
@@ -246,6 +247,7 @@ const AdminVendorEdit: React.FC = () => {
         additional_info: vendorData.additional_info || {
           working_hours: '',
           languages: [],
+          service_areas: [],
           awards: [],
           certifications: [],
           custom_fields: []
@@ -343,6 +345,7 @@ const AdminVendorEdit: React.FC = () => {
         additional_info: {
           ...data.additional_info,
           languages: data.additional_info?.languages?.filter(l => l && l.trim() !== '') || [],
+          service_areas: data.additional_info?.service_areas?.filter(area => area && area.trim() !== '') || [],
           awards: data.additional_info?.awards?.filter(a => a && a.trim() !== '') || [],
           certifications: data.additional_info?.certifications?.filter(c => c && c.trim() !== '') || [],
           custom_fields: data.additional_info?.custom_fields?.filter(f => f && f.field_name && f.field_value && f.field_name.trim() !== '' && f.field_value.trim() !== '') || []

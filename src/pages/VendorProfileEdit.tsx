@@ -63,6 +63,7 @@ type VendorEditForm = {
     languages?: string[];
     awards?: string[];
     certifications?: string[];
+    service_areas?: string[];
     custom_fields?: Array<{
       field_name: string;
       field_value: string;
@@ -146,6 +147,7 @@ const VendorProfileEdit: React.FC = () => {
       additional_info: {
         working_hours: '',
         languages: [],
+        service_areas: [],
         awards: [],
         certifications: [],
         custom_fields: []
@@ -330,6 +332,9 @@ const VendorProfileEdit: React.FC = () => {
         languages: Array.isArray(vendorData.additional_info?.languages) 
           ? vendorData.additional_info.languages.join(', ')
           : (vendorData.additional_info?.languages || ''),
+        service_areas: Array.isArray(vendorData.additional_info?.service_areas) 
+          ? vendorData.additional_info.service_areas.join(', ')
+          : (vendorData.additional_info?.service_areas || ''),
         awards: Array.isArray(vendorData.additional_info?.awards)
           ? vendorData.additional_info.awards.join(', ')
           : (vendorData.additional_info?.awards || ''),
@@ -534,6 +539,7 @@ const VendorProfileEdit: React.FC = () => {
     // Set sample additional info
     setValue('additional_info.working_hours', '9:00 AM - 8:00 PM, Available on weekends and holidays');
     setValue('additional_info.languages', ['English', 'Hindi', 'Telugu', 'Tamil']);
+    setValue('additional_info.service_areas', ['Hyderabad', 'Bangalore', 'Chennai', 'Mumbai']);
     setValue('additional_info.awards', ['Best Wedding Photographer 2023 - Hyderabad Wedding Awards', 'Excellence in Photography 2022 - South India Photo Awards']);
     setValue('additional_info.certifications', ['Certified Professional Photographer - Indian Photography Association', 'Wedding Photography Specialist - Creative Arts Institute']);
 
@@ -779,6 +785,9 @@ const VendorProfileEdit: React.FC = () => {
           languages: typeof data.additional_info.languages === 'string' 
             ? data.additional_info.languages.split(',').map(l => l.trim()).filter(l => l !== '')
             : (data.additional_info.languages || []),
+          service_areas: typeof data.additional_info.service_areas === 'string' 
+            ? data.additional_info.service_areas.split(',').map(area => area.trim()).filter(area => area !== '')
+            : (data.additional_info.service_areas || []),
           awards: typeof data.additional_info.awards === 'string'
             ? data.additional_info.awards.split(',').map(a => a.trim()).filter(a => a !== '')
             : (data.additional_info.awards || []),
@@ -2245,6 +2254,24 @@ const VendorProfileEdit: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Service Areas
+                </label>
+                <Input
+                  {...register("additional_info.service_areas")}
+                  placeholder="e.g., Hyderabad, Bangalore, Chennai (comma-separated)"
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    const serviceAreas = value.split(',').map(area => area.trim()).filter(area => area);
+                    setValue('additional_info.service_areas', serviceAreas);
+                  }}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  List the cities/areas where you provide services
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Awards
                 </label>
                 <Input
@@ -2433,6 +2460,7 @@ const VendorProfileEdit: React.FC = () => {
                               const additionalInfo = value as any;
                               if (additionalInfo.working_hours) info.push('Working Hours');
                               if (additionalInfo.languages && additionalInfo.languages.length > 0) info.push('Languages');
+                              if (additionalInfo.service_areas && additionalInfo.service_areas.length > 0) info.push('Service Areas');
                               if (additionalInfo.awards && additionalInfo.awards.length > 0) info.push('Awards');
                               if (additionalInfo.certifications && additionalInfo.certifications.length > 0) info.push('Certifications');
                               return info.join(', ') || 'Updated';

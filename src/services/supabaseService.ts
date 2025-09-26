@@ -207,6 +207,8 @@ export const checkPhoneUnique = async (phone: string): Promise<boolean> => {
 // Get all vendors (for public display - only verified and available)
 export const getAllVendors = async (): Promise<Vendor[]> => {
   try {
+    console.log('=== GET ALL VENDORS DEBUG ===');
+    
     const { data, error } = await supabase
       .from('vendors')
       .select('*')
@@ -214,11 +216,14 @@ export const getAllVendors = async (): Promise<Vendor[]> => {
       .eq('currently_available', true)
       .order('created_at', { ascending: false });
 
+    console.log('Supabase query result:', { data, error });
+
     if (error) {
       console.error('Error fetching vendors:', error);
       return [];
     }
 
+    console.log('Returning all vendors:', data);
     return data as Vendor[];
   } catch (error) {
     console.error('Error fetching vendors:', error);
@@ -249,6 +254,9 @@ export const getAllVendorsForAdmin = async (): Promise<Vendor[]> => {
 // Get vendors by category
 export const getVendorsByCategory = async (category: string): Promise<Vendor[]> => {
   try {
+    console.log('=== GET VENDORS BY CATEGORY DEBUG ===');
+    console.log('Looking for category:', category);
+    
     const { data, error } = await supabase
       .from('vendors')
       .select('*')
@@ -257,11 +265,14 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
       .eq('currently_available', true)
       .order('rating', { ascending: false });
 
+    console.log('Supabase query result:', { data, error });
+
     if (error) {
       console.error('Error fetching vendors by category:', error);
       return [];
     }
 
+    console.log('Returning vendors:', data);
     return data as Vendor[];
   } catch (error) {
     console.error('Error fetching vendors by category:', error);

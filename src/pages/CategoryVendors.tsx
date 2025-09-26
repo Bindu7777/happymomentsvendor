@@ -65,6 +65,14 @@ const CategoryVendors = () => {
         console.log('Fetching vendors for category:', categoryName);
         const vendorData = await getVendorsByCategory(categoryName);
         console.log('Fetched vendors for category:', vendorData);
+        console.log('Number of vendors found:', vendorData.length);
+        
+        // Log sample vendor data to debug
+        if (vendorData.length > 0) {
+          console.log('Sample vendor data:', vendorData[0]);
+          console.log('Vendor fields:', Object.keys(vendorData[0]));
+        }
+        
         setVendors(vendorData);
       } catch (error) {
         console.error('Error fetching vendors by category:', error);

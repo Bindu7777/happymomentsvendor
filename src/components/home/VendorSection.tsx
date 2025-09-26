@@ -27,7 +27,17 @@ const VendorSection = () => {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
+        console.log('Fetching all vendors for homepage...');
         const vendorData = await getAllVendors();
+        console.log('Fetched all vendors:', vendorData);
+        console.log('Number of vendors found:', vendorData.length);
+        
+        // Log sample vendor data to debug
+        if (vendorData.length > 0) {
+          console.log('Sample vendor data:', vendorData[0]);
+          console.log('Vendor fields:', Object.keys(vendorData[0]));
+        }
+        
         setVendors(vendorData.slice(0, 4)); // Show only first 4 vendors
       } catch (error) {
         console.error('Error fetching vendors:', error);

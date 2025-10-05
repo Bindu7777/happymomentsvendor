@@ -1,5 +1,6 @@
 const express = require('express');
 const { sendEmail, sendVerificationEmail } = require('../services/emailService');
+const { supabase } = require('../config/supabase');
 
 const router = express.Router();
 
@@ -93,11 +94,41 @@ router.post('/resend-verification', async (req, res) => {
 
     console.log(`📧 Resending verification email to: ${email}`);
 
-    // For now, we'll use a mock token - in production, this would query your database
-    // TODO: Replace with actual database query to get the stored verification token
-    const mockToken = 'real_token_from_database_' + Date.now();
+    // Query database to get the verification token for this email
+    const { data: customer, error: dbError } = await supabase
+      .from('customers')
+      .select('verification_token, full_name, status')
+      .eq('email', email)
+      .single();
+
+    if (dbError || !customer) {
+      console.log(`❌ No customer found for email: ${email}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Customer not found',
+        message: 'No account found with this email address. Please sign up first.'
+      });
+    }
+
+    if (customer.status === 'verified') {
+      return res.status(400).json({
+        success: false,
+        error: 'Already verified',
+        message: 'This email address is already verified.'
+      });
+    }
+
+    if (!customer.verification_token) {
+      return res.status(400).json({
+        success: false,
+        error: 'No verification token',
+        message: 'No verification token found for this account. Please contact support.'
+      });
+    }
+
+    console.log(`✅ Found verification token for ${email}`);
     
-    const result = await sendVerificationEmail(email, 'User', mockToken, 'http://localhost:8080');
+    const result = await sendVerificationEmail(email, customer.full_name || 'User', customer.verification_token, 'http://localhost:8080');
 
     if (result.success) {
       res.json({

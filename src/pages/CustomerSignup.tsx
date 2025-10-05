@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
 
 const CustomerSignup: React.FC = () => {
   const navigate = useNavigate();
@@ -26,6 +26,22 @@ const CustomerSignup: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Email verification states
+  const [emailVerificationStatus, setEmailVerificationStatus] = useState<'unverified' | 'sending' | 'sent' | 'verified'>('unverified');
+  const [emailVerificationMessage, setEmailVerificationMessage] = useState('');
+
+  // Check if user is coming back from email verification
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const verified = urlParams.get('verified');
+    const email = urlParams.get('email');
+    
+    if (verified === 'true' && email === formData.email) {
+      setEmailVerificationStatus('verified');
+      setEmailVerificationMessage('Email verified successfully! You can now create your account.');
+    }
+  }, [formData.email]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -42,6 +58,8 @@ const CustomerSignup: React.FC = () => {
       newErrors.email = 'Email is required';
     } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
+    } else if (emailVerificationStatus !== 'verified') {
+      newErrors.email = 'Please verify your email address before creating account';
     }
 
     // Password validation - No restrictions, just required
@@ -73,6 +91,48 @@ const CustomerSignup: React.FC = () => {
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+    
+    // Reset email verification status when email changes
+    if (field === 'email' && emailVerificationStatus !== 'unverified') {
+      setEmailVerificationStatus('unverified');
+      setEmailVerificationMessage('');
+    }
+  };
+
+  const handleSendVerificationCode = async () => {
+    if (!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
+      setErrors({ email: 'Please enter a valid email address first' });
+      return;
+    }
+
+    setEmailVerificationStatus('sending');
+    setEmailVerificationMessage('');
+
+    try {
+      // Send verification email using the backend API
+      const response = await fetch('http://localhost:3001/api/email/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.trim()
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setEmailVerificationStatus('sent');
+        setEmailVerificationMessage('Verification email sent. Please check your inbox and click the verification link.');
+      } else {
+        setEmailVerificationStatus('unverified');
+        setEmailVerificationMessage(result.message || 'Failed to send verification email');
+      }
+    } catch (error) {
+      setEmailVerificationStatus('unverified');
+      setEmailVerificationMessage('Failed to send verification email. Please try again.');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,7 +162,7 @@ const CustomerSignup: React.FC = () => {
       } else {
         // Show success message about email verification requirement
         setErrors({ 
-          general: 'Account created successfully! Please verify your email before you can log in. Check your inbox for the verification link.' 
+          general: 'Account created successfully! Please check your email for the verification link to complete your registration.' 
         });
         
         // Clear form after successful signup
@@ -114,6 +174,10 @@ const CustomerSignup: React.FC = () => {
           gender: '',
           mobileNumber: ''
         });
+        
+        // Reset email verification status
+        setEmailVerificationStatus('unverified');
+        setEmailVerificationMessage('');
         
         // Redirect to email verification page instead of login
         setTimeout(() => {
@@ -131,11 +195,13 @@ const CustomerSignup: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create Customer Account</CardTitle>
-          <CardDescription className="text-center">
-            Sign up to save your search preferences and get personalized recommendations.<br/>
-            <span className="text-sm text-orange-600 font-medium">Email verification required before login.</span>
+          <CardTitle className="text-2xl font-bold text-center text-gray-900">Create Customer Account</CardTitle>
+          <CardDescription className="text-center text-gray-600">
+            Sign up to save your preferences and get personalized recommendations.
           </CardDescription>
+          <div className="text-center">
+            <span className="text-sm text-red-600 font-medium">Email verification required before login.</span>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -173,6 +239,44 @@ const CustomerSignup: React.FC = () => {
               {errors.email && (
                 <p className="text-sm text-red-500">{errors.email}</p>
               )}
+              
+              {/* Email Verification Button */}
+              <div className="mt-2">
+                {emailVerificationStatus === 'verified' ? (
+                  <div className="flex items-center text-green-600 text-sm">
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                    ✔ Verified
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={handleSendVerificationCode}
+                    disabled={!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email) || emailVerificationStatus === 'sending'}
+                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    {emailVerificationStatus === 'sending' ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Send Verification Code
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {/* Verification Message */}
+                {emailVerificationMessage && (
+                  <p className={`text-sm mt-2 ${
+                    emailVerificationStatus === 'sent' ? 'text-green-600' : 'text-red-500'
+                  }`}>
+                    {emailVerificationMessage}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -257,7 +361,11 @@ const CustomerSignup: React.FC = () => {
               )}
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white" 
+              disabled={loading || emailVerificationStatus !== 'verified' || !formData.fullName.trim() || !formData.email.trim() || !formData.password || !formData.confirmPassword || !formData.mobileNumber.trim() || formData.password !== formData.confirmPassword}
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -272,13 +380,12 @@ const CustomerSignup: React.FC = () => {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/customer-login')}
+              <Link
+                to="/customer-login"
                 className="font-medium text-blue-600 hover:text-blue-500"
               >
                 Sign in here
-              </button>
+              </Link>
             </p>
           </div>
         </CardContent>

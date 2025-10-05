@@ -4,6 +4,10 @@ const { supabase } = require('../config/supabase');
 
 const router = express.Router();
 
+// Simple in-memory store for temporary verification tokens
+// In production, you might want to use Redis or a database
+const tempVerificationStore = new Map();
+
 // Validation middleware
 const validateEmail = (req, res, next) => {
   const { to, subject, html } = req.body;
@@ -64,6 +68,207 @@ router.post('/send', validateEmail, async (req, res) => {
       success: false,
       error: 'Internal server error',
       message: 'Failed to send email'
+    });
+  }
+});
+
+// Send pre-signup verification email (before account creation)
+router.post('/pre-signup-verification', async (req, res) => {
+  try {
+    const { email, name } = req.body;
+
+    // Validation
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'email is required'
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email address',
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    console.log(`📧 Sending pre-signup verification email to: ${email}`);
+
+    // Check if customer already exists
+    const { data: existingCustomer } = await supabase
+      .from('customers')
+      .select('email, status')
+      .eq('email', email)
+      .single();
+
+    if (existingCustomer) {
+      if (existingCustomer.status === 'verified') {
+        return res.status(400).json({
+          success: false,
+          error: 'Account already exists',
+          message: 'An account with this email already exists and is verified.'
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Account already exists',
+          message: 'An account with this email already exists but is not verified. Please check your email for the verification link.'
+        });
+      }
+    }
+
+    // Generate a temporary verification token for pre-signup verification
+    const tempToken = 'temp_verification_' + Date.now() + '_' + Math.random().toString(36).substring(2);
+    
+    // Store the temporary verification token (expires in 24 hours)
+    tempVerificationStore.set(email, {
+      token: tempToken,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    });
+    
+    // Create verification link that will redirect back to signup page
+    const verificationLink = `http://localhost:8080/customer-signup?verified=true&email=${encodeURIComponent(email)}&token=${encodeURIComponent(tempToken)}`;
+    
+    const result = await sendVerificationEmail(email, name || 'User', verificationLink);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Verification email sent successfully',
+        messageId: result.messageId,
+        tempToken: tempToken // Send back the temp token for verification
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: result.message
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Pre-signup verification email route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to send verification email'
+    });
+  }
+});
+
+// Verify pre-signup token
+router.post('/verify-pre-signup', async (req, res) => {
+  try {
+    const { email, token } = req.body;
+
+    // Validation
+    if (!email || !token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'email and token are required'
+      });
+    }
+
+    console.log(`🔍 Verifying pre-signup token for: ${email}`);
+
+    // Check if token exists in our temporary store
+    const storedData = tempVerificationStore.get(email);
+    
+    if (!storedData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Token not found',
+        message: 'Verification token not found or expired.'
+      });
+    }
+
+    // Check if token has expired
+    if (Date.now() > storedData.expiresAt) {
+      tempVerificationStore.delete(email);
+      return res.status(400).json({
+        success: false,
+        error: 'Token expired',
+        message: 'Verification token has expired. Please request a new verification email.'
+      });
+    }
+
+    // Verify the token matches
+    if (storedData.token !== token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token',
+        message: 'Invalid verification token.'
+      });
+    }
+
+    // Token is valid - mark email as pre-verified
+    storedData.verified = true;
+    tempVerificationStore.set(email, storedData);
+
+    console.log(`✅ Pre-signup verification successful for: ${email}`);
+
+    res.json({
+      success: true,
+      message: 'Email verified successfully',
+      email: email,
+      verified: true
+    });
+
+  } catch (error) {
+    console.error('❌ Pre-signup verification route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to verify token'
+    });
+  }
+});
+
+// Check pre-signup verification status
+router.get('/check-pre-signup/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+
+    console.log(`🔍 Checking pre-signup verification status for: ${email}`);
+
+    const storedData = tempVerificationStore.get(email);
+    
+    if (!storedData) {
+      return res.json({
+        success: true,
+        verified: false,
+        message: 'No verification data found'
+      });
+    }
+
+    // Check if token has expired
+    if (Date.now() > storedData.expiresAt) {
+      tempVerificationStore.delete(email);
+      return res.json({
+        success: true,
+        verified: false,
+        message: 'Verification token expired'
+      });
+    }
+
+    res.json({
+      success: true,
+      verified: storedData.verified || false,
+      message: storedData.verified ? 'Email is verified' : 'Email not yet verified'
+    });
+
+  } catch (error) {
+    console.error('❌ Check pre-signup verification route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to check verification status'
     });
   }
 });

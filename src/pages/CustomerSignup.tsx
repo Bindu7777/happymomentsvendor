@@ -44,13 +44,9 @@ const CustomerSignup: React.FC = () => {
       newErrors.email = 'Please enter a valid email address';
     }
 
-    // Password validation
+    // Password validation - No restrictions, just required
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    } else if (formData.password.length > 8) {
-      newErrors.password = 'Password must be at most 8 characters';
     }
 
     // Confirm Password validation
@@ -104,9 +100,9 @@ const CustomerSignup: React.FC = () => {
           setErrors({ general: error.message || 'An error occurred during signup' });
         }
       } else {
-        // Show success message about email verification
+        // Show success message about email verification requirement
         setErrors({ 
-          general: message || 'Account created successfully! Please check your email for verification link.' 
+          general: 'Account created successfully! Please verify your email before you can log in. Check your inbox for the verification link.' 
         });
         
         // Clear form after successful signup
@@ -119,9 +115,9 @@ const CustomerSignup: React.FC = () => {
           mobileNumber: ''
         });
         
-        // Redirect to login page after a delay
+        // Redirect to email verification page instead of login
         setTimeout(() => {
-          navigate('/customer-login');
+          navigate('/verify-email');
         }, 3000);
       }
     } catch (error) {
@@ -137,7 +133,8 @@ const CustomerSignup: React.FC = () => {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">Create Customer Account</CardTitle>
           <CardDescription className="text-center">
-            Sign up to save your search preferences and get personalized recommendations
+            Sign up to save your search preferences and get personalized recommendations.<br/>
+            <span className="text-sm text-orange-600 font-medium">Email verification required before login.</span>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -216,7 +213,7 @@ const CustomerSignup: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Enter your password (6-8 characters)"
+                  placeholder="Enter your password"
                   className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
                 />
                 <Button

@@ -121,7 +121,10 @@ const TrendingSection = () => {
                       {vendor.rating?.toFixed(1) || 'New'}
                     </span>
                     <span className="text-xs text-gray-500">
-                      ({vendor.review_count || 0} reviews)
+                      {vendor.review_count && vendor.review_count > 0 
+                        ? `(${vendor.review_count} reviews)`
+                        : '(No reviews yet)'
+                      }
                     </span>
                   </div>
                   <div className="flex items-center gap-1 text-green-600">

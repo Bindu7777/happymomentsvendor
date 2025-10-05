@@ -1,43 +1,115 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ShoppingCart, Users, Calendar, MessageCircle, Star, Zap } from 'lucide-react';
+import { Loader2, ShoppingCart, Users, Calendar, MessageCircle, Star, Zap, Save, Filter } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import SmartRequestInput from '../components/SmartRequestInput';
 import SmartVendorRecommendations from '../components/SmartVendorRecommendations';
+import SaveFilterModal from '../components/SaveFilterModal';
+import LoadFilterModal from '../components/LoadFilterModal';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { useSearchTracking } from '../hooks/use-search-tracking';
 import { ParsedRequest } from '../services/requestParser';
 import { MatchingResult, findBestMatches } from '../services/autoMatchingEngine';
+import { ExtractedEntities } from '../services/enhancedAudioEngine';
+import { createVendorFilterCriteria, searchVendorsWithFilters, VendorSearchResult } from '../services/enhancedVendorFiltering';
 import Header from '../components/layout/Header';
 
 const SmartRequest: React.FC = () => {
   const navigate = useNavigate();
+  const { customer } = useCustomerAuth();
+  const { trackSmartRequest, trackVoiceSearch, trackManualSearch } = useSearchTracking();
   const [parsedRequest, setParsedRequest] = useState<ParsedRequest | null>(null);
   const [matchingResult, setMatchingResult] = useState<MatchingResult | null>(null);
+  const [enhancedSearchResult, setEnhancedSearchResult] = useState<VendorSearchResult | null>(null);
+  const [extractedEntities, setExtractedEntities] = useState<ExtractedEntities | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [cart, setCart] = useState<any[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const [useEnhancedSearch, setUseEnhancedSearch] = useState(true);
+  const [showSaveFilterModal, setShowSaveFilterModal] = useState(false);
+  const [showLoadFilterModal, setShowLoadFilterModal] = useState(false);
 
   const handleRequestParsed = (request: ParsedRequest) => {
     setParsedRequest(request);
+  };
+
+  const handleEntitiesExtracted = (entities: ExtractedEntities) => {
+    setExtractedEntities(entities);
   };
 
   const handleRequestSubmit = async (request: ParsedRequest) => {
     setIsLoading(true);
     try {
       console.log('Submitting request:', request);
-      const result = await findBestMatches(request);
-      console.log('Matching result:', result);
-      setMatchingResult(result);
+      
+      let resultsCount = 0;
+      
+      if (useEnhancedSearch && extractedEntities) {
+        // Use enhanced search with extracted entities
+        const filterCriteria = createVendorFilterCriteria(extractedEntities);
+        console.log('Enhanced search criteria:', filterCriteria);
+        
+        const enhancedResult = await searchVendorsWithFilters(filterCriteria);
+        console.log('Enhanced search result:', enhancedResult);
+        setEnhancedSearchResult(enhancedResult);
+        resultsCount = enhancedResult.vendors.length;
+        
+        // Track smart request search
+        await trackSmartRequest(
+          request.originalText || 'Smart request',
+          filterCriteria,
+          resultsCount
+        );
+        
+        // Also run legacy search for comparison
+        const legacyResult = await findBestMatches(request);
+        setMatchingResult(legacyResult);
+      } else {
+        // Use legacy search
+        const result = await findBestMatches(request);
+        console.log('Legacy matching result:', result);
+        setMatchingResult(result);
+        resultsCount = result.matches.length;
+        
+        // Track manual search
+        await trackManualSearch(
+          request.originalText || 'Manual search',
+          request,
+          resultsCount
+        );
+      }
     } catch (error) {
       console.error('Error finding matches:', error);
       // Set a fallback result to prevent blank screen
-      setMatchingResult({
+      const fallbackResult = {
         perfectMatches: [],
         nearMatches: [],
         allMatches: [],
         totalFound: 0,
         searchCriteria: request
+      };
+      setMatchingResult(fallbackResult);
+      setEnhancedSearchResult({
+        perfectMatches: [],
+        nearMatches: [],
+        allMatches: [],
+        totalFound: 0,
+        searchCriteria: createVendorFilterCriteria(extractedEntities || {
+          serviceTypes: [],
+          preferences: {},
+          additionalInfo: []
+        }),
+        filtersApplied: {
+          categories: request.serviceTypes,
+          location: request.location,
+          budgetRange: request.budgetRange ? {
+            min: request.budgetRange.min,
+            max: request.budgetRange.max
+          } : undefined,
+          preferences: {}
+        }
       });
     } finally {
       setIsLoading(false);
@@ -78,6 +150,50 @@ const SmartRequest: React.FC = () => {
     return cart.reduce((total, item) => total + (item.starting_price || 0), 0);
   };
 
+  const getCurrentFilterData = () => {
+    if (useEnhancedSearch && enhancedSearchResult) {
+      return {
+        categories: enhancedSearchResult.filtersApplied.categories,
+        location: enhancedSearchResult.filtersApplied.location,
+        budgetRange: enhancedSearchResult.filtersApplied.budgetRange,
+        preferences: enhancedSearchResult.filtersApplied.preferences
+      };
+    } else if (matchingResult) {
+      return {
+        serviceTypes: matchingResult.searchCriteria.serviceTypes,
+        location: matchingResult.searchCriteria.location,
+        budgetRange: matchingResult.searchCriteria.budgetRange,
+        eventType: matchingResult.searchCriteria.eventType,
+        guestCount: matchingResult.searchCriteria.guestCount,
+        date: matchingResult.searchCriteria.date
+      };
+    }
+    return {};
+  };
+
+  const handleApplyFilter = (filterData: any) => {
+    // Apply the loaded filter data to the search
+    if (filterData.categories || filterData.serviceTypes) {
+      const request: ParsedRequest = {
+        serviceTypes: filterData.categories || filterData.serviceTypes || [],
+        location: filterData.location || '',
+        budgetRange: filterData.budgetRange || undefined,
+        eventType: filterData.eventType || '',
+        guestCount: filterData.guestCount || undefined,
+        date: filterData.date || '',
+        additionalRequirements: filterData.additionalRequirements || []
+      };
+      
+      setParsedRequest(request);
+      handleRequestSubmit(request);
+    }
+  };
+
+  const handleSaveFilterSuccess = () => {
+    // Optionally show a success message or refresh the page
+    console.log('Filter saved successfully');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50">
       <Header />
@@ -115,9 +231,34 @@ const SmartRequest: React.FC = () => {
           <SmartRequestInput
             onRequestParsed={handleRequestParsed}
             onRequestSubmit={handleRequestSubmit}
+            onEntitiesExtracted={handleEntitiesExtracted}
             isLoading={isLoading}
           />
         </div>
+
+        {/* Filter Management Buttons */}
+        {customer && (
+          <div className="flex justify-center gap-4 mb-8">
+            <Button
+              variant="outline"
+              onClick={() => setShowLoadFilterModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Load Saved Filter
+            </Button>
+            {(matchingResult || enhancedSearchResult) && (
+              <Button
+                variant="outline"
+                onClick={() => setShowSaveFilterModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Save className="h-4 w-4" />
+                Save Current Filter
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Loading State */}
         {isLoading && (
@@ -129,41 +270,138 @@ const SmartRequest: React.FC = () => {
         )}
 
         {/* Results */}
-        {matchingResult && !isLoading && (
+        {(matchingResult || enhancedSearchResult) && !isLoading && (
           <div className="mb-12">
-            {matchingResult.totalFound === 0 ? (
-              <Card className="text-center py-12">
-                <CardContent>
-                  <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No vendors found</h3>
-                  <p className="text-gray-500 mb-6">
-                    We couldn't find any vendors matching your criteria. Try adjusting your search or browse all vendors.
-                  </p>
-                  <div className="flex gap-4 justify-center">
-                    <Button 
-                      onClick={() => setMatchingResult(null)}
-                      className="bg-orange-500 hover:bg-orange-600 text-white"
-                    >
-                      Try Different Search
-                    </Button>
-                    <Button 
-                      variant="outline"
-                      onClick={() => navigate('/')}
-                    >
-                      Browse All Vendors
-                    </Button>
+            {/* Search Mode Toggle */}
+            <div className="flex justify-center mb-6">
+              <div className="bg-gray-100 p-1 rounded-lg">
+                <Button
+                  variant={useEnhancedSearch ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setUseEnhancedSearch(true)}
+                  className={useEnhancedSearch ? "bg-orange-500 text-white" : ""}
+                >
+                  🎯 Enhanced Search
+                </Button>
+                <Button
+                  variant={!useEnhancedSearch ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setUseEnhancedSearch(false)}
+                  className={!useEnhancedSearch ? "bg-orange-500 text-white" : ""}
+                >
+                  🔍 Legacy Search
+                </Button>
+              </div>
+            </div>
+
+            {/* Enhanced Search Results */}
+            {useEnhancedSearch && enhancedSearchResult ? (
+              enhancedSearchResult.totalFound === 0 ? (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">No vendors found</h3>
+                    <p className="text-gray-500 mb-6">
+                      We couldn't find any vendors matching your enhanced search criteria. Try adjusting your search or browse all vendors.
+                    </p>
+                    <div className="flex gap-4 justify-center">
+                      <Button 
+                        onClick={() => {
+                          setEnhancedSearchResult(null);
+                          setMatchingResult(null);
+                        }}
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        Try Different Search
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate('/')}
+                      >
+                        Browse All Vendors
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div>
+                  <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 className="font-semibold text-green-800 mb-2">🎯 Enhanced Search Results</h3>
+                    <div className="text-sm text-green-700">
+                      <p>Found {enhancedSearchResult.totalFound} vendors using advanced AI filtering</p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {enhancedSearchResult.filtersApplied.categories.map((category, index) => (
+                          <Badge key={index} variant="outline" className="bg-green-100 text-green-800">
+                            {category}
+                          </Badge>
+                        ))}
+                        {enhancedSearchResult.filtersApplied.budgetRange && (
+                          <Badge variant="outline" className="bg-green-100 text-green-800">
+                            ₹{enhancedSearchResult.filtersApplied.budgetRange.min.toLocaleString()} - ₹{enhancedSearchResult.filtersApplied.budgetRange.max.toLocaleString()}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className="bg-green-100 text-green-800">
+                          {enhancedSearchResult.filtersApplied.location}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <SmartVendorRecommendations
-                matchingResult={matchingResult}
-                onVendorSelect={handleVendorSelect}
-                onAddToCart={handleAddToCart}
-                onContactVendor={handleContactVendor}
-                onViewProfile={handleViewProfile}
-              />
-            )}
+                  <SmartVendorRecommendations
+                    matchingResult={enhancedSearchResult}
+                    onVendorSelect={handleVendorSelect}
+                    onAddToCart={handleAddToCart}
+                    onContactVendor={handleContactVendor}
+                    onViewProfile={handleViewProfile}
+                  />
+                </div>
+              )
+            ) : null}
+
+            {/* Legacy Search Results */}
+            {!useEnhancedSearch && matchingResult ? (
+              matchingResult.totalFound === 0 ? (
+                <Card className="text-center py-12">
+                  <CardContent>
+                    <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-700 mb-2">No vendors found</h3>
+                    <p className="text-gray-500 mb-6">
+                      We couldn't find any vendors matching your criteria. Try adjusting your search or browse all vendors.
+                    </p>
+                    <div className="flex gap-4 justify-center">
+                      <Button 
+                        onClick={() => {
+                          setMatchingResult(null);
+                          setEnhancedSearchResult(null);
+                        }}
+                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                      >
+                        Try Different Search
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate('/')}
+                      >
+                        Browse All Vendors
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div>
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 className="font-semibold text-blue-800 mb-2">🔍 Legacy Search Results</h3>
+                    <p className="text-sm text-blue-700">Found {matchingResult.totalFound} vendors using traditional matching</p>
+                  </div>
+                  <SmartVendorRecommendations
+                    matchingResult={matchingResult}
+                    onVendorSelect={handleVendorSelect}
+                    onAddToCart={handleAddToCart}
+                    onContactVendor={handleContactVendor}
+                    onViewProfile={handleViewProfile}
+                  />
+                </div>
+              )
+            ) : null}
           </div>
         )}
 
@@ -312,6 +550,21 @@ const SmartRequest: React.FC = () => {
             </Card>
           </div>
         )}
+
+        {/* Save Filter Modal */}
+        <SaveFilterModal
+          isOpen={showSaveFilterModal}
+          onClose={() => setShowSaveFilterModal(false)}
+          filterData={getCurrentFilterData()}
+          onSuccess={handleSaveFilterSuccess}
+        />
+
+        {/* Load Filter Modal */}
+        <LoadFilterModal
+          isOpen={showLoadFilterModal}
+          onClose={() => setShowLoadFilterModal(false)}
+          onApplyFilter={handleApplyFilter}
+        />
       </div>
     </div>
   );

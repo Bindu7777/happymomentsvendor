@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
+import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
 import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout } from "@/services/supabaseService";
 
 const Header = () => {
@@ -27,6 +28,7 @@ const Header = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
+  const { customer, signOut: customerSignOut } = useCustomerAuth();
   
   // Debug: Log user state
   console.log('Header - User state:', user);
@@ -196,26 +198,64 @@ const Header = () => {
 
         {/* Auth buttons - kept on right */}
         <div className="flex items-center space-x-3 z-50 relative">
-          <button
-            onClick={() => {
-              console.log('Customer Login clicked');
-              setLoginType('customer');
-              setShowLoginModal(true);
-            }}
-            className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
-          >
-            Customer Login
-          </button>
-          <button
-            onClick={() => {
-              console.log('Vendor Login clicked');
-              setLoginType('vendor');
-              setShowLoginModal(true);
-            }}
-            className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
-          >
-            Vendor Login
-          </button>
+          {customer ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
+                <User className="h-4 w-4 mr-2" />
+                {customer.full_name}
+                <ChevronDown className="ml-1 h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-48 animate-fade-in">
+                <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
+                  <Link to="/customer-dashboard" className="w-full flex items-center">
+                    <User className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2"
+                  onClick={async () => {
+                    await customerSignOut();
+                    navigate('/');
+                  }}
+                >
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  console.log('Customer Sign Up clicked');
+                  navigate('/customer-signup');
+                }}
+                className="border-2 border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+              >
+                Customer Sign Up
+              </button>
+              <button
+                onClick={() => {
+                  console.log('Customer Login clicked');
+                  navigate('/customer-login');
+                }}
+                className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+              >
+                Customer Login
+              </button>
+              <button
+                onClick={() => {
+                  console.log('Vendor Login clicked');
+                  setLoginType('vendor');
+                  setShowLoginModal(true);
+                }}
+                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+              >
+                Vendor Login
+              </button>
+            </>
+          )}
         </div>
         {/* Mobile menu button */}
         <button
@@ -291,6 +331,16 @@ const Header = () => {
               </Link>
             </div>
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
+              <Button
+                onClick={() => {
+                  navigate('/signup');
+                  setMobileMenuOpen(false);
+                }}
+                variant="outline"
+                className="border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-4 py-3 rounded-lg font-medium text-center"
+              >
+                Sign Up
+              </Button>
               <Button
                 onClick={() => {
                   setLoginType('customer');

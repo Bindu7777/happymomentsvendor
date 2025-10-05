@@ -4,26 +4,26 @@ import { Star } from 'lucide-react';
 const testimonials = [
   {
     id: 1,
-    text: "From decor to coordination, Happy Moments made our event unforgettable! Everything was flawless and stress-free. Truly the best!",
+    text: "I found a great photographer, Rajesh, through Happy Moments. He captured all the moments beautifully, and the best part is I didn't have to worry about exceeding my budget. Highly recommend!",
     author: "Priya & Arjun",
-    location: "hyderabad,Telangana",
+    location: "Hyderabad, Telangana",
     rating: 5,
     // image: "https://www.google.com/imgres?q=unsplash%20south%20indian%20people%20image&imgurl=https%3A%2F%2Fplus.unsplash.com%2Fpremium_photo-1682092039530-584ae1d9da7f%3Ffm%3Djpg%26q%3D60%26w%3D3000%26ixlib%3Drb-4.0.3%26ixid%3DM3wxMjA3fDB8MHxzZWFyY2h8MXx8aW5kaWFuJTIwcGVvcGxlfGVufDB8fDB8fHww&imgrefurl=https%3A%2F%2Funsplash.com%2Fs%2Fphotos%2Findian-people&docid=XHhE394kloFRAM&tbnid=ZyiUtbI_YS4hjM&vet=12ahUKEwir1cKwoPaMAxWx4zgGHRPgEA8QM3oECGcQAA..i&w=3000&h=4500&hcb=2&ved=https://www.google.com/imgres?q=south%20indian%20lady%20images&imgurl=https%3A%2F%2Fi.pinimg.com%2F474x%2F6f%2F7a%2Fae%2F6f7aae011c9ea58caaaa922ff9c8a1d2.jpg&imgrefurl=https%3A%2F%2Fza.pinterest.com%2Fprincesscaslynn%2Fsouth-indian-woman%2F&docid=-oVJVlu2aRaAcM&tbnid=8fqyINZQBayRJM&vet=12ahUKEwjJxdvvoPaMAxVSzjgGHSpxJ7wQM3oECGYQAA..i&w=474&h=690&hcb=2&ved=2ahUKEwjJxdvvoPaMAxVSzjgGHSpxJ7wQM3oECGYQAA"
   },
   {
     id: 2,
-    text: "The planning tools were a blessing! Guest list, budget, seating — all so easy. Saved us so much time and tension!",
+    text: "Happy Moments helped me connect with a local caterer for my birthday party. They were professional, delicious, and affordable. Made the whole planning process so easy!",
     author: "Srinivas",
-    location: "Vizag,AP",
+    location: "Vizag, AP",
     rating: 5,
     // image: "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
   },
   {
     id: 3,
-    text: "Found top vendors for catering, music, and decor in one place! No need to hunt around. Happy Moments made it simple and fast!",
+    text: "Thanks to Happy Moments, I discovered an amazing event planner, Priya, who understood exactly what I wanted. Everything went smoothly, and I stayed within my budget. Will definitely use again!",
     author: "Lakshmi & Bhanu",
-    location: "Hyderabad,Telangana",
-    rating: 4,
+    location: "Hyderabad, Telangana",
+    rating: 5,
     // image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80"
   }
   //,

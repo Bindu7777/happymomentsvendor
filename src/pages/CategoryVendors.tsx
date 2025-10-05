@@ -615,8 +615,10 @@ const CategoryVendors = () => {
                             ))}
                           </div>
                           <span className="text-sm font-bold text-gray-700">{vendor.rating || 4.5}</span>
-                          {vendor.review_count && vendor.review_count > 0 && (
+                          {vendor.review_count && vendor.review_count > 0 ? (
                             <span className="text-xs text-gray-500">({vendor.review_count})</span>
+                          ) : (
+                            <span className="text-xs text-gray-400">No reviews yet</span>
                           )}
                         </div>
                         {vendor.rating && vendor.rating >= 4.7 && (
@@ -681,7 +683,7 @@ const CategoryVendors = () => {
                       {/* Price */}
                       <div className="flex items-center justify-between mb-4">
                         <div className="text-lg font-bold text-amber-600">
-                          {vendor.starting_price 
+                          {vendor.starting_price && vendor.starting_price > 0
                             ? `Starting ₹${vendor.starting_price.toLocaleString()}`
                             : 'Contact for pricing'
                           }
@@ -727,7 +729,7 @@ const CategoryVendors = () => {
                         </Button>
                         
                         {/* Project Count & Quick Info */}
-                        {(vendor.total_events && vendor.total_events > 0) || vendor.verified ? (
+                        {((vendor.total_events && vendor.total_events > 0) || vendor.verified) ? (
                           <div className="flex items-center justify-between text-xs text-gray-500">
                             {vendor.total_events && vendor.total_events > 0 && (
                               <span>{vendor.total_events} completed events</span>

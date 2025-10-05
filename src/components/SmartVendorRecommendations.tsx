@@ -233,7 +233,10 @@ const SmartVendorRecommendations: React.FC<SmartVendorRecommendationsProps> = ({
                       ))}
                     </div>
                     <span className="text-sm text-gray-600 ml-1">
-                      {match.vendor.rating?.toFixed(1) || 'N/A'} ({match.vendor.review_count || 0})
+                      {match.vendor.rating?.toFixed(1) || 'N/A'} {match.vendor.review_count && match.vendor.review_count > 0 
+                        ? `(${match.vendor.review_count})`
+                        : '(No reviews)'
+                      }
                     </span>
                   </div>
                   {match.ratingMatch && (

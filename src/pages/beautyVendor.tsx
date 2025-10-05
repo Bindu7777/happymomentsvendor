@@ -1,6 +1,5 @@
 import DynamicIcon from "@/components/dynamic-icons";
 import axios from "axios";
-import { config } from "node:process";
 import React, { useEffect } from "react";
 
 export default function BeautyVendor() {

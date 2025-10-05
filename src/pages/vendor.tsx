@@ -989,7 +989,12 @@ const VendorProfile = () => {
                   </h2>
                   <div className="text-right">
                     <div className="text-4xl font-bold text-green-600">{rating}★</div>
-                    <div className="text-sm text-gray-600">from {vendor.review_count || 0} happy customers</div>
+                    <div className="text-sm text-gray-600">
+                      {vendor.review_count && vendor.review_count > 0 
+                        ? `from ${vendor.review_count} happy customers`
+                        : 'No reviews yet'
+                      }
+                    </div>
               </div>
               </div>
                 

@@ -5,18 +5,24 @@ import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { parseRequest, validateParsedRequest, ParsedRequest } from '../services/requestParser';
+import { processAudioInput, ExtractedEntities } from '../services/enhancedAudioEngine';
+import { createVendorFilterCriteria, searchVendorsWithFilters } from '../services/enhancedVendorFiltering';
+import { useSearchTracking } from '../hooks/use-search-tracking';
 
 interface SmartRequestInputProps {
   onRequestParsed: (request: ParsedRequest) => void;
   onRequestSubmit: (request: ParsedRequest) => void;
+  onEntitiesExtracted?: (entities: ExtractedEntities) => void;
   isLoading?: boolean;
 }
 
 const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   onRequestParsed,
   onRequestSubmit,
+  onEntitiesExtracted,
   isLoading = false
 }) => {
+  const { trackVoiceSearch } = useSearchTracking();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -29,6 +35,8 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   const [selectedLanguage, setSelectedLanguage] = useState<'en-IN' | 'te-IN' | 'auto'>('auto');
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [extractedDetails, setExtractedDetails] = useState<any>(null);
+  const [enhancedEntities, setEnhancedEntities] = useState<ExtractedEntities | null>(null);
+  const [audioProcessingResult, setAudioProcessingResult] = useState<any>(null);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -266,15 +274,26 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
     };
   }, [recordingTimeout]);
 
-  const handleTextChange = (newText: string) => {
+  const handleTextChange = async (newText: string) => {
     setText(newText);
     
     if (newText.trim().length > 10) {
       setIsProcessing(true);
       
       // Debounce the parsing
-      const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(async () => {
         try {
+          // Use enhanced audio engine for better entity extraction
+          const audioResult = await processAudioInput(newText);
+          setAudioProcessingResult(audioResult);
+          setEnhancedEntities(audioResult.extractedEntities);
+          
+          // Pass extracted entities to parent component
+          if (onEntitiesExtracted) {
+            onEntitiesExtracted(audioResult.extractedEntities);
+          }
+          
+          // Also use the legacy parser for backward compatibility
           const parsed = parseRequest(newText);
           const validation = validateParsedRequest(parsed);
           
@@ -282,16 +301,22 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
             setParsedRequest(parsed);
             onRequestParsed(parsed);
             
-            // Show confirmation UI for voice input
+            // Show enhanced confirmation UI for voice input
             if (isRecording || transcript) {
+              // Track voice search when it's processed
+              await trackVoiceSearch(newText, audioResult.extractedEntities);
+              
               setExtractedDetails({
-                eventType: parsed.eventType,
-                services: parsed.serviceTypes,
-                budget: parsed.budgetRange,
-                location: parsed.location,
+                eventType: audioResult.extractedEntities.eventType?.value || parsed.eventType,
+                services: audioResult.extractedEntities.serviceTypes.map(s => s.category) || parsed.serviceTypes,
+                budget: audioResult.extractedEntities.budget || parsed.budgetRange,
+                location: audioResult.extractedEntities.location?.city || parsed.location,
                 duration: parsed.duration,
                 guestCount: parsed.guestCount,
-                additionalRequirements: parsed.additionalRequirements,
+                additionalRequirements: audioResult.extractedEntities.additionalInfo || parsed.additionalRequirements,
+                preferences: audioResult.extractedEntities.preferences,
+                confidence: audioResult.confidence,
+                language: audioResult.language,
                 originalText: newText
               });
               setShowConfirmation(true);
@@ -301,13 +326,16 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
             // Show partial results for voice input even if incomplete
             if (isRecording || transcript) {
               setExtractedDetails({
-                eventType: parsed.eventType || 'Not specified',
-                services: parsed.serviceTypes || [],
-                budget: parsed.budgetRange || null,
-                location: parsed.location || 'Not specified',
+                eventType: audioResult.extractedEntities.eventType?.value || parsed.eventType || 'Not specified',
+                services: audioResult.extractedEntities.serviceTypes.map(s => s.category) || parsed.serviceTypes || [],
+                budget: audioResult.extractedEntities.budget || parsed.budgetRange || null,
+                location: audioResult.extractedEntities.location?.city || parsed.location || 'Not specified',
                 duration: parsed.duration || 'Not specified',
                 guestCount: parsed.guestCount || 'Not specified',
-                additionalRequirements: parsed.additionalRequirements || [],
+                additionalRequirements: audioResult.extractedEntities.additionalInfo || parsed.additionalRequirements || [],
+                preferences: audioResult.extractedEntities.preferences,
+                confidence: audioResult.confidence,
+                language: audioResult.language,
                 originalText: newText,
                 isIncomplete: true,
                 errors: validation.errors
@@ -316,7 +344,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
             }
           }
         } catch (error) {
-          console.error('Error parsing request:', error);
+          console.error('Error processing request:', error);
           setParsedRequest(null);
         } finally {
           setIsProcessing(false);
@@ -706,7 +734,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                 <p className="text-gray-800 italic">"{extractedDetails.originalText}"</p>
               </div>
 
-              {/* Extracted Details */}
+              {/* Enhanced Extracted Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
@@ -715,6 +743,11 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                     <Badge variant="outline" className="bg-blue-100 text-blue-800">
                       {extractedDetails.eventType}
                     </Badge>
+                    {extractedDetails.confidence && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-600 text-xs">
+                        {Math.round(extractedDetails.confidence * 100)}% confidence
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -733,9 +766,16 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                     <DollarSign className="h-4 w-4 text-green-600" />
                     <span className="font-medium text-gray-700">Budget:</span>
                     {extractedDetails.budget ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-800">
-                        ₹{extractedDetails.budget.min.toLocaleString()} - ₹{extractedDetails.budget.max.toLocaleString()}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="bg-green-100 text-green-800">
+                          ₹{extractedDetails.budget.min.toLocaleString()} - ₹{extractedDetails.budget.max.toLocaleString()}
+                        </Badge>
+                        {extractedDetails.budget.type && (
+                          <span className="text-xs text-gray-500">
+                            Type: {extractedDetails.budget.type.replace('_', ' ')}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-gray-500 text-sm">Not specified</span>
                     )}
@@ -762,8 +802,51 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                     <span className="font-medium text-gray-700">Guest Count:</span>
                     <span className="text-sm text-gray-600">{extractedDetails.guestCount}</span>
                   </div>
+
+                  {/* Language Detection */}
+                  {extractedDetails.language && (
+                    <div className="flex items-center gap-2">
+                      <Languages className="h-4 w-4 text-indigo-600" />
+                      <span className="font-medium text-gray-700">Language:</span>
+                      <Badge variant="outline" className="bg-indigo-100 text-indigo-800">
+                        {extractedDetails.language === 'en' ? 'English' : 
+                         extractedDetails.language === 'te' ? 'Telugu' : 'Mixed'}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Enhanced Preferences */}
+              {extractedDetails.preferences && Object.keys(extractedDetails.preferences).length > 0 && (
+                <div className="mt-4">
+                  <h4 className="font-medium text-gray-700 mb-2">Preferences:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {extractedDetails.preferences.gender && (
+                      <Badge variant="outline" className="bg-pink-100 text-pink-800">
+                        Gender: {extractedDetails.preferences.gender}
+                      </Badge>
+                    )}
+                    {extractedDetails.preferences.experience && (
+                      <Badge variant="outline" className="bg-purple-100 text-purple-800">
+                        Experience: {extractedDetails.preferences.experience}
+                      </Badge>
+                    )}
+                    {extractedDetails.preferences.style && extractedDetails.preferences.style.length > 0 && (
+                      extractedDetails.preferences.style.map((style: string, index: number) => (
+                        <Badge key={index} variant="outline" className="bg-yellow-100 text-yellow-800">
+                          Style: {style}
+                        </Badge>
+                      ))
+                    )}
+                    {extractedDetails.preferences.urgency && (
+                      <Badge variant="outline" className="bg-red-100 text-red-800">
+                        Urgency: {extractedDetails.preferences.urgency.replace('_', ' ')}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Additional Requirements */}
               {extractedDetails.additionalRequirements && extractedDetails.additionalRequirements.length > 0 && (

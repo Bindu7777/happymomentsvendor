@@ -10,6 +10,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables');
   console.error('URL:', supabaseUrl);
   console.error('Key:', supabaseAnonKey);
+  console.error('Please create a .env.local file with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
   throw new Error('Missing Supabase environment variables')
 }
 

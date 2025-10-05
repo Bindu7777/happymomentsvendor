@@ -934,7 +934,10 @@ const AdminDashboard = () => {
                         <Star className="h-4 w-4 text-yellow-400 mr-1" />
                         <span className="font-bold text-wedding-navy">{vendor.rating || "N/A"}</span>
                         <span className="text-wedding-gray ml-1">
-                          ({vendor.review_count || 0})
+                          {vendor.review_count && vendor.review_count > 0 
+                            ? `(${vendor.review_count})`
+                            : '(No reviews)'
+                          }
                         </span>
                       </div>
                     </td>

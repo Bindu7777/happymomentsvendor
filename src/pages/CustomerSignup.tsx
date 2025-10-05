@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Eye, EyeOff, CheckCircle, Mail } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 const CustomerSignup: React.FC = () => {
   const navigate = useNavigate();
@@ -27,9 +27,8 @@ const CustomerSignup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Email verification states
-  const [emailVerificationStatus, setEmailVerificationStatus] = useState<'unverified' | 'sending' | 'sent' | 'verified'>('unverified');
-  const [emailVerificationMessage, setEmailVerificationMessage] = useState('');
+  // Email verification status
+  const [emailVerificationStatus, setEmailVerificationStatus] = useState<'unverified' | 'verified'>('unverified');
 
   // Check if user is coming back from email verification
   useEffect(() => {
@@ -39,7 +38,6 @@ const CustomerSignup: React.FC = () => {
     
     if (verified === 'true' && email === formData.email) {
       setEmailVerificationStatus('verified');
-      setEmailVerificationMessage('Email verified successfully! You can now create your account.');
     }
   }, [formData.email]);
 
@@ -95,43 +93,6 @@ const CustomerSignup: React.FC = () => {
     // Reset email verification status when email changes
     if (field === 'email' && emailVerificationStatus !== 'unverified') {
       setEmailVerificationStatus('unverified');
-      setEmailVerificationMessage('');
-    }
-  };
-
-  const handleSendVerificationCode = async () => {
-    if (!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
-      setErrors({ email: 'Please enter a valid email address first' });
-      return;
-    }
-
-    setEmailVerificationStatus('sending');
-    setEmailVerificationMessage('');
-
-    try {
-      // Send verification email using the backend API
-      const response = await fetch('http://localhost:3001/api/email/resend-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email.trim()
-        })
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        setEmailVerificationStatus('sent');
-        setEmailVerificationMessage('Verification email sent. Please check your inbox and click the verification link.');
-      } else {
-        setEmailVerificationStatus('unverified');
-        setEmailVerificationMessage(result.message || 'Failed to send verification email');
-      }
-    } catch (error) {
-      setEmailVerificationStatus('unverified');
-      setEmailVerificationMessage('Failed to send verification email. Please try again.');
     }
   };
 
@@ -177,7 +138,6 @@ const CustomerSignup: React.FC = () => {
         
         // Reset email verification status
         setEmailVerificationStatus('unverified');
-        setEmailVerificationMessage('');
         
         // Redirect to email verification page instead of login
         setTimeout(() => {
@@ -240,43 +200,13 @@ const CustomerSignup: React.FC = () => {
                 <p className="text-sm text-red-500">{errors.email}</p>
               )}
               
-              {/* Email Verification Button */}
-              <div className="mt-2">
-                {emailVerificationStatus === 'verified' ? (
-                  <div className="flex items-center text-green-600 text-sm">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    ✔ Verified
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handleSendVerificationCode}
-                    disabled={!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email) || emailVerificationStatus === 'sending'}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    {emailVerificationStatus === 'sending' ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Send Verification Code
-                      </>
-                    )}
-                  </Button>
-                )}
-                
-                {/* Verification Message */}
-                {emailVerificationMessage && (
-                  <p className={`text-sm mt-2 ${
-                    emailVerificationStatus === 'sent' ? 'text-green-600' : 'text-red-500'
-                  }`}>
-                    {emailVerificationMessage}
-                  </p>
-                )}
-              </div>
+              {/* Email Verification Status */}
+              {emailVerificationStatus === 'verified' && (
+                <div className="mt-2 flex items-center text-green-600 text-sm">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  ✔ Verified
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

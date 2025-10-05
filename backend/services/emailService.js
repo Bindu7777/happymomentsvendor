@@ -189,6 +189,7 @@ const sendVerificationEmail = async (email, name, tokenOrUrl, baseUrl = null) =>
       verificationLink = `${baseUrl}/verify-email?token=${encodedToken}`;
     }
     
+    // Use different template for pre-signup verification
     const template = emailTemplates.verification(name, verificationLink);
 
     const result = await sendEmail({

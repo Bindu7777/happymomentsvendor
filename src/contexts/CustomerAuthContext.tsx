@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { createUnverifiedUser, verifyEmailWithToken, resendVerificationEmail } from '@/services/emailVerificationService';
+import { createUnverifiedUser, createVerifiedUser, verifyEmailWithToken, resendVerificationEmail } from '@/services/emailVerificationService';
 
 export interface Customer {
   id: string;
@@ -39,7 +39,7 @@ export interface CustomerSearchHistory {
 interface CustomerAuthContextType {
   customer: Customer | null;
   loading: boolean;
-  signUp: (fullName: string, email: string, password: string, gender?: string, mobileNumber: string) => Promise<{ customer: Customer | null; error: any; message?: string }>;
+  signUp: (fullName: string, email: string, password: string, gender?: string, mobileNumber: string, isEmailPreVerified?: boolean) => Promise<{ customer: Customer | null; error: any; message?: string }>;
   signIn: (email: string, password: string) => Promise<{ customer: Customer | null; error: any }>;
   signOut: () => Promise<{ error: any }>;
   verifyEmail: (token: string) => Promise<{ success: boolean; message: string; customer?: Customer }>;
@@ -101,18 +101,36 @@ export const CustomerAuthProvider: React.FC<CustomerAuthProviderProps> = ({ chil
     checkCustomerSession();
   }, []);
 
-  const signUp = async (fullName: string, email: string, password: string, gender?: string, mobileNumber: string) => {
+  const signUp = async (fullName: string, email: string, password: string, gender?: string, mobileNumber: string, isEmailPreVerified: boolean = false) => {
     try {
-      // Use the email verification service to create unverified user
-      const result = await createUnverifiedUser(fullName, email, password, gender, mobileNumber);
+      let result;
+      
+      if (isEmailPreVerified) {
+        // Create verified user directly since email is already verified
+        result = await createVerifiedUser(fullName, email, password, gender, mobileNumber);
+      } else {
+        // Use the email verification service to create unverified user
+        result = await createUnverifiedUser(fullName, email, password, gender, mobileNumber);
+      }
       
       if (result.success) {
-        // Don't automatically log in the user - they need to verify email first
-        return { 
-          customer: null, 
-          error: null, 
-          message: result.message 
-        };
+        if (isEmailPreVerified) {
+          // Auto-login the user since email is already verified
+          localStorage.setItem('customer_id', result.customer.id);
+          setCustomer(result.customer);
+          return { 
+            customer: result.customer, 
+            error: null, 
+            message: 'Account created and verified successfully!'
+          };
+        } else {
+          // Don't automatically log in the user - they need to verify email first
+          return { 
+            customer: null, 
+            error: null, 
+            message: result.message 
+          };
+        }
       } else {
         return { 
           customer: null, 

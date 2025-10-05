@@ -36,12 +36,57 @@ const CustomerSignup: React.FC = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const verified = urlParams.get('verified');
     const email = urlParams.get('email');
+    const token = urlParams.get('token');
     
-    if (verified === 'true' && email === formData.email) {
-      setEmailVerificationStatus('verified');
-      setEmailVerificationMessage('Email verified successfully! You can now create your account.');
+    if (verified === 'true' && email && token) {
+      // Set the email in the form if it's not already set
+      setFormData(prev => {
+        if (!prev.email) {
+          return { ...prev, email };
+        }
+        return prev;
+      });
+      
+      // Verify the token with the backend
+      verifyPreSignupToken(email, token);
     }
-  }, [formData.email]);
+  }, []); // Keep empty dependency array since we only want this to run once on mount
+
+  const verifyPreSignupToken = async (email: string, token: string) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/email/verify-pre-signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          token
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setEmailVerificationStatus('verified');
+        setEmailVerificationMessage('Email verified successfully! You can now create your account.');
+        
+        // Clear URL parameters after successful verification
+        const url = new URL(window.location.href);
+        url.searchParams.delete('verified');
+        url.searchParams.delete('email');
+        url.searchParams.delete('token');
+        window.history.replaceState({}, '', url.toString());
+      } else {
+        setEmailVerificationStatus('unverified');
+        setEmailVerificationMessage(result.message || 'Email verification failed.');
+      }
+    } catch (error) {
+      console.error('Email verification error:', error);
+      setEmailVerificationStatus('unverified');
+      setEmailVerificationMessage('Email verification failed. Please try again.');
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -109,14 +154,15 @@ const CustomerSignup: React.FC = () => {
     setEmailVerificationMessage('');
 
     try {
-      // Send verification email using the backend API
-      const response = await fetch('http://localhost:3001/api/email/resend-verification', {
+      // Send pre-signup verification email using the backend API
+      const response = await fetch('http://localhost:3001/api/email/pre-signup-verification', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: formData.email.trim()
+          email: formData.email.trim(),
+          name: formData.fullName.trim() || formData.email.split('@')[0] || 'User'
         })
       });
 
@@ -124,14 +170,20 @@ const CustomerSignup: React.FC = () => {
 
       if (response.ok && result.success) {
         setEmailVerificationStatus('sent');
-        setEmailVerificationMessage('Verification email sent. Please check your inbox and click the verification link.');
+        setEmailVerificationMessage('Verification email sent! Please check your inbox and click the verification link.');
       } else {
         setEmailVerificationStatus('unverified');
         setEmailVerificationMessage(result.message || 'Failed to send verification email');
+        
+        // Show specific error messages for common issues
+        if (result.error === 'Account already exists') {
+          setEmailVerificationMessage('An account with this email already exists. Please use a different email or try logging in.');
+        }
       }
     } catch (error) {
+      console.error('Send verification email error:', error);
       setEmailVerificationStatus('unverified');
-      setEmailVerificationMessage('Failed to send verification email. Please try again.');
+      setEmailVerificationMessage('Network error. Please check your internet connection and try again.');
     }
   };
 
@@ -150,7 +202,8 @@ const CustomerSignup: React.FC = () => {
         formData.email.trim(),
         formData.password,
         formData.gender || undefined,
-        formData.mobileNumber.trim()
+        formData.mobileNumber.trim(),
+        emailVerificationStatus === 'verified'
       );
 
       if (error) {
@@ -160,29 +213,40 @@ const CustomerSignup: React.FC = () => {
           setErrors({ general: error.message || 'An error occurred during signup' });
         }
       } else {
-        // Show success message about email verification requirement
-        setErrors({ 
-          general: 'Account created successfully! Please check your email for the verification link to complete your registration.' 
-        });
-        
-        // Clear form after successful signup
-        setFormData({
-          fullName: '',
-          email: '',
-          password: '',
-          confirmPassword: '',
-          gender: '',
-          mobileNumber: ''
-        });
-        
-        // Reset email verification status
-        setEmailVerificationStatus('unverified');
-        setEmailVerificationMessage('');
-        
-        // Redirect to email verification page instead of login
-        setTimeout(() => {
-          navigate('/verify-email');
-        }, 3000);
+        if (customer) {
+          // Account created and verified successfully - redirect to homepage
+          setErrors({ 
+            general: 'Account created and verified successfully! Redirecting to homepage...' 
+          });
+          
+          setTimeout(() => {
+            navigate('/');
+          }, 2000);
+        } else {
+          // Account created but needs email verification
+          setErrors({ 
+            general: 'Account created successfully! Please check your email for the verification link to complete your registration.' 
+          });
+          
+          // Clear form after successful signup
+          setFormData({
+            fullName: '',
+            email: '',
+            password: '',
+            confirmPassword: '',
+            gender: '',
+            mobileNumber: ''
+          });
+          
+          // Reset email verification status
+          setEmailVerificationStatus('unverified');
+          setEmailVerificationMessage('');
+          
+          // Redirect to email verification page
+          setTimeout(() => {
+            navigate('/verify-email');
+          }, 3000);
+        }
       }
     } catch (error) {
       setErrors({ general: 'An unexpected error occurred' });

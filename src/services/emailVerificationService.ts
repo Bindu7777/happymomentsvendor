@@ -129,6 +129,54 @@ export const createUnverifiedUser = async (
   }
 };
 
+// Create verified user (for pre-verified emails)
+export const createVerifiedUser = async (fullName: string, email: string, password: string, gender?: string, mobileNumber: string) => {
+  try {
+    const passwordHash = btoa(password); // Simple base64 encoding for demo - use proper hashing in production
+    const verificationToken = generateVerificationToken();
+
+    const { data, error } = await supabase
+      .from('customers')
+      .insert([
+        {
+          full_name: fullName,
+          email,
+          password_hash: passwordHash,
+          gender,
+          mobile_number: mobileNumber,
+          verification_token: verificationToken,
+          status: 'verified', // Mark as verified since email is already verified
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      return { 
+        success: false, 
+        message: 'Failed to create account',
+        error 
+      };
+    }
+
+    return {
+      success: true,
+      message: 'Account created and verified successfully!',
+      customer: data
+    };
+
+  } catch (error) {
+    console.error('Error creating verified user:', error);
+    return {
+      success: false,
+      message: 'An unexpected error occurred',
+      error
+    };
+  }
+};
+
 // Verify email with token
 export const verifyEmailWithToken = async (token: string): Promise<VerificationTokenResult> => {
   try {

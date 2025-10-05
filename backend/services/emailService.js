@@ -176,11 +176,19 @@ const sendEmail = async (options) => {
 };
 
 // Send verification email
-const sendVerificationEmail = async (email, name, token, baseUrl) => {
+const sendVerificationEmail = async (email, name, tokenOrUrl, baseUrl = null) => {
   try {
-    // URL encode the token to prevent URI malformed errors
-    const encodedToken = encodeURIComponent(token);
-    const verificationLink = `${baseUrl}/verify-email?token=${encodedToken}`;
+    let verificationLink;
+    
+    // Check if tokenOrUrl is already a full URL (for pre-signup verification)
+    if (tokenOrUrl.startsWith('http://') || tokenOrUrl.startsWith('https://')) {
+      verificationLink = tokenOrUrl;
+    } else {
+      // It's a token, so create the verification URL
+      const encodedToken = encodeURIComponent(tokenOrUrl);
+      verificationLink = `${baseUrl}/verify-email?token=${encodedToken}`;
+    }
+    
     const template = emailTemplates.verification(name, verificationLink);
 
     const result = await sendEmail({

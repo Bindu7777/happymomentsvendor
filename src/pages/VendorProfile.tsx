@@ -11,13 +11,17 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Vendor } from '../lib/supabase';
 import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
+import AddReviewModal from '../components/AddReviewModal';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 
 const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
+  const { customer, isAuthenticated } = useCustomerAuth();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [highlightedImages, setHighlightedImages] = useState<any[]>([]);
   const [allCatalogImages, setAllCatalogImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -32,6 +36,23 @@ const VendorProfile = () => {
   const [showCoupon, setShowCoupon] = useState(false);
   const [recentClaims, setRecentClaims] = useState(Math.floor(Math.random() * 100) + 1);
   const [showRatingTooltip, setShowRatingTooltip] = useState(false);
+
+  // Function to refresh vendor data after review submission
+  const refreshVendorData = async () => {
+    if (!vendorId) return;
+    
+    try {
+      const vendorIdNum = parseInt(vendorId);
+      if (isNaN(vendorIdNum)) return;
+
+      const vendorData = await getVendorByFieldId(vendorIdNum.toString());
+      if (vendorData) {
+        setVendor(vendorData);
+      }
+    } catch (error) {
+      console.error('Error refreshing vendor data:', error);
+    }
+  };
 
   // Load vendor data if vendorId is provided
   useEffect(() => {
@@ -1051,9 +1072,19 @@ I'm really excited to connect and explore working with you soon! ✨`;
                     <Users className="w-8 h-8 text-green-600" />
                     Customer Reviews
                   </h2>
-                  <div className="text-right">
-                    <div className="text-4xl font-bold text-green-600">4.8★</div>
-                    <div className="text-sm text-gray-600">from 128 happy couples</div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="text-4xl font-bold text-green-600">4.8★</div>
+                      <div className="text-sm text-gray-600">from 128 happy couples</div>
+                    </div>
+                    {isAuthenticated && customer && (
+                      <Button
+                        onClick={() => setShowReviewModal(true)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                      >
+                        Add a Review
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
@@ -1404,6 +1435,18 @@ I'm really excited to connect and explore working with you soon! ✨`;
           Chat Now
         </Button>
       </div>
+
+      {/* Add Review Modal */}
+      {isAuthenticated && customer && (
+        <AddReviewModal
+          isOpen={showReviewModal}
+          onClose={() => setShowReviewModal(false)}
+          vendorId={vendorId || ''}
+          customerId={customer.id}
+          customerName={customer.name}
+          onReviewSubmitted={refreshVendorData}
+        />
+      )}
 
       </div>
     </>

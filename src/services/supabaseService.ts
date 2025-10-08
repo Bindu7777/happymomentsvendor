@@ -479,6 +479,70 @@ export const getAllCatalogImages = async (vendorId: string): Promise<any[]> => {
   }
 };
 
+// Add a customer review for a vendor
+export const addCustomerReview = async (
+  vendorId: string,
+  customerId: string,
+  customerName: string,
+  rating: number,
+  reviewText: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log('Adding customer review:', { vendorId, customerId, customerName, rating, reviewText });
+
+    // Get current vendor data
+    const { data: vendorData, error: vendorError } = await supabase
+      .from('vendors')
+      .select('customer_reviews')
+      .eq('vendor_id', vendorId)
+      .single();
+
+    if (vendorError) {
+      console.error('Error fetching vendor data:', vendorError);
+      return { success: false, error: 'Failed to fetch vendor data' };
+    }
+
+    // Get existing reviews or initialize empty array
+    const existingReviews = vendorData.customer_reviews || [];
+    
+    // Create new review object
+    const newReview = {
+      id: Date.now().toString(), // Simple ID generation
+      customer_id: customerId,
+      customer_name: customerName,
+      rating: rating,
+      review: reviewText,
+      date: new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      verified: true
+    };
+
+    // Add new review to existing reviews
+    const updatedReviews = [...existingReviews, newReview];
+
+    // Update vendor with new reviews
+    const { error: updateError } = await supabase
+      .from('vendors')
+      .update({ customer_reviews: updatedReviews })
+      .eq('vendor_id', vendorId);
+
+    if (updateError) {
+      console.error('Error updating vendor reviews:', updateError);
+      return { success: false, error: 'Failed to save review' };
+    }
+
+    console.log('Review added successfully');
+    return { success: true };
+
+  } catch (error) {
+    console.error('Error adding customer review:', error);
+    return { success: false, error: 'An unexpected error occurred' };
+  }
+};
+
 // Toggle highlight status for a catalog image
 export const toggleImageHighlight = async (imageId: string, isHighlighted: boolean): Promise<boolean> => {
   try {

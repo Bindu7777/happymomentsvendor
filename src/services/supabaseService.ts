@@ -490,47 +490,38 @@ export const addCustomerReview = async (
   try {
     console.log('Adding customer review:', { vendorId, customerId, customerName, rating, reviewText });
 
-    // Get current vendor data
-    const { data: vendorData, error: vendorError } = await supabase
-      .from('vendors')
-      .select('customer_reviews')
+    // Check if customer already reviewed this vendor
+    const { data: existingReview, error: checkError } = await supabase
+      .from('customer_reviews')
+      .select('id')
       .eq('vendor_id', vendorId)
+      .eq('customer_id', customerId)
       .single();
 
-    if (vendorError) {
-      console.error('Error fetching vendor data:', vendorError);
-      return { success: false, error: 'Failed to fetch vendor data' };
+    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+      console.error('Error checking existing review:', checkError);
+      return { success: false, error: 'Failed to check existing review' };
     }
 
-    // Get existing reviews or initialize empty array
-    const existingReviews = vendorData.customer_reviews || [];
-    
-    // Create new review object
-    const newReview = {
-      id: Date.now().toString(), // Simple ID generation
-      customer_id: customerId,
-      customer_name: customerName,
-      rating: rating,
-      review: reviewText,
-      date: new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      verified: true
-    };
+    if (existingReview) {
+      return { success: false, error: 'You have already reviewed this vendor' };
+    }
 
-    // Add new review to existing reviews
-    const updatedReviews = [...existingReviews, newReview];
+    // Insert new review into customer_reviews table
+    const { error: insertError } = await supabase
+      .from('customer_reviews')
+      .insert({
+        vendor_id: parseInt(vendorId),
+        customer_id: customerId,
+        customer_name: customerName,
+        rating: rating || null, // Allow null for no rating
+        review_text: reviewText,
+        is_verified: true,
+        is_published: true
+      });
 
-    // Update vendor with new reviews
-    const { error: updateError } = await supabase
-      .from('vendors')
-      .update({ customer_reviews: updatedReviews })
-      .eq('vendor_id', vendorId);
-
-    if (updateError) {
-      console.error('Error updating vendor reviews:', updateError);
+    if (insertError) {
+      console.error('Error inserting review:', insertError);
       return { success: false, error: 'Failed to save review' };
     }
 
@@ -540,6 +531,48 @@ export const addCustomerReview = async (
   } catch (error) {
     console.error('Error adding customer review:', error);
     return { success: false, error: 'An unexpected error occurred' };
+  }
+};
+
+// Get customer reviews for a vendor from the customer_reviews table
+export const getCustomerReviews = async (vendorId: string): Promise<any[]> => {
+  try {
+    console.log(`Getting customer reviews for vendor ${vendorId}`);
+
+    const { data: reviews, error } = await supabase
+      .from('customer_reviews')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching customer reviews:', error);
+      return [];
+    }
+
+    // Transform the data to match the expected format
+    const transformedReviews = (reviews || []).map(review => ({
+      id: review.id,
+      customer_id: review.customer_id,
+      customer_name: review.customer_name,
+      rating: review.rating,
+      review: review.review_text,
+      date: new Date(review.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      verified: review.is_verified,
+      created_at: review.created_at
+    }));
+
+    console.log(`Found ${transformedReviews.length} reviews for vendor ${vendorId}`);
+    return transformedReviews;
+
+  } catch (error) {
+    console.error('Error fetching customer reviews:', error);
+    return [];
   }
 };
 

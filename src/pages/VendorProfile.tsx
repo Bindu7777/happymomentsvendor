@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Vendor } from '../lib/supabase';
-import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
+import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages, getCustomerReviews } from '../services/supabaseService';
 import AddReviewModal from '../components/AddReviewModal';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 
@@ -20,6 +20,7 @@ const VendorProfile = () => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [highlightedImages, setHighlightedImages] = useState<any[]>([]);
   const [allCatalogImages, setAllCatalogImages] = useState<any[]>([]);
+  const [customerReviews, setCustomerReviews] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +50,10 @@ const VendorProfile = () => {
       if (vendorData) {
         setVendor(vendorData);
       }
+
+      // Also refresh customer reviews
+      const reviews = await getCustomerReviews(vendorIdNum.toString());
+      setCustomerReviews(reviews);
     } catch (error) {
       console.error('Error refreshing vendor data:', error);
     }
@@ -102,6 +107,16 @@ const VendorProfile = () => {
         } catch (imgError) {
           console.error('Error loading all catalog images:', imgError);
           setAllCatalogImages([]);
+        }
+
+        // Load customer reviews from database
+        try {
+          const reviews = await getCustomerReviews(vendorData.vendor_id);
+          console.log('Loaded customer reviews:', reviews);
+          setCustomerReviews(reviews);
+        } catch (reviewError) {
+          console.error('Error loading customer reviews:', reviewError);
+          setCustomerReviews([]);
         }
 
       } catch (err) {
@@ -1074,8 +1089,15 @@ I'm really excited to connect and explore working with you soon! ✨`;
                   </h2>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <div className="text-4xl font-bold text-green-600">4.8★</div>
-                      <div className="text-sm text-gray-600">from 128 happy couples</div>
+                      <div className="text-4xl font-bold text-green-600">
+                        {customerReviews.length > 0 
+                          ? (customerReviews.reduce((sum, review) => sum + (review.rating || 0), 0) / customerReviews.filter(r => r.rating).length).toFixed(1)
+                          : '0.0'
+                        }★
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        from {customerReviews.length} {customerReviews.length === 1 ? 'review' : 'reviews'}
+                      </div>
                     </div>
                     {isAuthenticated && customer && (
                       <Button
@@ -1089,8 +1111,8 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 </div>
                 
                 <div className="space-y-6">
-                  {vendor.customer_reviews && vendor.customer_reviews.length > 0 ? (
-                    vendor.customer_reviews.map((review, index) => (
+                  {customerReviews && customerReviews.length > 0 ? (
+                    customerReviews.map((review, index) => (
                     <div key={index} className="p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 hover:shadow-md transition-all duration-300">
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-4">

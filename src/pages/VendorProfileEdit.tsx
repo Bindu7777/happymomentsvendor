@@ -769,6 +769,9 @@ const VendorProfileEdit: React.FC = () => {
       setCatalogImages(imageUrls);
       setCatalogImagesWithMeta(mediaObjects);
       
+      // Update the form field with the metadata
+      setValue('catalog_images_metadata', mediaObjects, { shouldDirty: false });
+      
       // Store current highlight status from metadata
       setCurrentHighlightStatus(mediaObjects.map(img => ({
         id: img.id,
@@ -820,7 +823,7 @@ const VendorProfileEdit: React.FC = () => {
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
         catalog_images: originalCatalogImages || [],
-        catalog_images_metadata: [],
+        catalog_images_metadata: vendor.catalog_images_metadata || [],
         booking_policies: vendor.booking_policies || undefined,
         additional_info: vendor.additional_info || undefined,
         currently_available: vendor.currently_available || false
@@ -2038,8 +2041,15 @@ const VendorProfileEdit: React.FC = () => {
                                       )
                                     );
                                     
-                                    // Trigger form change detection by updating a hidden field
-                                    // This will make the form detect that changes have been made
+                                    // Update the catalog_images_metadata field in the form
+                                    const updatedMetadata = catalogImagesWithMeta.map(img => 
+                                      img.id === image.id 
+                                        ? { ...img, is_highlighted: isChecking }
+                                        : img
+                                    );
+                                    setValue('catalog_images_metadata', updatedMetadata, { shouldDirty: true });
+                                    
+                                    // Also trigger the hidden field for change detection
                                     setValue('catalog_highlights_updated', Date.now().toString(), { shouldDirty: true });
                                     
                                     setHighlightMessage(

@@ -54,6 +54,7 @@ type VendorEditForm = {
   }>;
   deliverables?: string[];
   catalog_images?: string[];
+  catalog_images_metadata?: any[];
   booking_policies?: {
     cancellation_policy?: string;
     payment_terms?: string;
@@ -73,6 +74,9 @@ type VendorEditForm = {
   
   // Status Fields
   currently_available: boolean;
+  
+  // Hidden field to track catalog highlight changes
+  catalog_highlights_updated?: string;
 };
 
 // Utility function to remove duplicates from string arrays (case-insensitive)
@@ -148,7 +152,8 @@ const VendorProfileEdit: React.FC = () => {
       services: [],
       packages: [],
       deliverables: [],
-      catalog_images: [],
+        catalog_images: [],
+        catalog_images_metadata: [],
       booking_policies: {
         cancellation_policy: '',
         payment_terms: '',
@@ -162,7 +167,8 @@ const VendorProfileEdit: React.FC = () => {
         certifications: [],
         custom_fields: []
       },
-      currently_available: false
+      currently_available: false,
+      catalog_highlights_updated: ''
     }
   });
 
@@ -326,13 +332,15 @@ const VendorProfileEdit: React.FC = () => {
       starting_price: vendorData.starting_price || 0,
       languages_spoken: vendorData.languages_spoken || [],
       currently_available: vendorData.currently_available || false,
+      catalog_highlights_updated: '',
       
       // Array fields
       highlight_features: vendorData.highlight_features || [],
       services: uniqueServices,
       packages: vendorData.packages || [],
       deliverables: vendorData.deliverables || [],
-      catalog_images: catalogImagesData || [],
+        catalog_images: catalogImagesData || [],
+        catalog_images_metadata: catalogImagesWithMeta || [],
       
       // Object fields - ensure proper structure
       booking_policies: {
@@ -799,9 +807,11 @@ const VendorProfileEdit: React.FC = () => {
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
         catalog_images: originalCatalogImages || [],
+        catalog_images_metadata: [],
         booking_policies: vendor.booking_policies || undefined,
         additional_info: vendor.additional_info || undefined,
-        currently_available: vendor.currently_available || false,
+        currently_available: vendor.currently_available || false
+        // Note: catalog_highlights_updated is excluded - it's only for form change tracking
       };
 
       console.log('Current vendor data:', currentData);
@@ -834,6 +844,7 @@ const VendorProfileEdit: React.FC = () => {
         })) || [],
         deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
         catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls],
+        catalog_images_metadata: data.catalog_images_metadata || [],
         booking_policies: data.booking_policies ? {
           cancellation_policy: data.booking_policies.cancellation_policy || '',
           payment_terms: data.booking_policies.payment_terms || '',
@@ -857,7 +868,8 @@ const VendorProfileEdit: React.FC = () => {
             f.field_name && f.field_name.trim() !== '' && f.field_value && f.field_value.trim() !== ''
           ) || []
         } : undefined,
-        currently_available: data.currently_available || false,
+        currently_available: data.currently_available || false
+        // Note: catalog_highlights_updated is excluded - it's only for form change tracking
       };
 
       console.log('Processed form data:', processedFormData);
@@ -1299,6 +1311,12 @@ const VendorProfileEdit: React.FC = () => {
 
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Hidden field to track catalog highlight changes */}
+          <input
+            type="hidden"
+            {...register('catalog_highlights_updated')}
+          />
+          
           {/* Basic Information */}
           <Card>
             <CardHeader>
@@ -1986,8 +2004,7 @@ const VendorProfileEdit: React.FC = () => {
                                   }
                                   
                                   try {
-                                    // For storage-based images, we'll just update local state
-                                    // since highlighting is a UI feature and storage doesn't track this
+                                    // For storage-based images, we'll update local state and trigger change detection
                                     console.log(`${isChecking ? 'Highlighting' : 'Unhighlighting'} image:`, image.id);
                                     
                                     // Update local state immediately
@@ -2008,10 +2025,14 @@ const VendorProfileEdit: React.FC = () => {
                                       )
                                     );
                                     
+                                    // Trigger form change detection by updating a hidden field
+                                    // This will make the form detect that changes have been made
+                                    setValue('catalog_highlights_updated', Date.now().toString(), { shouldDirty: true });
+                                    
                                     setHighlightMessage(
                                       isChecking 
-                                        ? `✅ Image highlighted successfully!` 
-                                        : `✅ Image unhighlighted successfully!`
+                                        ? `✅ Image highlighted successfully! Changes will be saved on submit.` 
+                                        : `✅ Image unhighlighted successfully! Changes will be saved on submit.`
                                     );
                                     
                                     // Clear success message after 3 seconds

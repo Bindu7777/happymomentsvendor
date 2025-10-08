@@ -337,29 +337,45 @@ export const getVendorMedia = async (vendorId: string, category?: string): Promi
   }
 };
 
-// Get highlighted catalog images (up to 3) or first 3 if none highlighted
-export const getHighlightedCatalogImages = async (vendorId: string): Promise<VendorMedia[]> => {
+// Get highlighted catalog images from vendor's catalog_images_metadata field
+export const getHighlightedCatalogImages = async (vendorId: string): Promise<any[]> => {
   try {
-    console.log(`Getting ONLY highlighted catalog images for vendor ${vendorId}`);
+    console.log(`Getting highlighted catalog images for vendor ${vendorId}`);
     
-    let { data: highlightedImages, error: highlightedError } = await supabase
-      .from('vendor_media')
-      .select('*')
+    // First get the vendor data to access catalog_images_metadata
+    const { data: vendorData, error: vendorError } = await supabase
+      .from('vendors')
+      .select('catalog_images_metadata, catalog_images')
       .eq('vendor_id', vendorId)
-      .eq('category', 'catalog')
-      .eq('public', true)
-      .eq('is_highlighted', true)
-      .order('order_index', { ascending: true })
-      .order('uploaded_at', { ascending: true })
-      .limit(3);
+      .single();
 
-    if (highlightedError) {
-      console.error('Error fetching highlighted catalog images:', highlightedError);
+    if (vendorError) {
+      console.error('Error fetching vendor data:', vendorError);
       return [];
     }
 
-    console.log(`Found ${highlightedImages?.length || 0} highlighted catalog images for vendor ${vendorId}`);
-    return (highlightedImages as VendorMedia[]) || [];
+    if (!vendorData) {
+      console.log('Vendor not found');
+      return [];
+    }
+
+    console.log('Vendor catalog metadata:', vendorData.catalog_images_metadata);
+    console.log('Vendor catalog images:', vendorData.catalog_images);
+
+    // Get highlighted images from metadata
+    const metadata = vendorData.catalog_images_metadata || [];
+    const highlightedImages = metadata.filter((img: any) => img.is_highlighted === true);
+    
+    console.log('Highlighted images found:', highlightedImages.length);
+    
+    // If no highlighted images, return first 3 images as fallback
+    if (highlightedImages.length === 0) {
+      console.log('No highlighted images, returning first 3 as fallback');
+      const fallbackImages = metadata.slice(0, 3);
+      return fallbackImages;
+    }
+    
+    return highlightedImages;
 
   } catch (error) {
     console.error('Error fetching highlighted catalog images:', error);

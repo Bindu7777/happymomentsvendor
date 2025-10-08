@@ -61,6 +61,7 @@ export interface Vendor {
   packages?: any
   deliverables?: string[]  // New deliverables field
   catalog_images?: string[]  // Catalog images field for edit form compatibility
+  catalog_images_metadata?: any[]  // Catalog images metadata including highlight status
   customer_reviews?: any
   booking_policies?: any
   additional_info?: {

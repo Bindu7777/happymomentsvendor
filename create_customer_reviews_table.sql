@@ -1,6 +1,23 @@
 -- Create customer_reviews table for storing customer reviews
 -- Run this in Supabase SQL Editor
 
+-- Step 0: Create customers table if it doesn't exist (needed for foreign key)
+CREATE TABLE IF NOT EXISTS customers (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    gender TEXT CHECK (gender IN ('Male', 'Female', 'Other')),
+    mobile_number TEXT,
+    status TEXT DEFAULT 'unverified' CHECK (status IN ('unverified', 'verified')),
+    verification_token TEXT,
+    verification_token_expires_at TIMESTAMP WITH TIME ZONE,
+    last_login_at TIMESTAMP WITH TIME ZONE,
+    login_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Step 1: Create the customer_reviews table
 CREATE TABLE IF NOT EXISTS customer_reviews (
   id SERIAL PRIMARY KEY,
@@ -44,13 +61,57 @@ CREATE TRIGGER trigger_customer_reviews_updated_at
 -- Step 5: Disable RLS for now (can be enabled later for security)
 ALTER TABLE customer_reviews DISABLE ROW LEVEL SECURITY;
 
--- Step 6: Insert sample data (optional - remove if not needed)
-INSERT INTO customer_reviews (
-  vendor_id, customer_id, customer_name, rating, review_text, is_verified
-) VALUES 
-  (1, (SELECT id FROM customers LIMIT 1), 'John & Sarah', 5, 'Amazing photography! Captured every special moment beautifully. Highly recommended!', true),
-  (1, (SELECT id FROM customers LIMIT 1 OFFSET 1), 'Priya & Arjun', 4, 'Great service and professional team. Very happy with the results.', true),
-  (1, (SELECT id FROM customers LIMIT 1 OFFSET 2), 'Mike & Lisa', 5, 'Perfect wedding photographer! Made our day even more special.', true);
+-- Step 6: Insert sample data (optional - only if customers exist)
+-- First check if there are any customers in the database
+DO $$
+DECLARE
+    customer_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO customer_count FROM customers;
+    
+    IF customer_count > 0 THEN
+        -- Insert sample reviews only if customers exist
+        INSERT INTO customer_reviews (
+          vendor_id, customer_id, customer_name, rating, review_text, is_verified
+        ) 
+        SELECT 
+          1, 
+          (SELECT id FROM customers LIMIT 1), 
+          'John & Sarah', 
+          5, 
+          'Amazing photography! Captured every special moment beautifully. Highly recommended!', 
+          true
+        WHERE EXISTS (SELECT 1 FROM vendors WHERE vendor_id = 1);
+        
+        INSERT INTO customer_reviews (
+          vendor_id, customer_id, customer_name, rating, review_text, is_verified
+        ) 
+        SELECT 
+          1, 
+          (SELECT id FROM customers LIMIT 1 OFFSET 1), 
+          'Priya & Arjun', 
+          4, 
+          'Great service and professional team. Very happy with the results.', 
+          true
+        WHERE EXISTS (SELECT 1 FROM customers LIMIT 1 OFFSET 1) AND EXISTS (SELECT 1 FROM vendors WHERE vendor_id = 1);
+        
+        INSERT INTO customer_reviews (
+          vendor_id, customer_id, customer_name, rating, review_text, is_verified
+        ) 
+        SELECT 
+          1, 
+          (SELECT id FROM customers LIMIT 1 OFFSET 2), 
+          'Mike & Lisa', 
+          5, 
+          'Perfect wedding photographer! Made our day even more special.', 
+          true
+        WHERE EXISTS (SELECT 1 FROM customers LIMIT 1 OFFSET 2) AND EXISTS (SELECT 1 FROM vendors WHERE vendor_id = 1);
+        
+        RAISE NOTICE 'Sample reviews inserted successfully';
+    ELSE
+        RAISE NOTICE 'No customers found - skipping sample review insertion';
+    END IF;
+END $$;
 
 -- Step 7: Verify the table was created
 SELECT 'customer_reviews table created successfully!' as message;

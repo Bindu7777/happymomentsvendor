@@ -434,31 +434,47 @@ export const getHighlightedCatalogImages = async (vendorId: string): Promise<any
   }
 };
 
-// Get all catalog images (max 10 for display)
-export const getAllCatalogImages = async (vendorId: string): Promise<VendorMedia[]> => {
+// Get ALL catalog images from storage buckets (not just highlighted ones)
+export const getAllCatalogImages = async (vendorId: string): Promise<any[]> => {
   try {
-    console.log(`Getting all catalog images for vendor ${vendorId}`);
+    console.log(`Getting ALL catalog images for vendor ${vendorId}`);
     
-    let { data: catalogImages, error: catalogError } = await supabase
-      .from('vendor_media')
-      .select('*')
-      .eq('vendor_id', vendorId)
-      .eq('category', 'catalog')
-      .eq('public', true)
-      .order('order_index', { ascending: true })
-      .order('uploaded_at', { ascending: true })
-      .limit(10); // Max 10 images for catalog display
-
-    if (catalogError) {
-      console.error('Error fetching all catalog images:', catalogError);
-      return [];
+    // Import the storage service functions
+    const { getVendorCatalogImagesFromStorage } = await import('./supabaseStorageService');
+    
+    // Get all catalog images from storage buckets
+    const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+    let allStorageImages: any[] = [];
+    
+    for (const bucket of possibleBuckets) {
+      const storageImages = await getVendorCatalogImagesFromStorage(vendorId, bucket);
+      if (storageImages.length > 0) {
+        allStorageImages = storageImages;
+        break;
+      }
     }
 
-    console.log(`Found ${catalogImages?.length || 0} total catalog images for vendor ${vendorId}`);
-    return (catalogImages as VendorMedia[]) || [];
+    console.log('All storage catalog images found:', allStorageImages.length);
+
+    // Transform storage images to the format expected by VendorProfile
+    const transformedImages = allStorageImages.map(img => ({
+      id: img.id,
+      name: img.name,
+      media_url: img.url, // Convert 'url' to 'media_url' for compatibility
+      url: img.url,
+      title: img.name,
+      filename: img.name,
+      size: img.size,
+      created_at: img.created_at,
+      updated_at: img.updated_at,
+      metadata: img.metadata
+    }));
+    
+    console.log('Transformed catalog images:', transformedImages.length);
+    return transformedImages;
 
   } catch (error) {
-    console.error('Error in getAllCatalogImages:', error);
+    console.error('Error fetching all catalog images:', error);
     return [];
   }
 };

@@ -10,12 +10,13 @@ import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Vendor } from '../lib/supabase';
-import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages } from '../services/supabaseService';
+import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
 
 const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [highlightedImages, setHighlightedImages] = useState<any[]>([]);
+  const [allCatalogImages, setAllCatalogImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -70,6 +71,16 @@ const VendorProfile = () => {
         } catch (imgError) {
           console.error('Error loading highlighted images:', imgError);
           setHighlightedImages([]);
+        }
+
+        // Load all catalog images for gallery
+        try {
+          const allImages = await getAllCatalogImages(vendorData.vendor_id);
+          console.log('Loaded all catalog images:', allImages);
+          setAllCatalogImages(allImages);
+        } catch (imgError) {
+          console.error('Error loading all catalog images:', imgError);
+          setAllCatalogImages([]);
         }
 
       } catch (err) {
@@ -202,7 +213,7 @@ const VendorProfile = () => {
     ],
     services: vendor.services || [],
     packages: vendor.packages || [],
-    portfolio: highlightedImages.map(img => img.media_url) || [],
+    portfolio: allCatalogImages.map(img => img.media_url) || [],
     reviews: vendor.customer_reviews || [],
     contact: {
       phone: vendor.phone_number || "",
@@ -977,9 +988,13 @@ I'm really excited to connect and explore working with you soon! ✨`;
                 <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
                   <Video className="w-8 h-8 text-blue-600" />
                   Catalog
+                  <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded-full">
+                    {allCatalogImages.length} Images
+                  </span>
                 </h2>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {allCatalogImages.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {photographer.portfolio.map((image, index) => (
                     <Dialog key={index}>
                       <DialogTrigger asChild>
@@ -1011,7 +1026,20 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       </DialogContent>
                     </Dialog>
                   ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-xl">
+                    <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Catalog Images</h3>
+                    <p className="text-gray-500 mb-4">This vendor hasn't added any catalog images yet.</p>
+                    <button 
+                      onClick={() => window.location.reload()} 
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    >
+                      Refresh Page
+                    </button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

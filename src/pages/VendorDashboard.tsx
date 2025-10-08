@@ -92,6 +92,7 @@ const VendorDashboard: React.FC = () => {
   // Clean filtering function: OR within categories, AND between categories
   const applyFilters = () => {
     try {
+      console.log('Applying filters:', { filters, searchQuery, leadsCount: leads.length });
       let result = [...leads];
       
       // 1. Search query filter
@@ -194,8 +195,10 @@ const VendorDashboard: React.FC = () => {
         }
       }
       
+      console.log('Filtered result:', result.length, 'leads');
       setFilteredLeads(result);
     } catch (error) {
+      console.error('Error in applyFilters:', error);
       // Fallback: show all leads if filtering fails
       setFilteredLeads([...leads]);
     }
@@ -228,111 +231,20 @@ const VendorDashboard: React.FC = () => {
 
   // Initialize filtered leads when leads first load
   useEffect(() => {
-    if (leads.length > 0 && filteredLeads.length === 0) {
+    if (leads.length > 0) {
+      console.log('Initializing filtered leads with', leads.length, 'leads');
       setFilteredLeads([...leads]);
     }
-  }, [leads, filteredLeads.length]);
-
-  // Temporary sample data for testing (remove this after real data is connected)
-  useEffect(() => {
-    if (leads.length === 0) {
-      const sampleLeads = [
-        {
-          id: 1,
-          customer_name: "John & Sarah Wedding",
-          customer_phone: "+91 98765 43210",
-          customer_whatsapp: "+91 98765 43210",
-          event_type: "Wedding",
-          event_date: "2024-12-15",
-          budget_range: "1l_2l",
-          status: "new_lead",
-          initial_notes: "Looking for premium wedding photography",
-          created_at: "2024-09-18",
-          last_contact_date: "2024-09-18"
-        },
-        {
-          id: 2,
-          customer_name: "Rahul Birthday",
-          customer_phone: "+91 87654 32109",
-          event_type: "Birthday Party",
-          event_date: "2024-10-25",
-          budget_range: "50k_1l",
-          status: "contacted",
-          initial_notes: "25th birthday celebration",
-          created_at: "2024-09-17",
-          last_contact_date: "2024-09-17"
-        },
-        {
-          id: 3,
-          customer_name: "Tech Corp Event",
-          customer_phone: "+91 76543 21098",
-          event_type: "Corporate Event",
-          event_date: "2024-11-10",
-          budget_range: "2l_5l",
-          status: "negotiation",
-          initial_notes: "Annual company event",
-          created_at: "2024-09-16",
-          last_contact_date: "2024-09-16"
-        },
-        {
-          id: 4,
-          customer_name: "Priya Anniversary",
-          customer_phone: "+91 65432 10987",
-          event_type: "Anniversary",
-          event_date: "2024-12-20",
-          budget_range: "50k_1l",
-          status: "proposal_sent",
-          initial_notes: "5th anniversary celebration",
-          created_at: "2024-09-15",
-          last_contact_date: "2024-09-15"
-        },
-        {
-          id: 5,
-          customer_name: "Kumar Family",
-          customer_phone: "+91 54321 09876",
-          event_type: "Baby Shower",
-          event_date: "2024-10-30",
-          budget_range: "25k_50k",
-          status: "customer_decision_pending",
-          initial_notes: "Baby shower photography",
-          created_at: "2024-09-14",
-          last_contact_date: "2024-09-14"
-        },
-        {
-          id: 6,
-          customer_name: "Rohan Engagement",
-          customer_phone: "+91 43210 98765",
-          event_type: "Engagement",
-          event_date: "2024-11-25",
-          budget_range: "1l_2l",
-          status: "advance_received",
-          initial_notes: "Engagement ceremony photography",
-          created_at: "2024-09-13",
-          last_contact_date: "2024-09-13"
-        },
-        {
-          id: 7,
-          customer_name: "Lost Event Lead",
-          customer_phone: "+91 32109 87654",
-          event_type: "Wedding",
-          event_date: "2024-09-01",
-          budget_range: "above_5l",
-          status: "lost",
-          initial_notes: "Client went with another vendor",
-          created_at: "2024-08-15",
-          last_contact_date: "2024-08-20"
-        }
-      ];
-      setLeads(sampleLeads);
-    }
   }, [leads.length]);
+
+  // Sample data removed - now using real data from database
 
   // Apply filters when leads or filters change
   useEffect(() => {
     if (leads.length > 0) {
       applyFilters();
     }
-  }, [leads.length, filters.stages.length]);
+  }, [leads, searchQuery, filters]);
 
   // Close notifications dropdown when clicking outside
   useEffect(() => {
@@ -1147,19 +1059,15 @@ const VendorDashboard: React.FC = () => {
                               checked={filters.stages.includes(stage)}
                               onChange={(e) => {
                                 if (e.target.checked) {
-                                  const newStages = [...filters.stages, stage];
-                                  setFilters(prev => {
-                                    const newFilters = { ...prev, stages: newStages };
-                                    setTimeout(() => applyFilters(), 50);
-                                    return newFilters;
-                                  });
+                                  setFilters(prev => ({
+                                    ...prev, 
+                                    stages: [...prev.stages, stage]
+                                  }));
                                 } else {
-                                  const newStages = filters.stages.filter(s => s !== stage);
-                                  setFilters(prev => {
-                                    const newFilters = { ...prev, stages: newStages };
-                                    setTimeout(() => applyFilters(), 50);
-                                    return newFilters;
-                                  });
+                                  setFilters(prev => ({
+                                    ...prev, 
+                                    stages: prev.stages.filter(s => s !== stage)
+                                  }));
                                 }
                               }}
                               className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-400"
@@ -1314,7 +1222,7 @@ const VendorDashboard: React.FC = () => {
                       className="text-white"
                       style={{ backgroundColor: '#FFA326' }}
                     >
-                      Apply Filters
+                      Close Filters
                     </Button>
                   </div>
                 </div>

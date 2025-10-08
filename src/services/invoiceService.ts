@@ -10,9 +10,9 @@ export interface ServiceItem {
 }
 
 export interface InvoiceQuotation {
-  id?: string;
+  id?: number;
   type: 'invoice' | 'quotation';
-  vendor_id: string;
+  vendor_id: number; // Changed from string to number to match database
   customer_name: string;
   customer_mobile: string;
   customer_email?: string;
@@ -26,7 +26,7 @@ export interface InvoiceQuotation {
   subtotal: number;
   tax_rate?: number;
   tax_amount?: number;
-  total: number;
+  total_amount: number; // Changed from 'total' to 'total_amount' to match database
   status?: 'draft' | 'sent' | 'paid' | 'overdue';
   created_at?: string;
   updated_at?: string;
@@ -43,13 +43,14 @@ export interface InvoiceTemplate {
 // Generate invoice/quotation number
 export const generateDocumentNumber = async (type: 'invoice' | 'quotation', vendorId: string | number): Promise<string> => {
   const prefix = type === 'invoice' ? 'INV' : 'QTN';
-  const vendorCode = vendorId.toString().slice(-3);
+  const vendorIdNum = typeof vendorId === 'string' ? parseInt(vendorId) : vendorId;
+  const vendorCode = vendorIdNum.toString().padStart(3, '0');
   
   // Get the count of existing documents for this vendor and type
   const { count } = await supabase
     .from('invoice_quotations')
     .select('*', { count: 'exact', head: true })
-    .eq('vendor_id', vendorId.toString())
+    .eq('vendor_id', vendorIdNum)
     .eq('type', type);
   
   const sequenceNumber = (count || 0) + 1;
@@ -77,9 +78,20 @@ export const createInvoiceQuotation = async (data: Omit<InvoiceQuotation, 'id' |
       return { success: false, error: 'At least one service item is required' };
     }
 
+    // Ensure vendor_id is a number
+    const vendorIdNum = typeof data.vendor_id === 'string' ? parseInt(data.vendor_id) : data.vendor_id;
+
     // Generate unique document number
-    const documentNumber = await generateDocumentNumber(data.type, data.vendor_id);
-    const invoiceData = { ...data, number: documentNumber };
+    const documentNumber = await generateDocumentNumber(data.type, vendorIdNum);
+    
+    // Prepare data for insertion - ensure vendor_id is number
+    const invoiceData = { 
+      ...data, 
+      vendor_id: vendorIdNum,
+      number: documentNumber 
+    };
+
+    console.log('Inserting invoice data:', invoiceData);
 
     const { data: result, error } = await supabase
       .from('invoice_quotations')
@@ -118,12 +130,14 @@ export const createInvoiceQuotation = async (data: Omit<InvoiceQuotation, 'id' |
 };
 
 // Get all invoices/quotations for a vendor
-export const getVendorInvoicesQuotations = async (vendorId: string): Promise<{ success: boolean; data?: InvoiceQuotation[]; error?: string }> => {
+export const getVendorInvoicesQuotations = async (vendorId: string | number): Promise<{ success: boolean; data?: InvoiceQuotation[]; error?: string }> => {
   try {
+    const vendorIdNum = typeof vendorId === 'string' ? parseInt(vendorId) : vendorId;
+    
     const { data, error } = await supabase
       .from('invoice_quotations')
       .select('*')
-      .eq('vendor_id', vendorId)
+      .eq('vendor_id', vendorIdNum)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -139,7 +153,7 @@ export const getVendorInvoicesQuotations = async (vendorId: string): Promise<{ s
 };
 
 // Get single invoice/quotation
-export const getInvoiceQuotation = async (id: string): Promise<{ success: boolean; data?: InvoiceQuotation; error?: string }> => {
+export const getInvoiceQuotation = async (id: number): Promise<{ success: boolean; data?: InvoiceQuotation; error?: string }> => {
   try {
     const { data, error } = await supabase
       .from('invoice_quotations')
@@ -160,7 +174,7 @@ export const getInvoiceQuotation = async (id: string): Promise<{ success: boolea
 };
 
 // Update invoice/quotation
-export const updateInvoiceQuotation = async (id: string, updates: Partial<InvoiceQuotation>): Promise<{ success: boolean; data?: InvoiceQuotation; error?: string }> => {
+export const updateInvoiceQuotation = async (id: number, updates: Partial<InvoiceQuotation>): Promise<{ success: boolean; data?: InvoiceQuotation; error?: string }> => {
   try {
     const { data, error } = await supabase
       .from('invoice_quotations')
@@ -182,7 +196,7 @@ export const updateInvoiceQuotation = async (id: string, updates: Partial<Invoic
 };
 
 // Delete invoice/quotation
-export const deleteInvoiceQuotation = async (id: string): Promise<{ success: boolean; error?: string }> => {
+export const deleteInvoiceQuotation = async (id: number): Promise<{ success: boolean; error?: string }> => {
   try {
     const { error } = await supabase
       .from('invoice_quotations')

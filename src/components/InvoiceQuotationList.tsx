@@ -338,7 +338,7 @@ const InvoiceQuotationList: React.FC<InvoiceQuotationListProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Total Amount:</span>
                     <span className="text-lg font-bold text-gray-900">
-                      {formatCurrency(item.total)}
+                      {formatCurrency(item.total_amount)}
                     </span>
                   </div>
                 </div>

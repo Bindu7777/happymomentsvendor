@@ -182,7 +182,7 @@ export const generateInvoiceQuotationPDF = async (
   yPosition += 6;
 
   addText('Total:', totalsX, yPosition, { fontSize: 12, fontStyle: 'bold', color: '#1a202c' });
-  addText(`₹${invoiceQuotation.total.toFixed(2)}`, pageWidth - margin, yPosition, { fontSize: 12, fontStyle: 'bold', color: '#1a202c', align: 'right' });
+  addText(`₹${invoiceQuotation.total_amount.toFixed(2)}`, pageWidth - margin, yPosition, { fontSize: 12, fontStyle: 'bold', color: '#1a202c', align: 'right' });
 
   yPosition += 20;
 

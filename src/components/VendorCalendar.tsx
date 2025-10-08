@@ -484,10 +484,10 @@ const VendorCalendar: React.FC<VendorCalendarProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Event Type *
+                  Event Type
                 </label>
                 <select
-                  {...register("event_type", { required: "Event type is required" })}
+                  {...register("event_type")}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
                   {Object.entries(eventTypeLabels).map(([value, label]) => (
@@ -498,10 +498,10 @@ const VendorCalendar: React.FC<VendorCalendarProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status *
+                  Status
                 </label>
                 <select
-                  {...register("status", { required: "Status is required" })}
+                  {...register("status")}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="tentative">Tentative</option>
@@ -527,20 +527,20 @@ const VendorCalendar: React.FC<VendorCalendarProps> = ({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Date *
+                    Start Date
                   </label>
                   <Input
                     type="date"
-                    {...register("start_date", { required: "Start date is required" })}
+                    {...register("start_date")}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Date *
+                    End Date
                   </label>
                   <Input
                     type="date"
-                    {...register("end_date", { required: "End date is required" })}
+                    {...register("end_date")}
                   />
                 </div>
               </div>
@@ -549,20 +549,20 @@ const VendorCalendar: React.FC<VendorCalendarProps> = ({
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Time *
+                      Start Time
                     </label>
                     <Input
                       type="time"
-                      {...register("start_time", { required: "Start time is required" })}
+                      {...register("start_time")}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      End Time *
+                      End Time
                     </label>
                     <Input
                       type="time"
-                      {...register("end_time", { required: "End time is required" })}
+                      {...register("end_time")}
                     />
                   </div>
                 </div>

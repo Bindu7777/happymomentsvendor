@@ -205,12 +205,12 @@ const InvoiceQuotationModal: React.FC<InvoiceQuotationModalProps> = ({
       const totals = calculateTotals(formData.services, formData.tax_rate);
       console.log('Calculated totals:', totals);
       
-      const documentNumber = editData?.number || generateDocumentNumber(type, vendor.vendor_id);
+      const documentNumber = editData?.number || await generateDocumentNumber(type, vendor.vendor_id);
       console.log('Generated document number:', documentNumber);
 
       const invoiceQuotationData: Omit<InvoiceQuotation, 'id' | 'created_at' | 'updated_at'> = {
         type,
-        vendor_id: vendor.vendor_id.toString(),
+        vendor_id: typeof vendor.vendor_id === 'string' ? parseInt(vendor.vendor_id) : vendor.vendor_id,
         customer_name: formData.customer_name.trim(),
         customer_mobile: formData.customer_mobile.trim(),
         customer_email: formData.customer_email?.trim() || '',
@@ -225,7 +225,7 @@ const InvoiceQuotationModal: React.FC<InvoiceQuotationModalProps> = ({
         subtotal: totals.subtotal,
         tax_rate: formData.tax_rate,
         tax_amount: totals.taxAmount,
-        total: totals.total,
+        total_amount: totals.total,
         status: editData?.status || 'draft'
       };
 

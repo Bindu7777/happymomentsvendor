@@ -63,7 +63,7 @@ const InvoiceQuotationPreview: React.FC<InvoiceQuotationPreviewProps> = ({
 Your ${documentType} ${invoiceQuotation.number} is ready.
 
 📄 Document: ${documentType} ${invoiceQuotation.number}
-💵 Total Amount: ${formatCurrency(invoiceQuotation.total)}
+💵 Total Amount: ${formatCurrency(invoiceQuotation.total_amount)}
 📅 Date: ${formatDate(invoiceQuotation.date)}
 
 Please review the attached document. For any queries, feel free to contact us.
@@ -84,7 +84,7 @@ ${vendor.brand_name}`;
 Please find attached your ${documentType} ${invoiceQuotation.number}.
 
 📄 Document: ${documentType} ${invoiceQuotation.number}
-💵 Total Amount: ${formatCurrency(invoiceQuotation.total)}
+💵 Total Amount: ${formatCurrency(invoiceQuotation.total_amount)}
 📅 Date: ${formatDate(invoiceQuotation.date)}
 
 Please review the document and let us know if you have any questions.
@@ -238,7 +238,7 @@ ${vendor.email ? `Email: ${vendor.email}` : ''}`;
                   <div className="border-t pt-2">
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
-                      <span>{formatCurrency(invoiceQuotation.total)}</span>
+                      <span>{formatCurrency(invoiceQuotation.total_amount)}</span>
                     </div>
                   </div>
                 </div>

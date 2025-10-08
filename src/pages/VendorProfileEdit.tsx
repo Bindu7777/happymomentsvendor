@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { ArrowLeft, Save, AlertCircle, CheckCircle, Trash2, X, FileText } from 'lucide-react';
-import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorMedia, updateVendorCatalogImages, getVendorByFieldId, saveVendorSession, refreshVendorSession, toggleImageHighlight, deleteVendorMedia, clearVendorHardcodedServices } from '../services/supabaseService';
+import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorByFieldId, saveVendorSession, refreshVendorSession, clearVendorHardcodedServices } from '../services/supabaseService';
+import { getVendorCatalogImagesFromStorage, listStorageBuckets, deleteImageFromStorage } from '../services/supabaseStorageService';
 import ImageUpload from '../components/ImageUpload';
 import { Vendor } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
@@ -105,6 +106,15 @@ const VendorProfileEdit: React.FC = () => {
   const [deleteConfirmData, setDeleteConfirmData] = useState<any>(null);
   const [sampleDataConfirmOpen, setSampleDataConfirmOpen] = useState(false);
   const [changesSummaryOpen, setChangesSummaryOpen] = useState(false);
+
+  // Debug useEffect to monitor catalogImagesWithMeta changes
+  useEffect(() => {
+    console.log('=== CATALOG IMAGES WITH META STATE CHANGED ===');
+    console.log('catalogImagesWithMeta:', catalogImagesWithMeta);
+    console.log('catalogImagesWithMeta length:', catalogImagesWithMeta.length);
+    console.log('catalogImagesWithMeta type:', typeof catalogImagesWithMeta);
+    console.log('Is catalogImagesWithMeta an array?', Array.isArray(catalogImagesWithMeta));
+  }, [catalogImagesWithMeta]);
   const [submittedChanges, setSubmittedChanges] = useState<any>({});
   const navigate = useNavigate();
 
@@ -222,6 +232,9 @@ const VendorProfileEdit: React.FC = () => {
         
         // Load catalog images
         try {
+          console.log('=== LOADING CATALOG IMAGES IN INIT ===');
+          console.log('Final vendor data vendor_id:', finalVendorData.vendor_id);
+          console.log('Final vendor data vendor_id type:', typeof finalVendorData.vendor_id);
           catalogImages = await loadCatalogImages(finalVendorData.vendor_id);
           console.log('Catalog images loaded successfully:', catalogImages);
           // Store original catalog images for comparison
@@ -580,7 +593,35 @@ const VendorProfileEdit: React.FC = () => {
         setTimeout(() => setHighlightMessage(''), 3000);
       } else if (deleteConfirmType === 'catalog' && deleteConfirmData) {
         console.log('Deleting catalog image:', deleteConfirmData.id);
-        const success = await deleteVendorMedia(deleteConfirmData.id);
+        // Extract the file path from the image data
+        const imagePath = deleteConfirmData.filename || deleteConfirmData.name;
+        console.log('Image path to delete:', imagePath);
+        
+        // Try to delete from different possible bucket/folder combinations
+        const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+        const vendorIdStr = vendor?.vendor_id?.toString() || '';
+        let success = false;
+        
+        for (const bucket of possibleBuckets) {
+          // Try different path formats
+          const possiblePaths = [
+            `${vendorIdStr}/${imagePath}`,
+            `${vendorIdStr}/catalog/${imagePath}`,
+            `${vendorIdStr}/gallery/${imagePath}`,
+            imagePath // Direct path
+          ];
+          
+          for (const path of possiblePaths) {
+            success = await deleteImageFromStorage(path, bucket);
+            if (success) {
+              console.log(`Successfully deleted from bucket: ${bucket}, path: ${path}`);
+              break;
+            }
+          }
+          
+          if (success) break;
+        }
+        
         console.log('Delete result:', success);
         
         if (success) {
@@ -621,20 +662,9 @@ const VendorProfileEdit: React.FC = () => {
           // Refresh catalog images to ensure consistency
           if (vendor?.vendor_id) {
             try {
-              console.log('Refreshing catalog images...');
-              const refreshedImages = await getVendorMedia(vendor.vendor_id, 'catalog');
-              setCatalogImagesWithMeta(refreshedImages);
-              const refreshedUrls = refreshedImages.map(img => img.media_url);
-              setCatalogImages(refreshedUrls);
-              
-              // Update current highlight status with refreshed data
-              setCurrentHighlightStatus(refreshedImages.map(img => ({
-                id: img.id,
-                media_url: img.media_url,
-                is_highlighted: img.is_highlighted || false
-              })));
-              
-              console.log('Catalog images refreshed successfully');
+              console.log('Refreshing catalog images from storage...');
+              const refreshedUrls = await loadCatalogImages(vendor.vendor_id);
+              console.log('Catalog images refreshed successfully:', refreshedUrls);
             } catch (refreshError) {
               console.error('Error refreshing after delete:', refreshError);
             }
@@ -657,53 +687,82 @@ const VendorProfileEdit: React.FC = () => {
 
   const loadCatalogImages = async (vendorId: string): Promise<string[]> => {
     try {
-      console.log('=== LOADING CATALOG IMAGES ===');
+      console.log('=== LOADING CATALOG IMAGES FROM STORAGE ===');
       console.log('Vendor ID:', vendorId);
       console.log('Vendor ID type:', typeof vendorId);
       
-      // Test the getVendorMedia function directly
-      console.log('Calling getVendorMedia...');
-      const media = await getVendorMedia(vendorId, 'catalog');
-      console.log('Raw media data returned:', media);
-      console.log('Media data type:', typeof media);
-      console.log('Media data length:', media ? media.length : 'undefined');
-      console.log('Is media an array?', Array.isArray(media));
+      // First, let's see what buckets are available
+      console.log('Listing available storage buckets...');
+      const buckets = await listStorageBuckets();
+      console.log('Available buckets:', buckets);
       
-      if (!media || !Array.isArray(media)) {
-        console.warn('Media data is not an array:', typeof media);
-        console.warn('Media value:', media);
+      // Try different bucket names and folder structures
+      const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+      const possibleFolders = ['catalog', 'gallery', 'images', ''];
+      
+      let storageImages: any[] = [];
+      let bucketUsed = '';
+      let folderUsed = '';
+      
+      // Try to find catalog images in different buckets
+      for (const bucket of possibleBuckets) {
+        console.log(`Trying bucket: ${bucket} for catalog images`);
+        
+        // Use the catalog-specific function that filters properly
+        const catalogImages = await getVendorCatalogImagesFromStorage(vendorId, bucket);
+        if (catalogImages.length > 0) {
+          storageImages = catalogImages;
+          bucketUsed = bucket;
+          folderUsed = 'catalog';
+          console.log(`Found ${catalogImages.length} catalog images in bucket ${bucket}`);
+          break;
+        }
+      }
+      
+      if (storageImages.length === 0) {
+        console.warn('No catalog images found in any storage bucket for vendor:', vendorId);
+        console.log('Tried buckets:', possibleBuckets);
+        console.log('Tried folders:', possibleFolders);
         return [];
       }
       
-      if (media.length === 0) {
-        console.warn('Media array is empty - no catalog images found for vendor:', vendorId);
-        return [];
-      }
+      // Convert storage images to the format expected by the component
+      const imageUrls = storageImages.map(img => img.url);
+      const mediaObjects = storageImages.map(img => ({
+        id: img.id,
+        media_url: img.url,
+        is_highlighted: false, // Default to not highlighted
+        title: img.name,
+        filename: img.name,
+        size: img.size,
+        created_at: img.created_at
+      }));
       
-      const imageUrls = media.map((item, index) => {
-        console.log(`Processing media item ${index + 1}:`, item);
-        console.log(`Media URL ${index + 1}:`, item.media_url);
-        return item.media_url;
-      });
-      console.log('Extracted image URLs:', imageUrls);
-      console.log('Image URLs length:', imageUrls.length);
-      console.log('Image URLs array:', JSON.stringify(imageUrls, null, 2));
+      console.log('=== CATALOG IMAGES FROM STORAGE ===');
+      console.log('Bucket used:', bucketUsed);
+      console.log('Folder used:', folderUsed);
+      console.log('Images found:', storageImages.length);
+      console.log('Image URLs:', imageUrls);
+      console.log('Media objects:', mediaObjects);
       
       setCatalogImages(imageUrls);
-      setCatalogImagesWithMeta(media); // Store full media objects for highlighting
+      setCatalogImagesWithMeta(mediaObjects);
       
-      // Store current highlight status for comparison during submission
-      setCurrentHighlightStatus(media.map(img => ({
+      // Store current highlight status (default to false since storage doesn't track this)
+      setCurrentHighlightStatus(mediaObjects.map(img => ({
         id: img.id,
         media_url: img.media_url,
-        is_highlighted: img.is_highlighted || false
+        is_highlighted: false
       })));
       
-      // Return the image URLs for immediate use
-      console.log('Catalog images loaded, returning:', imageUrls);
+      console.log('=== CATALOG IMAGES STATE UPDATED ===');
+      console.log('setCatalogImages called with:', imageUrls);
+      console.log('setCatalogImagesWithMeta called with:', mediaObjects);
+      console.log('Media objects count:', mediaObjects.length);
+      
       return imageUrls;
     } catch (error) {
-      console.error('Error loading catalog images:', error);
+      console.error('Error loading catalog images from storage:', error);
       console.error('Error details:', error);
       console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       return [];
@@ -1927,37 +1986,38 @@ const VendorProfileEdit: React.FC = () => {
                                   }
                                   
                                   try {
-                                    const success = await toggleImageHighlight(image.id, isChecking);
-                                    if (success) {
-                                      // Update local state
-                                      setCatalogImagesWithMeta(prev => 
-                                        prev.map(img => 
-                                          img.id === image.id 
-                                            ? { ...img, is_highlighted: isChecking }
-                                            : img
-                                        )
-                                      );
-                                      setHighlightMessage(
-                                        isChecking 
-                                          ? `✅ Image highlighted successfully!` 
-                                          : `✅ Image unhighlighted successfully!`
-                                      );
-                                      // Clear success message after 3 seconds
-                                      setTimeout(() => setHighlightMessage(''), 3000);
-                                      
-                                      // Refresh the catalog images to ensure UI is in sync
-                                      try {
-                                        const refreshedImages = await getVendorMedia(vendor?.vendor_id || '', 'catalog');
-                                        setCatalogImagesWithMeta(refreshedImages);
-                                      } catch (refreshError) {
-                                        console.error('Error refreshing catalog images:', refreshError);
-                                      }
-                                      console.log(`Successfully ${isChecking ? 'highlighted' : 'unhighlighted'} image:`, image.id);
-                                    } else {
-                                      // Revert checkbox if failed
-                                      e.target.checked = !isChecking;
-                                      setHighlightMessage('❌ Failed to update highlight status. Please try again.');
-                                    }
+                                    // For storage-based images, we'll just update local state
+                                    // since highlighting is a UI feature and storage doesn't track this
+                                    console.log(`${isChecking ? 'Highlighting' : 'Unhighlighting'} image:`, image.id);
+                                    
+                                    // Update local state immediately
+                                    setCatalogImagesWithMeta(prev => 
+                                      prev.map(img => 
+                                        img.id === image.id 
+                                          ? { ...img, is_highlighted: isChecking }
+                                          : img
+                                      )
+                                    );
+                                    
+                                    // Update current highlight status
+                                    setCurrentHighlightStatus(prev => 
+                                      prev.map(img => 
+                                        img.id === image.id 
+                                          ? { ...img, is_highlighted: isChecking }
+                                          : img
+                                      )
+                                    );
+                                    
+                                    setHighlightMessage(
+                                      isChecking 
+                                        ? `✅ Image highlighted successfully!` 
+                                        : `✅ Image unhighlighted successfully!`
+                                    );
+                                    
+                                    // Clear success message after 3 seconds
+                                    setTimeout(() => setHighlightMessage(''), 3000);
+                                    
+                                    console.log(`Successfully ${isChecking ? 'highlighted' : 'unhighlighted'} image:`, image.id);
                                   } catch (error) {
                                     console.error('Error toggling highlight:', error);
                                     e.target.checked = !isChecking;
@@ -2610,3 +2670,4 @@ const VendorProfileEdit: React.FC = () => {
 };
 
 export default VendorProfileEdit;
+

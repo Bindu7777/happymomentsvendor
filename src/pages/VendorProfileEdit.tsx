@@ -340,7 +340,7 @@ const VendorProfileEdit: React.FC = () => {
       packages: vendorData.packages || [],
       deliverables: vendorData.deliverables || [],
         catalog_images: catalogImagesData || [],
-        catalog_images_metadata: catalogImagesWithMeta || [],
+        catalog_images_metadata: vendorData.catalog_images_metadata || catalogImagesWithMeta || [],
       
       // Object fields - ensure proper structure
       booking_policies: {
@@ -736,15 +736,28 @@ const VendorProfileEdit: React.FC = () => {
       
       // Convert storage images to the format expected by the component
       const imageUrls = storageImages.map(img => img.url);
-      const mediaObjects = storageImages.map(img => ({
-        id: img.id,
-        media_url: img.url,
-        is_highlighted: false, // Default to not highlighted
-        title: img.name,
-        filename: img.name,
-        size: img.size,
-        created_at: img.created_at
-      }));
+            // Get existing metadata to preserve highlight status
+            const existingMetadata = vendor?.catalog_images_metadata || [];
+            console.log('Existing metadata for highlights:', existingMetadata);
+            
+            const mediaObjects = storageImages.map(img => {
+              // Find existing metadata for this image
+              const existingMeta = existingMetadata.find((meta: any) => 
+                meta.filename === img.name || 
+                meta.media_url === img.url ||
+                meta.id === img.id
+              );
+              
+              return {
+                id: img.id,
+                media_url: img.url,
+                is_highlighted: existingMeta?.is_highlighted || false, // Use existing highlight status
+                title: img.name,
+                filename: img.name,
+                size: img.size,
+                created_at: img.created_at
+              };
+            });
       
       console.log('=== CATALOG IMAGES FROM STORAGE ===');
       console.log('Bucket used:', bucketUsed);
@@ -756,11 +769,11 @@ const VendorProfileEdit: React.FC = () => {
       setCatalogImages(imageUrls);
       setCatalogImagesWithMeta(mediaObjects);
       
-      // Store current highlight status (default to false since storage doesn't track this)
+      // Store current highlight status from metadata
       setCurrentHighlightStatus(mediaObjects.map(img => ({
         id: img.id,
         media_url: img.media_url,
-        is_highlighted: false
+        is_highlighted: img.is_highlighted
       })));
       
       console.log('=== CATALOG IMAGES STATE UPDATED ===');

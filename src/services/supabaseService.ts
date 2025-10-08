@@ -337,15 +337,18 @@ export const getVendorMedia = async (vendorId: string, category?: string): Promi
   }
 };
 
-// Get highlighted catalog images from vendor's catalog_images_metadata field
+// Get highlighted catalog images by combining storage bucket images with metadata
 export const getHighlightedCatalogImages = async (vendorId: string): Promise<any[]> => {
   try {
     console.log(`Getting highlighted catalog images for vendor ${vendorId}`);
     
+    // Import the storage service functions
+    const { getVendorCatalogImagesFromStorage } = await import('./supabaseStorageService');
+    
     // First get the vendor data to access catalog_images_metadata
     const { data: vendorData, error: vendorError } = await supabase
       .from('vendors')
-      .select('catalog_images_metadata, catalog_images')
+      .select('catalog_images_metadata')
       .eq('vendor_id', vendorId)
       .single();
 
@@ -360,19 +363,41 @@ export const getHighlightedCatalogImages = async (vendorId: string): Promise<any
     }
 
     console.log('Vendor catalog metadata:', vendorData.catalog_images_metadata);
-    console.log('Vendor catalog images:', vendorData.catalog_images);
 
-    // Get highlighted images from metadata
-    const metadata = vendorData.catalog_images_metadata || [];
-    const highlightedImages = metadata.filter((img: any) => img.is_highlighted === true);
+    // Get all catalog images from storage buckets
+    const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+    let allStorageImages: any[] = [];
     
+    for (const bucket of possibleBuckets) {
+      const storageImages = await getVendorCatalogImagesFromStorage(vendorId, bucket);
+      if (storageImages.length > 0) {
+        allStorageImages = storageImages;
+        break;
+      }
+    }
+
+    console.log('Storage images found:', allStorageImages.length);
+
+    // Get metadata with highlight status
+    const metadata = vendorData.catalog_images_metadata || [];
+    console.log('Metadata entries:', metadata.length);
+
+    // Match storage images with metadata and filter highlighted ones
+    const highlightedImages = allStorageImages.filter(storageImg => {
+      const metadataEntry = metadata.find((meta: any) => 
+        meta.filename === storageImg.name || 
+        meta.media_url === storageImg.url ||
+        meta.id === storageImg.id
+      );
+      return metadataEntry && metadataEntry.is_highlighted === true;
+    });
+
     console.log('Highlighted images found:', highlightedImages.length);
     
-    // If no highlighted images, return first 3 images as fallback
+    // If no highlighted images, return first 3 storage images as fallback
     if (highlightedImages.length === 0) {
-      console.log('No highlighted images, returning first 3 as fallback');
-      const fallbackImages = metadata.slice(0, 3);
-      return fallbackImages;
+      console.log('No highlighted images, returning first 3 storage images as fallback');
+      return allStorageImages.slice(0, 3);
     }
     
     return highlightedImages;

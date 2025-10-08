@@ -394,13 +394,39 @@ export const getHighlightedCatalogImages = async (vendorId: string): Promise<any
 
     console.log('Highlighted images found:', highlightedImages.length);
     
+    // Transform storage images to the format expected by VendorProfile
+    const transformedHighlightedImages = highlightedImages.map(img => ({
+      id: img.id,
+      name: img.name,
+      media_url: img.url, // Convert 'url' to 'media_url' for compatibility
+      url: img.url,
+      title: img.name,
+      filename: img.name,
+      size: img.size,
+      created_at: img.created_at,
+      updated_at: img.updated_at,
+      metadata: img.metadata
+    }));
+    
     // If no highlighted images, return first 3 storage images as fallback
-    if (highlightedImages.length === 0) {
+    if (transformedHighlightedImages.length === 0) {
       console.log('No highlighted images, returning first 3 storage images as fallback');
-      return allStorageImages.slice(0, 3);
+      const fallbackImages = allStorageImages.slice(0, 3).map(img => ({
+        id: img.id,
+        name: img.name,
+        media_url: img.url, // Convert 'url' to 'media_url' for compatibility
+        url: img.url,
+        title: img.name,
+        filename: img.name,
+        size: img.size,
+        created_at: img.created_at,
+        updated_at: img.updated_at,
+        metadata: img.metadata
+      }));
+      return fallbackImages;
     }
     
-    return highlightedImages;
+    return transformedHighlightedImages;
 
   } catch (error) {
     console.error('Error fetching highlighted catalog images:', error);

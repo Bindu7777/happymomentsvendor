@@ -13,12 +13,18 @@ import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import LikeButton from '@/components/LikeButton';
 import WhatsAppButton from '@/components/WhatsAppButton';
+import VendorStatusDropdown from '@/components/VendorStatusDropdown';
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
+import { checkVendorContacted } from '@/services/contactedVendorsApiService';
 
 const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
+  const { customer } = useCustomerAuth();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [contactStatus, setContactStatus] = useState<string>('Contacted');
+  const [isContacted, setIsContacted] = useState(false);
   const [highlightImages, setHighlightImages] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<any[]>([]);
   const [highlightedCatalogImages, setHighlightedCatalogImages] = useState<any[]>([]);
@@ -34,6 +40,35 @@ const VendorProfile = () => {
   const [showCoupon, setShowCoupon] = useState(false);
   const [recentClaims, setRecentClaims] = useState(Math.floor(Math.random() * 100) + 1);
   const [showRatingTooltip, setShowRatingTooltip] = useState(false);
+
+  // Check contact status
+  const checkContactStatus = async () => {
+    if (!customer || !vendorId) return;
+    
+    try {
+      const result = await checkVendorContacted(customer.id, vendorId);
+      if (result.success && result.data) {
+        setIsContacted(true);
+        setContactStatus(result.data.status || 'Contacted');
+      } else {
+        setIsContacted(false);
+        setContactStatus('Contacted');
+      }
+    } catch (error) {
+      console.error('Error checking contact status:', error);
+      setIsContacted(false);
+      setContactStatus('Contacted');
+    }
+  };
+
+  // Handle status update
+  const handleStatusUpdate = (newStatus: string) => {
+    setContactStatus(newStatus);
+    // Dispatch event to update header if needed
+    window.dispatchEvent(new CustomEvent('vendorStatusUpdated', { 
+      detail: { vendorId, status: newStatus } 
+    }));
+  };
 
   // Load vendor data and media
   useEffect(() => {
@@ -86,6 +121,11 @@ const VendorProfile = () => {
         // Reset slide index when images change
         setCurrentSlide(0);
 
+        // Check contact status after vendor data is loaded
+        if (customer) {
+          await checkContactStatus();
+        }
+
       } catch (err) {
         console.error("Failed to fetch vendor details:", err);
         setError(err instanceof Error ? err.message : 'Failed to load vendor details');
@@ -95,7 +135,7 @@ const VendorProfile = () => {
     };
 
     loadVendorData();
-  }, [vendorId]);
+  }, [vendorId, customer]);
 
   // Countdown timer
   useEffect(() => {
@@ -431,6 +471,22 @@ const VendorProfile = () => {
                 <p className="text-amber-600 font-medium">{vendor.description || "Professional services for your special day"}</p>
               </div>
 
+              {/* Contact Status Management - Only show if customer is logged in and has contacted this vendor */}
+              {customer && isContacted && (
+                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                  <div className="text-center">
+                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Contact Status</h3>
+                    <VendorStatusDropdown
+                      customerId={customer.id}
+                      vendorId={vendorId || ''}
+                      currentStatus={contactStatus}
+                      onStatusUpdate={handleStatusUpdate}
+                      className="w-full max-w-xs mx-auto"
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Owner Info */}
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
@@ -547,6 +603,25 @@ const VendorProfile = () => {
                         </div>
                       </div>
                     </div>
+
+                    {/* Contact Status Management - Only show if customer is logged in and has contacted this vendor */}
+                    {customer && isContacted && (
+                      <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 shadow-lg">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-800 mb-1">Your Contact Status</h3>
+                            <p className="text-sm text-gray-600">Track your interaction with this vendor</p>
+                          </div>
+                          <VendorStatusDropdown
+                            customerId={customer.id}
+                            vendorId={vendorId || ''}
+                            currentStatus={contactStatus}
+                            onStatusUpdate={handleStatusUpdate}
+                            className="min-w-[180px]"
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Category Badges Row */}
                     <div className="flex items-center gap-4 mb-10 -mt-10">

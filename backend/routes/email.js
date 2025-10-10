@@ -1,5 +1,12 @@
 const express = require('express');
-const { sendEmail, sendVerificationEmail } = require('../services/emailService');
+const { 
+  sendEmail, 
+  sendVerificationEmail, 
+  sendWelcomeEmail, 
+  sendPasswordResetEmail, 
+  sendReviewNotificationEmail, 
+  sendContactNotificationEmail 
+} = require('../services/emailService');
 const { supabase } = require('../config/supabase');
 
 const router = express.Router();
@@ -483,6 +490,214 @@ router.post('/test', async (req, res) => {
       success: false,
       error: 'Internal server error',
       message: 'Failed to send test email'
+    });
+  }
+});
+
+// Send welcome email
+router.post('/welcome', async (req, res) => {
+  try {
+    const { email, name, loginLink } = req.body;
+
+    // Validation
+    if (!email || !name || !loginLink) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'email, name, and loginLink are required'
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email address',
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    console.log(`📧 Sending welcome email to: ${email}`);
+
+    const result = await sendWelcomeEmail(email, name, loginLink);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Welcome email sent successfully',
+        messageId: result.messageId
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: result.message
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Welcome email route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to send welcome email'
+    });
+  }
+});
+
+// Send password reset email
+router.post('/password-reset', async (req, res) => {
+  try {
+    const { email, name, resetLink } = req.body;
+
+    // Validation
+    if (!email || !name || !resetLink) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'email, name, and resetLink are required'
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email address',
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    console.log(`📧 Sending password reset email to: ${email}`);
+
+    const result = await sendPasswordResetEmail(email, name, resetLink);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Password reset email sent successfully',
+        messageId: result.messageId
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: result.message
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Password reset email route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to send password reset email'
+    });
+  }
+});
+
+// Send review notification email to vendor
+router.post('/review-notification', async (req, res) => {
+  try {
+    const { vendorEmail, vendorName, customerName, reviewText, rating } = req.body;
+
+    // Validation
+    if (!vendorEmail || !vendorName || !customerName || !reviewText) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'vendorEmail, vendorName, customerName, and reviewText are required'
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(vendorEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email address',
+        message: 'Please provide a valid vendor email address'
+      });
+    }
+
+    console.log(`📧 Sending review notification email to vendor: ${vendorEmail}`);
+
+    const result = await sendReviewNotificationEmail(vendorEmail, vendorName, customerName, reviewText, rating);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Review notification email sent successfully',
+        messageId: result.messageId
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: result.message
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Review notification email route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to send review notification email'
+    });
+  }
+});
+
+// Send contact form notification email to vendor
+router.post('/contact-notification', async (req, res) => {
+  try {
+    const { vendorEmail, customerName, customerEmail, message, vendorName } = req.body;
+
+    // Validation
+    if (!vendorEmail || !customerName || !customerEmail || !message || !vendorName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message: 'vendorEmail, customerName, customerEmail, message, and vendorName are required'
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(vendorEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid email address',
+        message: 'Please provide a valid vendor email address'
+      });
+    }
+
+    console.log(`📧 Sending contact notification email to vendor: ${vendorEmail}`);
+
+    const result = await sendContactNotificationEmail(vendorEmail, customerName, customerEmail, message, vendorName);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Contact notification email sent successfully',
+        messageId: result.messageId
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error,
+        message: result.message
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Contact notification email route error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'Failed to send contact notification email'
     });
   }
 });

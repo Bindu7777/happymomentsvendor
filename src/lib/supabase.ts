@@ -81,8 +81,28 @@ export interface Vendor {
   updated_at?: string
 }
 
+export interface UserProfile {
+  id: number  // Changed from UUID string to auto-increment integer
+  user_id: string  // This remains UUID as it references auth.users
+  email: string
+  first_name: string
+  last_name: string
+  full_name: string
+  phone_number?: string
+  date_of_birth?: string
+  profile_image_url?: string
+  bio?: string
+  location?: string
+  website?: string
+  agreed_to_terms: boolean
+  email_verified: boolean
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 export interface VendorMedia {
-  id: string
+  id: number  // Changed from string to number for auto-increment integer
   vendor_id: string
   media_url: string
   media_type: 'image' | 'video'

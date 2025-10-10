@@ -3,9 +3,10 @@ import { supabase } from '@/lib/supabase';
 import { createUnverifiedUser, createVerifiedUser, verifyEmailWithToken, resendVerificationEmail } from '@/services/emailVerificationService';
 
 export interface Customer {
-  id: string;
+  id: number;  // Changed from string to number for auto-increment integer
   full_name: string;
   email: string;
+  password_hash: string;  // Required for authentication
   gender?: string;
   mobile_number: string;
   status: 'unverified' | 'verified';
@@ -18,7 +19,7 @@ export interface Customer {
 }
 
 export interface CustomerSearchFilter {
-  id: string;
+  id: number;  // Changed from string to number for auto-increment integer
   customer_id: string;
   filter_data: any;
   filter_name: string;
@@ -27,7 +28,7 @@ export interface CustomerSearchFilter {
 }
 
 export interface CustomerSearchHistory {
-  id: string;
+  id: number;  // Changed from string to number for auto-increment integer
   customer_id: string;
   search_type: 'voice' | 'manual' | 'smart_request';
   search_query?: string;

@@ -104,7 +104,7 @@ const VendorProfileEdit: React.FC = () => {
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState<string>('');
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
-  const [currentHighlightStatus, setCurrentHighlightStatus] = useState<Array<{id: string, media_url: string, is_highlighted: boolean}>>([]);
+  const [currentHighlightStatus, setCurrentHighlightStatus] = useState<Array<{id: number, media_url: string, is_highlighted: boolean}>>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteConfirmType, setDeleteConfirmType] = useState<'brand_logo' | 'contact_person' | 'catalog'>('brand_logo');
   const [deleteConfirmData, setDeleteConfirmData] = useState<any>(null);

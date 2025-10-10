@@ -9,11 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
 import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout } from "@/services/supabaseService";
+import { getLikedVendors } from "@/services/likedVendorsApiService";
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -25,6 +26,7 @@ const Header = () => {
   const [loggedInVendor, setLoggedInVendor] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginType, setLoginType] = useState<'customer' | 'vendor'>('customer');
+  const [likedVendorsCount, setLikedVendorsCount] = useState(0);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
@@ -38,6 +40,42 @@ const Header = () => {
     const vendor = getLoggedInVendor();
     setLoggedInVendor(vendor);
   }, []);
+
+  // Fetch liked vendors count when customer is logged in
+  useEffect(() => {
+    const fetchLikedVendorsCount = async () => {
+      if (customer) {
+        try {
+          const result = await getLikedVendors(customer.id);
+          if (result.success && result.data) {
+            setLikedVendorsCount(result.data.length);
+          } else {
+            setLikedVendorsCount(0);
+          }
+        } catch (error) {
+          console.error('Error fetching liked vendors count:', error);
+          setLikedVendorsCount(0);
+        }
+      } else {
+        setLikedVendorsCount(0);
+      }
+    };
+
+    fetchLikedVendorsCount();
+
+    // Listen for like/unlike events to update count
+    const handleLikeChange = () => {
+      fetchLikedVendorsCount();
+    };
+
+    window.addEventListener('vendorLiked', handleLikeChange);
+    window.addEventListener('vendorUnliked', handleLikeChange);
+
+    return () => {
+      window.removeEventListener('vendorLiked', handleLikeChange);
+      window.removeEventListener('vendorUnliked', handleLikeChange);
+    };
+  }, [customer]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -199,31 +237,55 @@ const Header = () => {
         {/* Auth buttons - kept on right */}
         <div className="flex items-center space-x-3 z-50 relative">
           {customer ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
-                <User className="h-4 w-4 mr-2" />
-                {customer.full_name}
-                <ChevronDown className="ml-1 h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-48 animate-fade-in">
-                <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                  <Link to="/customer-dashboard" className="w-full flex items-center">
-                    <User className="h-4 w-4 mr-2" />
-                    Dashboard
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2"
-                  onClick={async () => {
-                    await customerSignOut();
-                    navigate('/');
-                  }}
-                >
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center space-x-3">
+              {/* Liked Vendors Button */}
+              <button
+                onClick={() => navigate('/liked-vendors')}
+                className="flex items-center text-white hover:text-red-400 transition-custom group relative"
+                title="Liked Vendors"
+              >
+                <Heart className="h-5 w-5 mr-1 group-hover:fill-red-400 group-hover:scale-110 transition-all duration-200" />
+                <span className="text-sm font-medium">Liked</span>
+                {likedVendorsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {likedVendorsCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Customer Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
+                  <User className="h-4 w-4 mr-2" />
+                  {customer.full_name}
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-48 animate-fade-in">
+                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
+                    <Link to="/customer-dashboard" className="w-full flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
+                    <Link to="/liked-vendors" className="w-full flex items-center">
+                      <Heart className="h-4 w-4 mr-2" />
+                      Liked Vendors
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2"
+                    onClick={async () => {
+                      await customerSignOut();
+                      navigate('/');
+                    }}
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : (
             <>
               <button

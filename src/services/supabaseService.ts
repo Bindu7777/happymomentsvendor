@@ -741,7 +741,7 @@ export const deleteVendor = async (vendorId: string): Promise<boolean> => {
 };
 
 // Add vendor media
-export const addVendorMedia = async (mediaData: Omit<VendorMedia, 'id' | 'uploaded_at'>): Promise<string | null> => {
+export const addVendorMedia = async (mediaData: Omit<VendorMedia, 'id' | 'uploaded_at'>): Promise<number | null> => {
   try {
     const { data, error } = await supabase
       .from('vendor_media')

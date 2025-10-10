@@ -7,6 +7,7 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import Header from '../components/layout/Header';
+import LikeButton from '@/components/LikeButton';
 import { Vendor } from '@/lib/supabase';
 import { getAllVendors } from '@/services/supabaseService';
 
@@ -63,7 +64,6 @@ const VendorsPage = () => {
   // UI states
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -176,14 +176,6 @@ const VendorsPage = () => {
       }
     });
 
-  // Toggle favorite
-  const toggleFavorite = (vendorId: string) => {
-    setFavorites(prev => 
-      prev.includes(vendorId) 
-        ? prev.filter(id => id !== vendorId)
-        : [...prev, vendorId]
-    );
-  };
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -454,16 +446,13 @@ const VendorsPage = () => {
                         )}
                       </div>
 
-                      {/* Favorite Button */}
-                      <div className="absolute top-3 right-3">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="w-8 h-8 bg-white/90 hover:bg-white text-gray-700 hover:text-red-500 transition-all duration-200"
-                          onClick={(e) => { e.stopPropagation(); toggleFavorite(vendor.vendor_id); }}
-                        >
-                          <Heart className={`w-4 h-4 transition-all duration-200 ${favorites.includes(vendor.vendor_id) ? 'fill-red-500 text-red-500 scale-110' : ''}`} />
-                        </Button>
+                      {/* Like Button */}
+                      <div className="absolute top-3 right-3 z-10">
+                        <LikeButton
+                          vendorId={vendor.vendor_id}
+                          size="md"
+                          className="p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white relative z-20"
+                        />
                       </div>
 
                       {/* Verified Badge */}

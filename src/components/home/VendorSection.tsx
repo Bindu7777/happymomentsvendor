@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, MapPin, Heart, Award, MessageCircle } from "lucide-react";
 import { Vendor } from "@/lib/supabase";
 import { getAllVendors } from "@/services/supabaseService";
+import LikeButton from "@/components/LikeButton";
 
 const VendorSection = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -49,15 +50,6 @@ const VendorSection = () => {
     fetchVendors();
   }, []);
 
-  const [favorites, setFavorites] = useState<number[]>([]);
-
-  const toggleFavorite = (id: number) => {
-    if (favorites.includes(id)) {
-      setFavorites(favorites.filter((favId) => favId !== id));
-    } else {
-      setFavorites([...favorites, id]);
-    }
-  };
 
   return (
     <section className="py-10 bg-white">
@@ -112,18 +104,13 @@ const VendorSection = () => {
                 <div className="absolute top-2 left-2 text-white text-xs font-semibold bg-orange-500/80 px-2 py-1 rounded-full">
                   {index === 0 ? "🎊 Wedding" : index === 1 ? "🎉 Party" : index === 2 ? "💃 Celebration" : "🌟 Event"}
                 </div>
-                <button
-                  onClick={() => toggleFavorite(Number(vendor.vendor_id))}
-                  className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white"
-                >
-                  <Heart
-                    className={`h-5 w-5 ${
-                      favorites.includes(Number(vendor.vendor_id))
-                        ? "fill-wedding-orange text-wedding-orange"
-                        : "text-wedding-gray"
-                    }`}
+                <div className="absolute top-3 right-3 z-10">
+                  <LikeButton 
+                    vendorId={vendor.vendor_id}
+                    size="md"
+                    className="p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white relative z-20"
                   />
-                </button>
+                </div>
                 <div className="absolute bottom-3 right-3">
                   <Badge
                     variant="outline"

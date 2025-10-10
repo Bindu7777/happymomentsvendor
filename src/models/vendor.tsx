@@ -2,7 +2,7 @@
 // Keeping for backward compatibility during migration
 
 export interface Vendor {
-    id: string;
+    id: number;  // Changed from string to number for auto-increment integer
     name: string;
     category: string;
     location: string;

@@ -11,6 +11,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '..
 import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
+import LikeButton from '@/components/LikeButton';
 
 const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
@@ -20,7 +21,6 @@ const VendorProfile = () => {
   const [highlightImages, setHighlightImages] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<any[]>([]);
   const [highlightedCatalogImages, setHighlightedCatalogImages] = useState<any[]>([]);
-  const [isSaved, setIsSaved] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -331,14 +331,11 @@ const VendorProfile = () => {
                   <Phone className="w-3 h-3 mr-1" />
                   <span className="hidden xs:inline">Call</span>
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={(e) => { e.stopPropagation(); setIsSaved(!isSaved); }}
+                <LikeButton
+                  vendorId={vendor?.vendor_id || ''}
+                  size="sm"
                   className="w-7 h-7 hover:bg-red-50 border-2"
-                >
-                  <Heart className={`w-3 h-3 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-                </Button>
+                />
               </div>
             </div>
           </div>
@@ -396,15 +393,11 @@ const VendorProfile = () => {
                 <Calendar className="w-4 h-4 mr-2 relative z-10" />
                 <span className="relative z-10">Visit</span>
               </Button>
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={(e) => { e.stopPropagation(); setIsSaved(!isSaved); }}
+              <LikeButton
+                vendorId={vendor?.vendor_id || ''}
+                size="lg"
                 className="hover:bg-red-50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-red-100 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg"></div>
-                <Heart className={`w-5 h-5 relative z-10 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
-              </Button>
+              />
               <Button 
                 variant="outline" 
                 size="icon"

@@ -238,20 +238,19 @@ const Header = () => {
         <div className="flex items-center space-x-3 z-50 relative">
           {customer ? (
             <div className="flex items-center space-x-3">
-              {/* Liked Vendors Button */}
-              <button
-                onClick={() => navigate('/liked-vendors')}
-                className="flex items-center text-white hover:text-red-400 transition-custom group relative"
-                title="Liked Vendors"
-              >
-                <Heart className="h-5 w-5 mr-1 group-hover:fill-red-400 group-hover:scale-110 transition-all duration-200" />
-                <span className="text-sm font-medium">Liked</span>
-                {likedVendorsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                    {likedVendorsCount}
-                  </span>
-                )}
-              </button>
+                  {/* Liked Vendors Button */}
+                  <button
+                    onClick={() => navigate('/liked-vendors')}
+                    className="relative text-white hover:text-red-400 transition-custom group"
+                    title="Liked Vendors"
+                  >
+                    <Heart className="h-5 w-5 group-hover:fill-red-400 group-hover:scale-110 transition-all duration-200" />
+                    {likedVendorsCount > 0 && (
+                      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                        {likedVendorsCount}
+                      </span>
+                    )}
+                  </button>
 
               {/* Customer Dropdown */}
               <DropdownMenu>

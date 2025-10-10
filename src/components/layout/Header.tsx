@@ -225,12 +225,6 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Link
-              to="/vendors"
-              className="text-white hover:text-wedding-orange transition-custom font-medium"
-            >
-              All Vendors
-            </Link>
           </nav>
         </div>
 
@@ -379,12 +373,6 @@ const Header = () => {
                   </Link>
                 </div>
               </div>
-              <Link
-                to="/vendors"
-                className="text-white hover:text-wedding-orange transition-custom py-2"
-              >
-                All Vendors
-              </Link>
             </div>
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
               <Button

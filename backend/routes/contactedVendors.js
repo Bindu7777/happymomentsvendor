@@ -331,4 +331,114 @@ router.delete('/remove-contact', async (req, res) => {
   }
 });
 
+// Update vendor status
+router.put('/update-status', async (req, res) => {
+  try {
+    const { customer_id, vendor_id, status } = req.body;
+
+    if (!customer_id || !vendor_id || !status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Customer ID, Vendor ID, and Status are required'
+      });
+    }
+
+    // Validate status values
+    const validStatuses = [
+      'Contacted',
+      'In Discussion', 
+      'Deal Agreed',
+      'Discount Applied',
+      'Advance Paid',
+      'Event Scheduled',
+      'Event Completed',
+      'Closed - Successful',
+      'Closed - Not Proceeding'
+    ];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` 
+      });
+    }
+
+    console.log(`Updating status: Customer ${customer_id}, Vendor ${vendor_id}, Status: ${status}`);
+    
+    // Check if contact exists
+    const { data: existingContact, error: checkError } = await supabase
+      .from('contacted_vendors')
+      .select('contact_id')
+      .eq('customer_id', parseInt(customer_id))
+      .eq('vendor_id', vendor_id.toString())
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing contact:', checkError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to check existing contact'
+      });
+    }
+
+    if (!existingContact) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contact not found'
+      });
+    }
+
+    // Update the status
+    const { data, error } = await supabase
+      .from('contacted_vendors')
+      .update({ status })
+      .eq('customer_id', parseInt(customer_id))
+      .eq('vendor_id', vendor_id.toString())
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating status:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update status'
+      });
+    }
+
+    console.log('Status updated successfully:', data);
+    res.json({
+      success: true,
+      message: 'Status updated successfully',
+      data
+    });
+
+  } catch (error) {
+    console.error('Error in update-status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Get status options
+router.get('/status-options', (req, res) => {
+  const statusOptions = [
+    { value: 'Contacted', label: 'Contacted', description: 'Initial contact made', color: 'blue' },
+    { value: 'In Discussion', label: 'In Discussion', description: 'Negotiating details', color: 'yellow' },
+    { value: 'Deal Agreed', label: 'Deal Agreed', description: 'Agreement reached', color: 'green' },
+    { value: 'Discount Applied', label: 'Discount Applied', description: 'Special offer applied', color: 'purple' },
+    { value: 'Advance Paid', label: 'Advance Paid', description: 'Payment made', color: 'indigo' },
+    { value: 'Event Scheduled', label: 'Event Scheduled', description: 'Date confirmed', color: 'pink' },
+    { value: 'Event Completed', label: 'Event Completed', description: 'Service delivered', color: 'emerald' },
+    { value: 'Closed - Successful', label: 'Closed - Successful', description: 'Deal completed', color: 'green' },
+    { value: 'Closed - Not Proceeding', label: 'Closed - Not Proceeding', description: 'Deal cancelled', color: 'red' }
+  ];
+
+  res.json({
+    success: true,
+    data: statusOptions
+  });
+});
+
 module.exports = router;

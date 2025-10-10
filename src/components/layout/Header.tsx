@@ -232,14 +232,6 @@ const Header = () => {
         <div className="flex items-center space-x-3 z-50 relative">
           {customer ? (
             <div className="flex items-center space-x-3">
-                  {/* Liked Vendors Button */}
-                  <button
-                    onClick={() => navigate('/liked-vendors')}
-                    className="text-white hover:text-red-400 transition-custom group"
-                    title="Liked Vendors"
-                  >
-                    <Heart className="h-5 w-5 group-hover:fill-red-400 group-hover:scale-110 transition-all duration-200" />
-                  </button>
 
               {/* Customer Dropdown */}
               <DropdownMenu>
@@ -254,22 +246,6 @@ const Header = () => {
                       <User className="h-4 w-4 mr-2" />
                       Dashboard
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                    <Link to="/liked-vendors" className="w-full flex items-center">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Liked Vendors
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2"
-                    onClick={async () => {
-                      await customerSignOut();
-                      navigate('/');
-                    }}
-                  >
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

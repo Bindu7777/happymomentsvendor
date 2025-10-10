@@ -41,6 +41,7 @@ import CustomerLogin from "./pages/CustomerLogin";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import EmailVerification from "./pages/EmailVerification";
 import LikedVendors from "./pages/LikedVendors";
+import MyVendors from "./pages/MyVendors";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -103,6 +104,10 @@ const App = () => {
                 <Route 
                   path="/liked-vendors" 
                   element={<LikedVendors />} 
+                />
+                <Route 
+                  path="/my-vendors" 
+                  element={<MyVendors />} 
                 />
                 
                 {/* Admin Routes */}

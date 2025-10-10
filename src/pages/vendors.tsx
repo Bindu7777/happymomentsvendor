@@ -8,6 +8,7 @@ import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import Header from '../components/layout/Header';
 import LikeButton from '@/components/LikeButton';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import { Vendor } from '@/lib/supabase';
 import { getAllVendors } from '@/services/supabaseService';
 
@@ -194,13 +195,7 @@ const VendorsPage = () => {
     navigate(`/vendor/${vendorId}`);
   };
 
-  // WhatsApp integration
-  const openWhatsApp = (vendor: Vendor) => {
-    const message = `Hi ${vendor.spoc_name}! I found your ${vendor.category} services and I'm interested in learning more about your packages. Could you please share your availability and pricing details?`;
-    const phoneNumber = vendor.whatsapp_number || vendor.phone_number;
-    const whatsappUrl = `https://wa.me/${phoneNumber?.replace(/[^\d]/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
+  // WhatsApp integration - now handled by WhatsAppButton component
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/30 via-white to-orange-50/30">
@@ -536,13 +531,10 @@ const VendorsPage = () => {
                       {/* Action Buttons */}
                       <div className="space-y-2">
                         <div className="flex gap-2">
-                          <Button
-                            className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 text-sm font-semibold rounded-lg shadow-sm hover:scale-105 transition-all duration-200"
-                            onClick={(e) => { e.stopPropagation(); openWhatsApp(vendor); }}
-                          >
-                            <MessageCircle className="w-4 h-4 mr-1" />
-                            WhatsApp
-                          </Button>
+                          <WhatsAppButton
+                            vendor={vendor}
+                            className="flex-1"
+                          />
                           <Button
                             variant="outline"
                             className="flex-1 border-amber-300 text-amber-700 hover:bg-amber-50 py-2 text-sm font-semibold rounded-lg hover:scale-105 transition-all duration-200"
@@ -586,7 +578,7 @@ const VendorsPage = () => {
           </p>
           <Button 
             className="bg-white text-amber-600 hover:bg-amber-50 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg"
-            onClick={() => openWhatsApp({ spoc_name: 'HappyMoments Team' } as Vendor)}
+            onClick={() => window.open('https://wa.me/1234567890?text=Hi! I need personalized vendor recommendations for my event.', '_blank')}
           >
             <MessageCircle className="w-5 h-5 mr-2" />
             Get Personalized Recommendations

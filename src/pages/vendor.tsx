@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogTrigger } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import LikeButton from '@/components/LikeButton';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
@@ -124,14 +125,7 @@ const VendorProfile = () => {
     }
   }, [isAutoPlaying, highlightedCatalogImages.length]);
 
-  // WhatsApp integration
-  const openWhatsApp = () => {
-    if (!vendor) return;
-    const message = `Hi ${vendor.spoc_name}! I found your ${vendor.category} services and I'm interested in learning more about your packages. Could you please share your availability and pricing details?`;
-    const phoneNumber = vendor.whatsapp_number || vendor.phone_number;
-    const whatsappUrl = `https://wa.me/${phoneNumber?.replace(/[^\d]/g, '')}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-  };
+  // WhatsApp integration - now handled by WhatsAppButton component
 
   // Confetti effect
   const triggerConfetti = () => {
@@ -279,7 +273,7 @@ const VendorProfile = () => {
         .animate-fade-in-up:nth-child(3) { animation-delay: 0.3s; }
         .animate-fade-in-up:nth-child(4) { animation-delay: 0.4s; }
       `}</style>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50" onClick={openWhatsApp}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
       {/* Mobile Header - Compact */}
       <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm lg:hidden">
         <div className="container mx-auto px-3 py-3">
@@ -310,27 +304,34 @@ const VendorProfile = () => {
 
               {/* Action Buttons - Mobile Optimized */}
               <div className="flex items-center gap-1">
-                <Button 
-                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
-                >
-                  <MessageCircle className="w-3 h-3 mr-1" />
-                  <span className="hidden xs:inline">WA</span>
-                </Button>
-                <Button 
-                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
-                >
-                  <MessageCircle className="w-3 h-3 mr-1" />
-                  <span className="hidden xs:inline">Chat</span>
-                </Button>
-                <Button 
-                  onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
-                >
-                  <Phone className="w-3 h-3 mr-1" />
-                  <span className="hidden xs:inline">Call</span>
-                </Button>
+                {vendor && (
+                  <WhatsAppButton
+                    vendor={vendor}
+                    size="sm"
+                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                  >
+                    <span className="hidden xs:inline">WA</span>
+                  </WhatsAppButton>
+                )}
+                {vendor && (
+                  <WhatsAppButton
+                    vendor={vendor}
+                    size="sm"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                  >
+                    <span className="hidden xs:inline">Chat</span>
+                  </WhatsAppButton>
+                )}
+                {vendor && (
+                  <WhatsAppButton
+                    vendor={vendor}
+                    size="sm"
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
+                  >
+                    <Phone className="w-3 h-3 mr-1" />
+                    <span className="hidden xs:inline">Call</span>
+                  </WhatsAppButton>
+                )}
                 <LikeButton
                   vendorId={vendor?.vendor_id || ''}
                   size="sm"
@@ -361,22 +362,26 @@ const VendorProfile = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-green-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
-                <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
-                <span className="relative z-10">WhatsApp</span>
-              </Button>
-              <Button 
-                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-blue-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
-                <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
-                <span className="relative z-10">Chat</span>
-              </Button>
+              {vendor && (
+                <WhatsAppButton
+                  vendor={vendor}
+                  className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-green-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                  <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
+                  <span className="relative z-10">WhatsApp</span>
+                </WhatsAppButton>
+              )}
+              {vendor && (
+                <WhatsAppButton
+                  vendor={vendor}
+                  className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-blue-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
+                >
+                  <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
+                  <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
+                  <span className="relative z-10">Chat</span>
+                </WhatsAppButton>
+              )}
               <Button 
                 onClick={(e) => { e.stopPropagation(); }}
                 className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-orange-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
@@ -469,13 +474,15 @@ const VendorProfile = () => {
               </div>
 
               {/* CTA Button */}
-              <Button 
-                className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 text-lg font-bold rounded-xl shadow-lg"
-                onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Chat to Book Now
-              </Button>
+              {vendor && (
+                <WhatsAppButton
+                  vendor={vendor}
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 text-lg font-bold rounded-xl shadow-lg"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Chat to Book Now
+                </WhatsAppButton>
+              )}
             </div>
 
             {/* Mobile Gallery */}
@@ -597,15 +604,17 @@ const VendorProfile = () => {
 
                     {/* CTA Button */}
                     <div className="mt-8">
-                      <Button 
-                        size="lg" 
-                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white px-12 py-10 text-3xl font-black shadow-2xl hover:scale-105 hover:shadow-green-500/50 active:scale-95 transition-all duration-300 rounded-3xl border-2 border-green-400/30 hover:border-green-300/50 relative overflow-hidden group"
-                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                      >
-                        <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-3xl"></div>
-                        <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
-                        <span className="relative z-10">Chat to Book Now</span>
-                      </Button>
+                      {vendor && (
+                        <WhatsAppButton
+                          vendor={vendor}
+                          size="lg"
+                          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white px-12 py-10 text-3xl font-black shadow-2xl hover:scale-105 hover:shadow-green-500/50 active:scale-95 transition-all duration-300 rounded-3xl border-2 border-green-400/30 hover:border-green-300/50 relative overflow-hidden group"
+                        >
+                          <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-3xl"></div>
+                          <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
+                          <span className="relative z-10">Chat to Book Now</span>
+                        </WhatsAppButton>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -886,16 +895,18 @@ const VendorProfile = () => {
                           </li>
                         ))}
                       </ul>
-                      <Button 
-                        className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
-                          pkg.popular 
-                            ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
-                            : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
-                        }`}
-                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                      >
-                        Select {pkg.name} Package
-                      </Button>
+                      {vendor && (
+                        <WhatsAppButton
+                          vendor={vendor}
+                          className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
+                            pkg.popular 
+                              ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
+                              : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                          }`}
+                        >
+                          Select {pkg.name} Package
+                        </WhatsAppButton>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1130,15 +1141,17 @@ const VendorProfile = () => {
                 {/* Enhanced CTA Buttons */}
                 <div className="space-y-4">
                   {/* WhatsApp Quick Chat Button */}
-                  <Button 
-                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group animate-pulse"
-                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                  >
-                    <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
-                    <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
-                    <span className="relative z-10">💬 WhatsApp Quick Chat</span>
-                    <div className="absolute top-0 right-0 text-3xl animate-bounce">🚀</div>
-                  </Button>
+                  {vendor && (
+                    <WhatsAppButton
+                      vendor={vendor}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group animate-pulse"
+                    >
+                      <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
+                      <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
+                      <span className="relative z-10">💬 WhatsApp Quick Chat</span>
+                      <div className="absolute top-0 right-0 text-3xl animate-bounce">🚀</div>
+                    </WhatsAppButton>
+                  )}
                   
                   {/* Unlock Secret Offer Button */}
                   <Button 
@@ -1154,14 +1167,15 @@ const VendorProfile = () => {
                   </Button>
                   
                   {/* Request Callback Button */}
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-3 border-purple-500 text-purple-700 hover:bg-purple-50 hover:border-purple-600 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg"
-                    onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-                  >
-                    <Phone className="w-6 h-6 mr-3" />
-                    Request Callback
-                  </Button>
+                  {vendor && (
+                    <WhatsAppButton
+                      vendor={vendor}
+                      className="w-full border-3 border-purple-500 text-purple-700 hover:bg-purple-50 hover:border-purple-600 py-6 text-lg font-bold rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg bg-transparent hover:bg-purple-50"
+                    >
+                      <Phone className="w-6 h-6 mr-3" />
+                      Request Callback
+                    </WhatsAppButton>
+                  )}
                 </div>
                 
                 {/* Benefits */}
@@ -1431,16 +1445,18 @@ const VendorProfile = () => {
       </div>
 
       {/* Sticky WhatsApp Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button 
-          size="lg"
-          className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 animate-pulse"
-          onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
-        >
-          <MessageCircle className="w-6 h-6 mr-2" />
-          Chat Now
-        </Button>
-      </div>
+      {vendor && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <WhatsAppButton
+            vendor={vendor}
+            size="lg"
+            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 animate-pulse"
+          >
+            <MessageCircle className="w-6 h-6 mr-2" />
+            Chat Now
+          </WhatsAppButton>
+        </div>
+      )}
 
     </div>
     </>

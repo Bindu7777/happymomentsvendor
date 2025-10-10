@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const emailRoutes = require('./routes/email');
 const likedVendorsRoutes = require('./routes/likedVendors');
+const contactedVendorsRoutes = require('./routes/contactedVendors');
 const { initializeEmailService } = require('./services/emailService');
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/email', limiter);
 // Routes
 app.use('/api/email', emailRoutes);
 app.use('/api/liked-vendors', likedVendorsRoutes);
+app.use('/api/contacted-vendors', contactedVendorsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart, Users } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
@@ -247,8 +247,34 @@ const Header = () => {
                       Dashboard
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
+                    <Link to="/liked-vendors" className="w-full flex items-center">
+                      <Heart className="h-4 w-4 mr-2" />
+                      Liked Vendors
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
+                    <Link to="/my-vendors" className="w-full flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      My Vendors
+                    </Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Liked Vendors Heart Icon */}
+              <Link 
+                to="/liked-vendors"
+                className="relative flex items-center text-white hover:text-red-400 transition-colors"
+                title="Liked Vendors"
+              >
+                <Heart className="h-5 w-5" />
+                {likedVendorsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {likedVendorsCount > 99 ? '99+' : likedVendorsCount}
+                  </span>
+                )}
+              </Link>
             </div>
           ) : (
             <>

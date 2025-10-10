@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Star, MapPin, Phone, Mail, ArrowLeft, Trash2 } from 'lucide-react';
+import { MessageCircle, Star, MapPin, Phone, Mail, ArrowLeft, Trash2, Filter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Header from '@/components/layout/Header';
 import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
-import { getContactedVendors, removeContactVendor } from '@/services/contactedVendorsApiService';
+import { getContactedVendors, removeContactVendor, getStatusOptions } from '@/services/contactedVendorsApiService';
+import VendorStatusDropdown from '@/components/VendorStatusDropdown';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ContactedVendor {
   contact_id: number;
@@ -37,14 +39,27 @@ const MyVendors: React.FC = () => {
   const { customer } = useCustomerAuth();
   const navigate = useNavigate();
   const [contactedVendors, setContactedVendors] = useState<ContactedVendor[]>([]);
+  const [filteredVendors, setFilteredVendors] = useState<ContactedVendor[]>([]);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusOptions, setStatusOptions] = useState<Array<{value: string, label: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (customer) {
       fetchContactedVendors();
+      loadStatusOptions();
     }
   }, [customer]);
+
+  useEffect(() => {
+    // Apply status filter
+    if (statusFilter === 'all') {
+      setFilteredVendors(contactedVendors);
+    } else {
+      setFilteredVendors(contactedVendors.filter(vendor => vendor.status === statusFilter));
+    }
+  }, [contactedVendors, statusFilter]);
 
   const fetchContactedVendors = async () => {
     if (!customer) return;
@@ -72,6 +87,24 @@ const MyVendors: React.FC = () => {
     }
   };
 
+  const loadStatusOptions = async () => {
+    try {
+      const result = await getStatusOptions();
+      if (result.success && result.data) {
+        const options = [
+          { value: 'all', label: 'All Statuses' },
+          ...result.data.map((option: any) => ({
+            value: option.value,
+            label: option.label
+          }))
+        ];
+        setStatusOptions(options);
+      }
+    } catch (err: any) {
+      console.error('Failed to load status options:', err);
+    }
+  };
+
   const removeFromContacted = async (vendorId: string) => {
     if (!customer) return;
 
@@ -88,6 +121,17 @@ const MyVendors: React.FC = () => {
     } catch (error) {
       console.error('Error removing contact:', error);
     }
+  };
+
+  const handleStatusUpdate = (vendorId: string, newStatus: string) => {
+    // Update the vendor status in local state
+    setContactedVendors(prev => 
+      prev.map(vendor => 
+        vendor.vendor_id === vendorId 
+          ? { ...vendor, status: newStatus }
+          : vendor
+      )
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -187,14 +231,52 @@ const MyVendors: React.FC = () => {
         {/* Contacted Vendors Grid */}
         {!loading && !error && contactedVendors.length > 0 && (
           <>
-            <div className="mb-6">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <p className="text-gray-600">
                 You have <span className="font-semibold text-wedding-orange">{contactedVendors.length}</span> contacted vendor{contactedVendors.length !== 1 ? 's' : ''}
+                {statusFilter !== 'all' && (
+                  <span className="ml-2">
+                    • Showing <span className="font-semibold text-blue-600">{filteredVendors.length}</span> with status "{statusOptions.find(opt => opt.value === statusFilter)?.label}"
+                  </span>
+                )}
               </p>
+              
+              {/* Status Filter */}
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {contactedVendors.map((vendor) => (
+            {filteredVendors.length === 0 && statusFilter !== 'all' ? (
+              <div className="text-center py-12">
+                <Filter className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No Vendors Found</h3>
+                <p className="text-gray-600 mb-6">
+                  No vendors match the selected status filter. Try selecting a different status or "All Statuses".
+                </p>
+                <Button 
+                  onClick={() => setStatusFilter('all')}
+                  variant="outline"
+                  className="border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white"
+                >
+                  Show All Vendors
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredVendors.map((vendor) => (
                 <Card 
                   key={vendor.vendor_id}
                   className={`group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 bg-white overflow-hidden ${
@@ -217,7 +299,7 @@ const MyVendors: React.FC = () => {
                       {/* Contact Status Badge */}
                       <div className="absolute top-3 left-3">
                         <Badge className="bg-green-500 text-white px-2 py-1 text-xs">
-                          📱 Contacted
+                          📱 {vendor.status || 'Contacted'}
                         </Badge>
                       </div>
 
@@ -292,6 +374,18 @@ const MyVendors: React.FC = () => {
                         Contacted on {formatDate(vendor.contacted_at)}
                       </div>
 
+                      {/* Status Management */}
+                      <div className="mb-3">
+                        <div className="text-xs font-medium text-gray-700 mb-2">Status</div>
+                        <VendorStatusDropdown
+                          customerId={customer.id}
+                          vendorId={vendor.vendor_id}
+                          currentStatus={vendor.status || 'Contacted'}
+                          onStatusUpdate={(newStatus) => handleStatusUpdate(vendor.vendor_id, newStatus)}
+                          className="w-full"
+                        />
+                      </div>
+
                       {/* Action Buttons */}
                       <div className="flex space-x-2">
                         <Button 
@@ -322,7 +416,8 @@ const MyVendors: React.FC = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
+              </div>
+            )}
           </>
         )}
       </div>

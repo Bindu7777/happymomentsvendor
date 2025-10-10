@@ -476,13 +476,15 @@ const VendorProfile = () => {
                 <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                   <div className="text-center">
                     <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Contact Status</h3>
-                    <VendorStatusDropdown
-                      customerId={customer.id}
-                      vendorId={vendorId || ''}
-                      currentStatus={contactStatus}
-                      onStatusUpdate={handleStatusUpdate}
-                      className="w-full max-w-xs mx-auto"
-                    />
+                          <VendorStatusDropdown
+                            customerId={customer.id}
+                            vendorId={vendorId || ''}
+                            currentStatus={contactStatus}
+                            onStatusUpdate={handleStatusUpdate}
+                            className="w-full max-w-xs mx-auto"
+                            vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
+                            vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
+                          />
                   </div>
                 </div>
               )}
@@ -618,6 +620,8 @@ const VendorProfile = () => {
                             currentStatus={contactStatus}
                             onStatusUpdate={handleStatusUpdate}
                             className="min-w-[180px]"
+                            vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
+                            vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
                           />
                         </div>
                       </div>

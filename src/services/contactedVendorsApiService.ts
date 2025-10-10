@@ -177,3 +177,79 @@ export const removeContactVendor = async (customerId: number, vendorId: string):
     };
   }
 };
+
+// Update vendor status API call
+export const updateVendorStatus = async (customerId: number, vendorId: string, status: string): Promise<ContactedVendorResponse> => {
+  try {
+    console.log(`🌐 API: Updating status for customer ${customerId}, vendor ${vendorId}, status: ${status}`);
+    console.log(`🔗 API URL: ${API_BASE_URL}/update-status`);
+    
+    const response = await fetch(`${API_BASE_URL}/update-status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        customer_id: customerId,
+        vendor_id: vendorId,
+        status
+      })
+    });
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    const data = await response.json();
+    console.log(`📦 Response data:`, data);
+    
+    if (!response.ok) {
+      console.error('❌ API Error updating status:', data);
+      return {
+        success: false,
+        error: data.error || `HTTP ${response.status}: Failed to update status`
+      };
+    }
+
+    console.log('✅ API: Status updated successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('💥 API Error:', error);
+    return {
+      success: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+};
+
+// Get status options API call
+export const getStatusOptions = async (): Promise<ContactedVendorResponse> => {
+  try {
+    console.log(`🌐 API: Getting status options`);
+    console.log(`🔗 API URL: ${API_BASE_URL}/status-options`);
+    
+    const response = await fetch(`${API_BASE_URL}/status-options`);
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    const data = await response.json();
+    console.log(`📦 Response data:`, data);
+    
+    if (!response.ok) {
+      console.error('❌ API Error getting status options:', data);
+      return {
+        success: false,
+        error: data.error || `HTTP ${response.status}: Failed to get status options`
+      };
+    }
+
+    console.log('✅ API: Status options retrieved:', data);
+    return data;
+  } catch (error) {
+    console.error('💥 API Error:', error);
+    return {
+      success: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+};
+
+// Legacy function names for backward compatibility
+export const saveContact = saveContactVendor;
+export const removeContact = removeContactVendor;

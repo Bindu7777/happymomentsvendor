@@ -275,6 +275,15 @@ const Header = () => {
                   </span>
                 )}
               </Link>
+
+              {/* My Vendors Link */}
+              <Link 
+                to="/my-vendors"
+                className="text-white hover:text-orange-400 transition-colors font-medium"
+                title="My Vendors - Vendors I've contacted"
+              >
+                My Vendors
+              </Link>
             </div>
           ) : (
             <>

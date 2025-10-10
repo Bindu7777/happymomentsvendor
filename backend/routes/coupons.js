@@ -18,7 +18,6 @@ router.get('/active', async (req, res) => {
       .select('*')
       .eq('status', 'active')
       .gte('valid_until', new Date().toISOString())
-      .lt('usage_count', supabase.raw('usage_limit'))
       .order('discount_percentage', { ascending: false });
 
     if (error) {
@@ -29,10 +28,15 @@ router.get('/active', async (req, res) => {
       });
     }
 
-    console.log(`✅ Found ${data.length} active coupons`);
+    // Filter out coupons that have reached their usage limit
+    const availableCoupons = (data || []).filter(coupon => 
+      coupon.usage_count < coupon.usage_limit
+    );
+
+    console.log(`✅ Found ${availableCoupons.length} available coupons out of ${data.length} active coupons`);
     res.json({
       success: true,
-      data: data || []
+      data: availableCoupons
     });
 
   } catch (error) {
@@ -54,7 +58,6 @@ router.get('/random', async (req, res) => {
       .select('*')
       .eq('status', 'active')
       .gte('valid_until', new Date().toISOString())
-      .lt('usage_count', supabase.raw('usage_limit'))
       .order('discount_percentage', { ascending: false });
 
     if (error) {
@@ -65,16 +68,21 @@ router.get('/random', async (req, res) => {
       });
     }
 
-    if (!data || data.length === 0) {
+    // Filter out coupons that have reached their usage limit
+    const availableCoupons = (data || []).filter(coupon => 
+      coupon.usage_count < coupon.usage_limit
+    );
+
+    if (!availableCoupons || availableCoupons.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'No active coupons available'
+        error: 'No available coupons'
       });
     }
 
-    // Get a random coupon
-    const randomIndex = Math.floor(Math.random() * data.length);
-    const randomCoupon = data[randomIndex];
+    // Get a random coupon from available ones
+    const randomIndex = Math.floor(Math.random() * availableCoupons.length);
+    const randomCoupon = availableCoupons[randomIndex];
 
     console.log(`✅ Selected random coupon: ${randomCoupon.coupon_code} (${randomCoupon.discount_percentage}% off)`);
     

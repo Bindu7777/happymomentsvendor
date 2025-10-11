@@ -1137,6 +1137,8 @@ export const markAllNotificationsAsRead = async (vendorId: number): Promise<bool
 // Get customer notifications (from contacted_vendors table)
 export const getCustomerNotifications = async (customerId: number, unreadOnly: boolean = false): Promise<any[]> => {
   try {
+    console.log(`🔔 Fetching customer notifications for customer ID: ${customerId}`);
+    
     let query = supabase
       .from('contacted_vendors')
       .select(`
@@ -1158,32 +1160,35 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
       .order('contacted_at', { ascending: false })
       .limit(20); // Get latest 20 contacts
 
-    // If we only want unread notifications (customer_notified = true means customer was notified, so we want those)
-    if (unreadOnly) {
-      query = query.eq('customer_notified', true);
-    }
+    // Show all notifications where customer was notified about status changes
+    query = query.eq('customer_notified', true);
 
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching customer notifications:', error);
+      console.error('❌ Error fetching customer notifications:', error);
       return [];
     }
 
+    console.log(`📊 Raw customer notification data:`, data);
+
     // Transform the data to match notification format
-    return (data || []).map(contact => ({
+    const transformedData = (data || []).map(contact => ({
       id: contact.contact_id,
       vendor_id: contact.vendor_id,
       customer_id: contact.customer_id,
       notification_type: 'status_change',
       title: 'Vendor Status Update',
       message: contact.notification_message || 'Vendor updated your status',
-      is_read: false, // Always show as unread for now (we can add a "seen" field later)
+      is_read: false, // Show as unread so customer sees them
       created_at: contact.contacted_at,
       vendors: contact.vendors
     }));
+
+    console.log(`✅ Transformed customer notifications:`, transformedData);
+    return transformedData;
   } catch (error) {
-    console.error('Error fetching customer notifications:', error);
+    console.error('💥 Error fetching customer notifications:', error);
     return [];
   }
 };

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import Header from '@/components/layout/Header';
 import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 import { getLikedVendors, removeLikeVendor } from '@/services/likedVendorsApiService';
+import { preventContextMenu } from '@/utils/layoutUtils';
 
 interface LikedVendor {
   id: number;
@@ -115,10 +116,10 @@ const LikedVendors = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="liked-vendors-container bg-gray-50 relative overflow-x-hidden">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 main-content">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center space-x-4">
@@ -174,26 +175,27 @@ const LikedVendors = () => {
         {/* Liked Vendors Grid */}
         {!loading && !error && likedVendors.length > 0 && (
           <>
-            <div className="mb-6">
-              <p className="text-gray-600">
-                You have <span className="font-semibold text-wedding-orange">{likedVendors.length}</span> liked vendor{likedVendors.length !== 1 ? 's' : ''}
+            <div className="mb-8">
+              <p className="text-lg text-gray-700 font-medium">
+                You have <span className="font-bold text-wedding-orange text-xl">{likedVendors.length}</span> liked vendor{likedVendors.length !== 1 ? 's' : ''}
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 vendor-grid pb-8">
               {likedVendors.map((vendor) => (
                 <Card 
                   key={vendor.vendor_id}
-                  className={`group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 bg-white overflow-hidden ${
+                  className={`vendor-card group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 bg-white overflow-hidden ${
                     vendor.verified 
                       ? 'border-green-200 hover:border-green-400' 
                       : 'border-amber-100 hover:border-amber-300'
                   }`}
                   onClick={() => navigate(`/vendor/${vendor.vendor_id}`)}
+                  onContextMenu={preventContextMenu}
                 >
                   <CardContent className="p-0">
                     {/* Portfolio Image */}
-                    <div className="relative h-48 overflow-hidden">
+                    <div className="relative h-56 overflow-hidden">
                       <img
                         src={vendor.avatar_url || vendor.cover_image_url || "/images/vendor-placeholder.jpg"}
                         alt={`${vendor.brand_name} portfolio`}
@@ -243,7 +245,7 @@ const LikedVendors = () => {
                     <div className="p-4">
                       {/* Vendor Info */}
                       <div className="mb-3">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors">
+                        <h3 className="vendor-name text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors">
                           {vendor.brand_name}
                         </h3>
                         <p className="text-xs text-amber-600 font-medium mb-1">{vendor.category}</p>
@@ -286,7 +288,7 @@ const LikedVendors = () => {
                       {/* Starting Price */}
                       <div className="mb-3">
                         <p className="text-sm text-gray-500 mb-1">Starting Price</p>
-                        <p className="text-lg font-bold text-amber-600">
+                        <p className="vendor-price text-lg font-bold text-amber-600">
                           ₹{vendor.starting_price?.toLocaleString() || 'Contact for pricing'}
                         </p>
                       </div>

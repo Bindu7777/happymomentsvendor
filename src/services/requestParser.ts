@@ -403,10 +403,10 @@ export class RequestParser {
       }
     }
 
-    // Default to wedding if no specific event type found
-    if (!this.parsedRequest.eventType) {
-      this.parsedRequest.eventType = 'Wedding';
-    }
+    // Don't default to wedding - only set event type if explicitly mentioned
+    // If (!this.parsedRequest.eventType) {
+    //   this.parsedRequest.eventType = 'Wedding';
+    // }
   }
 
   private extractBudgetRange(): void {
@@ -696,9 +696,10 @@ export class RequestParser {
     const requirements: string[] = [];
     
     // Look for specific requirements with Telugu and mixed language support
+    // Note: Removed 'budget' related keywords as budget is handled separately
     const requirementKeywords = [
       // English requirements
-      'traditional', 'modern', 'vintage', 'rustic', 'luxury', 'budget',
+      'traditional', 'modern', 'vintage', 'rustic', 'luxury',
       'same day', 'quick', 'professional', 'experienced', 'award winning',
       'eco friendly', 'sustainable', 'custom', 'personalized',
       // Telugu and mixed language requirements
@@ -706,8 +707,7 @@ export class RequestParser {
       'family', 'family ki', 'family kosam', 'complete family',
       'full coverage', 'full coverage kavali', 'complete coverage',
       'same day', 'same day kavali', 'quick', 'quick kavali',
-      'professional', 'professional kavali', 'experienced', 'experienced kavali',
-      'budget', 'budget lo', 'within budget', 'budget friendly'
+      'professional', 'professional kavali', 'experienced', 'experienced kavali'
     ];
 
     for (const keyword of requirementKeywords) {
@@ -775,9 +775,10 @@ export const validateParsedRequest = (request: ParsedRequest): { isValid: boolea
     errors.push('No service types identified. Please specify what services you need.');
   }
 
-  if (!request.eventType) {
-    errors.push('Event type not specified. Please mention the type of event.');
-  }
+  // Event type is now optional - removed constraint
+  // if (!request.eventType) {
+  //   errors.push('Event type not specified. Please mention the type of event.');
+  // }
 
   if (!request.location) {
     errors.push('Location not specified. Please mention your location.');

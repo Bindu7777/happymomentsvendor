@@ -171,7 +171,54 @@
   .review {
     margin-top: 10px;
     padding: 10px;
-    border-top: 1px solid #ddd;
+    border-top: 1px solid #ddd;
+  }
+  
+  /* Prevent context menu interference */
+  .vendor-grid {
+    position: relative;
+    z-index: 20;
+  }
+  
+  .vendor-card {
+    position: relative;
+    z-index: 25;
+  }
+  
+  /* Ensure proper stacking context */
+  .main-content {
+    position: relative;
+    z-index: 10;
+    margin-top: 80px; /* Account for fixed header height */
+    min-height: calc(100vh - 80px); /* Ensure full viewport height */
+  }
+  
+  /* Prevent text selection on vendor cards */
+  .vendor-card {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+  }
+  
+  /* Allow text selection on important text elements */
+  .vendor-name, .vendor-description, .vendor-price {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+  }
+  
+  /* Ensure full page visibility */
+  .page-container {
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+  
+  /* Fix for content being cut off */
+  .liked-vendors-container {
+    min-height: calc(100vh - 80px);
+    padding-bottom: 3rem;
   }
   
 }

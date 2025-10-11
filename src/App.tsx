@@ -31,6 +31,7 @@ import VendorDashboard from "./pages/VendorDashboard";
 import VendorProfileEdit from "./pages/VendorProfileEdit";
 import ImageUploadTestPage from "./pages/ImageUploadTestPage";
 import SmartRequest from "./pages/SmartRequest";
+import SmartVoiceRequest from "./pages/SmartVoiceRequest";
 import VendorsPage from "./pages/vendors";
 import TestSignup from "./pages/TestSignup";
 import SimpleSignup from "./pages/SimpleSignup";
@@ -158,6 +159,7 @@ const App = () => {
                 <Route path="/insta-edit-packages" element={<InstaEditPackages />} />
                 <Route path="/beautyvendor" element={<BeautyVendor />} />
                 <Route path="/smart-request" element={<SmartRequest />} />
+                <Route path="/voice-search" element={<SmartVoiceRequest />} />
                 <Route path="/vendors" element={<VendorsPage />} />
                 
                 {/* Redirect blog pages to home for now */}

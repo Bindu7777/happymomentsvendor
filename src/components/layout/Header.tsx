@@ -215,10 +215,11 @@ const Header = () => {
   
   return (
     <header
-    className={`fixed top-0 left-0 right-0 z-50 py-4 transition-all duration-300 transform
+    className={`fixed top-0 left-0 right-0 z-50 py-3 transition-all duration-300 transform
       ${scrolled ? "bg-wedding-navy/95 backdrop-blur-md shadow-sm" : "bg-wedding-navy/95 backdrop-blur-md"}
       ${scrollDirection === "down" ? "-translate-y-full" : "translate-y-0"}
     `}
+    style={{ zIndex: 9999, height: '80px' }}
   >
       <div className="container-custom flex items-center justify-between">
         <div className="flex items-center space-x-8">

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle } from 'lucide-react';
+import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle, Sparkles } from 'lucide-react';
 import VendorLogin from '../VendorLogin';
 import {
   Carousel,
@@ -354,16 +354,31 @@ const Hero = () => {
                 </div>
               </div>
               
-              {/* Traditional Search CTA */}
-              <div className="text-center">
-                <Button
-                  onClick={handleSearch}
-                  className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-3 px-8 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2 mx-auto"
-                  aria-label="Find vendors for your event"
-                >
-                  <Users className="h-5 w-5" />
-                  Browse Vendors
-                </Button>
+              {/* Search CTAs */}
+              <div className="text-center space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <Button
+                    onClick={handleSearch}
+                    className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-3 px-8 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+                    aria-label="Find vendors for your event"
+                  >
+                    <Users className="h-5 w-5" />
+                    Browse Vendors
+                  </Button>
+                  
+                  <Button
+                    onClick={() => navigate('/voice-search')}
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-8 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+                    aria-label="Use voice search"
+                  >
+                    <Mic className="h-5 w-5" />
+                    Voice Search
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-gray-500">
+                  Or try our new voice search feature for a more natural experience
+                </p>
               </div>
             </div>
 

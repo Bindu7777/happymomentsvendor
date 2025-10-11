@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2, Languages, Clock, Users, DollarSign } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2, Languages, Clock, Users, DollarSign, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { parseRequest, validateParsedRequest, ParsedRequest } from '../services/requestParser';
-import { processAudioInput, ExtractedEntities } from '../services/enhancedAudioEngine';
+import { processVoiceInput, VoiceExtractedData } from '../services/voiceProcessingService';
 import { createVendorFilterCriteria, searchVendorsWithFilters } from '../services/enhancedVendorFiltering';
 import { useSearchTracking } from '../hooks/use-search-tracking';
 
@@ -22,6 +23,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   onEntitiesExtracted,
   isLoading = false
 }) => {
+  const navigate = useNavigate();
   const { trackVoiceSearch } = useSearchTracking();
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -194,12 +196,13 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
       const recognitionInstance = new SpeechRecognition();
       
-      recognitionInstance.continuous = true;
+      recognitionInstance.continuous = false; // Changed to false for better control
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = selectedLanguage === 'auto' ? 'en-IN' : selectedLanguage;
       recognitionInstance.maxAlternatives = 3; // Get multiple alternatives for better accuracy
 
       recognitionInstance.onstart = () => {
+        console.log('Speech recognition started');
         setIsListening(true);
         setTranscript('');
       };
@@ -232,8 +235,12 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       recognitionInstance.onend = () => {
         console.log('Speech recognition ended');
         setIsListening(false);
-        // Don't automatically set isRecording to false for continuous mode
-        // Let the user manually stop recording
+        setIsRecording(false); // Also set recording to false when recognition ends
+        // Clear timeout when recognition naturally ends
+        if (recordingTimeout) {
+          clearTimeout(recordingTimeout);
+          setRecordingTimeout(null);
+        }
       };
 
       recognitionInstance.onerror = (event) => {
@@ -241,23 +248,21 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
         setIsListening(false);
         setIsRecording(false);
         
+        // Clear timeout on error
+        if (recordingTimeout) {
+          clearTimeout(recordingTimeout);
+          setRecordingTimeout(null);
+        }
+        
         // Handle specific errors
         if (event.error === 'no-speech') {
-          console.log('No speech detected, continuing to listen...');
-          // Restart recognition for continuous mode
-          if (isRecording) {
-            setTimeout(() => {
-              try {
-                recognitionInstance.start();
-              } catch (e) {
-                console.error('Error restarting recognition:', e);
-              }
-            }, 100);
-          }
+          console.log('No speech detected, stopping recognition');
         } else if (event.error === 'audio-capture') {
           alert('Microphone not accessible. Please check your microphone permissions.');
         } else if (event.error === 'not-allowed') {
           alert('Microphone access denied. Please allow microphone access and try again.');
+        } else if (event.error === 'aborted') {
+          console.log('Speech recognition was aborted');
         }
       };
 
@@ -283,65 +288,66 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       // Debounce the parsing
       const timeoutId = setTimeout(async () => {
         try {
-          // Use enhanced audio engine for better entity extraction
-          const audioResult = await processAudioInput(newText);
-          setAudioProcessingResult(audioResult);
-          setEnhancedEntities(audioResult.extractedEntities);
+          // Use our improved voice processing service
+          const voiceResult = processVoiceInput(newText);
           
-          // Pass extracted entities to parent component
-          if (onEntitiesExtracted) {
-            onEntitiesExtracted(audioResult.extractedEntities);
+          // Convert voice processing result to legacy format for compatibility
+          const parsed = parseRequest(newText);
+          
+          // Update parsed request with voice processing results
+          if (voiceResult.serviceType) {
+            parsed.serviceTypes = [voiceResult.serviceType];
+          }
+          if (voiceResult.state) {
+            parsed.location = voiceResult.state;
+          }
+          if (voiceResult.budgetRange) {
+            parsed.budgetRange = voiceResult.budgetRange;
           }
           
-          // Also use the legacy parser for backward compatibility
-          const parsed = parseRequest(newText);
           const validation = validateParsedRequest(parsed);
           
           if (validation.isValid) {
             setParsedRequest(parsed);
             onRequestParsed(parsed);
             
-            // Show enhanced confirmation UI for voice input
+            // Show confirmation UI for both voice and text input
+            // Track voice search when it's processed
             if (isRecording || transcript) {
-              // Track voice search when it's processed
-              await trackVoiceSearch(newText, audioResult.extractedEntities);
-              
-              setExtractedDetails({
-                eventType: audioResult.extractedEntities.eventType?.value || parsed.eventType,
-                services: audioResult.extractedEntities.serviceTypes.map(s => s.category) || parsed.serviceTypes,
-                budget: audioResult.extractedEntities.budget || parsed.budgetRange,
-                location: audioResult.extractedEntities.location?.city || parsed.location,
-                duration: parsed.duration,
-                guestCount: parsed.guestCount,
-                additionalRequirements: audioResult.extractedEntities.additionalInfo || parsed.additionalRequirements,
-                preferences: audioResult.extractedEntities.preferences,
-                confidence: audioResult.confidence,
-                language: audioResult.language,
-                originalText: newText
-              });
-              setShowConfirmation(true);
+              await trackVoiceSearch(newText, voiceResult);
             }
+            
+            setExtractedDetails({
+              eventType: parsed.eventType || 'Not specified',
+              services: voiceResult.serviceType ? [voiceResult.serviceType] : parsed.serviceTypes || [],
+              budget: voiceResult.budgetRange || parsed.budgetRange || 'Not specified',
+              location: voiceResult.state || voiceResult.city || parsed.location || 'Not specified',
+              duration: parsed.duration || 'Not specified',
+              guestCount: parsed.guestCount || 'Not specified',
+              additionalRequirements: parsed.additionalRequirements || [],
+              confidence: voiceResult.confidence,
+              language: 'en',
+              originalText: newText
+            });
+            setShowConfirmation(true);
           } else {
             setParsedRequest(null);
-            // Show partial results for voice input even if incomplete
-            if (isRecording || transcript) {
-              setExtractedDetails({
-                eventType: audioResult.extractedEntities.eventType?.value || parsed.eventType || 'Not specified',
-                services: audioResult.extractedEntities.serviceTypes.map(s => s.category) || parsed.serviceTypes || [],
-                budget: audioResult.extractedEntities.budget || parsed.budgetRange || null,
-                location: audioResult.extractedEntities.location?.city || parsed.location || 'Not specified',
-                duration: parsed.duration || 'Not specified',
-                guestCount: parsed.guestCount || 'Not specified',
-                additionalRequirements: audioResult.extractedEntities.additionalInfo || parsed.additionalRequirements || [],
-                preferences: audioResult.extractedEntities.preferences,
-                confidence: audioResult.confidence,
-                language: audioResult.language,
-                originalText: newText,
-                isIncomplete: true,
-                errors: validation.errors
-              });
-              setShowConfirmation(true);
-            }
+            // Show partial results even if incomplete
+            setExtractedDetails({
+              eventType: parsed.eventType || 'Not specified',
+              services: voiceResult.serviceType ? [voiceResult.serviceType] : parsed.serviceTypes || [],
+              budget: voiceResult.budgetRange || parsed.budgetRange || 'Not specified',
+              location: voiceResult.state || voiceResult.city || parsed.location || 'Not specified',
+              duration: parsed.duration || 'Not specified',
+              guestCount: parsed.guestCount || 'Not specified',
+              additionalRequirements: parsed.additionalRequirements || [],
+              confidence: voiceResult.confidence,
+              language: 'en',
+              originalText: newText,
+              isIncomplete: true,
+              errors: validation.errors
+            });
+            setShowConfirmation(true);
           }
         } catch (error) {
           console.error('Error processing request:', error);
@@ -387,20 +393,25 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   };
 
   const stopRecording = () => {
-    if (recognition && isListening) {
-      try {
-        recognition.stop();
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-      }
-    }
+    console.log('Stopping recording...');
     
-    // Clear the timeout
+    // Clear the timeout first
     if (recordingTimeout) {
       clearTimeout(recordingTimeout);
       setRecordingTimeout(null);
     }
     
+    // Stop recognition if it's running
+    if (recognition && isListening) {
+      try {
+        recognition.stop();
+        console.log('Speech recognition stopped successfully');
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+      }
+    }
+    
+    // Always reset the states
     setIsRecording(false);
     setIsListening(false);
   };
@@ -409,6 +420,133 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
     if (parsedRequest) {
       onRequestSubmit(parsedRequest);
     }
+  };
+
+  const navigateToVendors = () => {
+    if (!extractedDetails && !parsedRequest) return;
+    
+    // Build URL parameters from extracted details or parsed request
+    const params = new URLSearchParams();
+    
+    if (extractedDetails) {
+      // Use voice processing results
+      if (extractedDetails.services && extractedDetails.services.length > 0) {
+        // Map service type to the format expected by vendors page
+        const serviceMap: Record<string, string> = {
+          'photography': 'photography',
+          'makeup': 'makeup',
+          'decor': 'decor',
+          'catering': 'catering',
+          'venues': 'venues',
+          'music': 'music',
+          'attire': 'attire',
+          'planning': 'planning'
+        };
+        const serviceType = extractedDetails.services[0];
+        if (serviceMap[serviceType]) {
+          params.append('service', serviceMap[serviceType]);
+        }
+      }
+      
+      if (extractedDetails.location && extractedDetails.location !== 'Not specified') {
+        // Map location to the format expected by vendors page
+        const locationMap: Record<string, string> = {
+          'telangana': 'telangana',
+          'andhra pradesh': 'andhra-pradesh',
+          'tamil nadu': 'tamil-nadu',
+          'karnataka': 'karnataka',
+          'maharashtra': 'maharashtra',
+          'kerala': 'kerala',
+          'delhi': 'delhi',
+          'punjab': 'punjab',
+          'rajasthan': 'rajasthan',
+          'gujarat': 'gujarat',
+          'west bengal': 'west-bengal',
+          'uttar pradesh': 'uttar-pradesh'
+        };
+        const location = extractedDetails.location.toLowerCase();
+        if (locationMap[location]) {
+          params.append('location', locationMap[location]);
+        }
+      }
+      
+      if (extractedDetails.budget && extractedDetails.budget !== 'Not specified') {
+        // Map budget to the format expected by vendors page
+        const budgetMap: Record<string, string> = {
+          '₹10K - ₹50K': '10k-50k',
+          '₹50K - ₹1L': '50k-1l',
+          '₹1L - ₹3L': '1l-3l',
+          '₹3L - ₹10L': '3l-10l',
+          '₹10L - ₹15L': '10l-15l',
+          '₹15L - ₹25L': '15l-25l',
+          '₹25L - ₹50L': '25l-50l',
+          '₹50L - ₹1CR': '50l-1cr'
+        };
+        if (budgetMap[extractedDetails.budget]) {
+          params.append('budget', budgetMap[extractedDetails.budget]);
+        }
+      }
+    } else if (parsedRequest) {
+      // Use parsed request results
+      if (parsedRequest.serviceTypes && parsedRequest.serviceTypes.length > 0) {
+        const serviceMap: Record<string, string> = {
+          'photography': 'photography',
+          'makeup': 'makeup',
+          'decor': 'decor',
+          'catering': 'catering',
+          'venues': 'venues',
+          'music': 'music',
+          'attire': 'attire',
+          'planning': 'planning'
+        };
+        const serviceType = parsedRequest.serviceTypes[0];
+        if (serviceMap[serviceType]) {
+          params.append('service', serviceMap[serviceType]);
+        }
+      }
+      
+      if (parsedRequest.location) {
+        const locationMap: Record<string, string> = {
+          'telangana': 'telangana',
+          'andhra pradesh': 'andhra-pradesh',
+          'tamil nadu': 'tamil-nadu',
+          'karnataka': 'karnataka',
+          'maharashtra': 'maharashtra',
+          'kerala': 'kerala',
+          'delhi': 'delhi',
+          'punjab': 'punjab',
+          'rajasthan': 'rajasthan',
+          'gujarat': 'gujarat',
+          'west bengal': 'west-bengal',
+          'uttar pradesh': 'uttar-pradesh'
+        };
+        const location = parsedRequest.location.toLowerCase();
+        if (locationMap[location]) {
+          params.append('location', locationMap[location]);
+        }
+      }
+      
+      if (parsedRequest.budgetRange) {
+        const budgetMap: Record<string, string> = {
+          '10k-50k': '10k-50k',
+          '50k-1l': '50k-1l',
+          '1l-3l': '1l-3l',
+          '3l-10l': '3l-10l',
+          '10l-15l': '10l-15l',
+          '15l-25l': '15l-25l',
+          '25l-50l': '25l-50l',
+          '50l-1cr': '50l-1cr'
+        };
+        if (budgetMap[parsedRequest.budgetRange]) {
+          params.append('budget', budgetMap[parsedRequest.budgetRange]);
+        }
+      }
+    }
+    
+    // Navigate to vendors page with parameters
+    const url = `/vendors?${params.toString()}`;
+    console.log('Navigating to vendors page with URL:', url);
+    navigate(url);
   };
 
   const handleConfirmDetails = () => {
@@ -445,6 +583,20 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
     }
   };
 
+  const handleClearInput = () => {
+    setText('');
+    setTranscript('');
+    setExtractedDetails(null);
+    setParsedRequest(null);
+    setShowConfirmation(false);
+    setIsEditing(false);
+    setIsProcessing(false);
+    // Clear the textarea focus
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
   const handleCancelEdit = () => {
     setIsEditing(false);
     if (parsedRequest) {
@@ -452,7 +604,33 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
     }
   };
 
-  const formatBudget = (budget: { min: number; max: number; currency: string }) => {
+  const formatBudget = (budget: { min: number; max: number; currency: string } | string) => {
+    // Handle string format from voice processing service
+    if (typeof budget === 'string') {
+      // Convert budget range strings like "10k-50k" to display format
+      switch (budget) {
+        case '10k-50k':
+          return '₹10K - ₹50K';
+        case '50k-1l':
+          return '₹50K - ₹1L';
+        case '1l-3l':
+          return '₹1L - ₹3L';
+        case '3l-10l':
+          return '₹3L - ₹10L';
+        case '10l-15l':
+          return '₹10L - ₹15L';
+        case '15l-25l':
+          return '₹15L - ₹25L';
+        case '25l-50l':
+          return '₹25L - ₹50L';
+        case '50l-1cr':
+          return '₹50L - ₹1CR';
+        default:
+          return budget; // Return as-is if not recognized
+      }
+    }
+
+    // Handle object format (legacy)
     const formatAmount = (amount: number) => {
       if (amount >= 100000) {
         return `₹${(amount / 100000).toFixed(1)}L`;
@@ -528,6 +706,21 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
               
               {/* Voice Recording Button */}
               <div className="absolute bottom-3 right-3 flex gap-2">
+                {/* Clear Button */}
+                {text && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearInput}
+                    disabled={isLoading}
+                    className="bg-white hover:bg-red-50 border-red-300 hover:border-red-400 text-red-600 hover:text-red-700"
+                    title="Clear input"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                
                 {!isRecording ? (
                   <Button
                     type="button"
@@ -708,6 +901,34 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                     </div>
                   </div>
                 )}
+                
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4 border-t mt-4">
+                  <Button
+                    onClick={navigateToVendors}
+                    className="bg-orange-500 hover:bg-orange-600 text-white flex-1"
+                    disabled={!parsedRequest || (!parsedRequest.serviceTypes || parsedRequest.serviceTypes.length === 0)}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Find Vendors
+                  </Button>
+                  <Button
+                    onClick={handleEdit}
+                    variant="outline"
+                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    onClick={handleClearInput}
+                    variant="outline"
+                    className="border-red-300 text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clear
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -723,14 +944,14 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
               Please confirm your request details
             </CardTitle>
             <p className="text-blue-600 text-sm">
-              We've extracted the following information from your voice input. Please review and confirm.
+              We've extracted the following information from your input. Please review and confirm.
             </p>
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
               {/* Original Text */}
               <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Original voice input:</p>
+                <p className="text-sm text-gray-600 mb-1">Original input:</p>
                 <p className="text-gray-800 italic">"{extractedDetails.originalText}"</p>
               </div>
 
@@ -765,17 +986,10 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-green-600" />
                     <span className="font-medium text-gray-700">Budget:</span>
-                    {extractedDetails.budget ? (
-                      <div className="flex flex-col gap-1">
-                        <Badge variant="outline" className="bg-green-100 text-green-800">
-                          ₹{extractedDetails.budget.min.toLocaleString()} - ₹{extractedDetails.budget.max.toLocaleString()}
-                        </Badge>
-                        {extractedDetails.budget.type && (
-                          <span className="text-xs text-gray-500">
-                            Type: {extractedDetails.budget.type.replace('_', ' ')}
-                          </span>
-                        )}
-                      </div>
+                    {extractedDetails.budget && extractedDetails.budget !== 'Not specified' ? (
+                      <Badge variant="outline" className="bg-green-100 text-green-800">
+                        {formatBudget(extractedDetails.budget)}
+                      </Badge>
                     ) : (
                       <span className="text-gray-500 text-sm">Not specified</span>
                     )}
@@ -880,9 +1094,9 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
               {/* Action Buttons */}
               <div className="flex gap-3 pt-4 border-t">
                 <Button
-                  onClick={handleConfirmDetails}
+                  onClick={navigateToVendors}
                   className="bg-green-500 hover:bg-green-600 text-white flex-1"
-                  disabled={!parsedRequest}
+                  disabled={!extractedDetails || (!extractedDetails.services || extractedDetails.services.length === 0)}
                 >
                   <Check className="h-4 w-4 mr-2" />
                   Confirm & Find Vendors
@@ -902,6 +1116,14 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                 >
                   <Mic className="h-4 w-4 mr-2" />
                   Re-record
+                </Button>
+                <Button
+                  onClick={handleClearInput}
+                  variant="outline"
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
                 </Button>
               </div>
             </div>

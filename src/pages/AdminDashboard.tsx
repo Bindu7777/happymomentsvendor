@@ -1503,12 +1503,14 @@ const AdminDashboard = () => {
         placeholder={inputModal.placeholder}
       />
 
-      <AdminSendCustomerModal
-        isOpen={sendCustomerModal.isOpen}
-        onClose={() => setSendCustomerModal({ isOpen: false, vendor: null })}
-        vendor={sendCustomerModal.vendor!}
-        onSendCustomer={handleSendCustomerSubmit}
-      />
+      {sendCustomerModal.vendor && (
+        <AdminSendCustomerModal
+          isOpen={sendCustomerModal.isOpen}
+          onClose={() => setSendCustomerModal({ isOpen: false, vendor: null })}
+          vendor={sendCustomerModal.vendor}
+          onSendCustomer={handleSendCustomerSubmit}
+        />
+      )}
 
     </div>
   );

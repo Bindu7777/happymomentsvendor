@@ -28,6 +28,11 @@ const AdminSendCustomerModal: React.FC<AdminSendCustomerModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Don't render if vendor is null
+  if (!vendor) {
+    return null;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

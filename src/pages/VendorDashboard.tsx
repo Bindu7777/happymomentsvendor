@@ -432,6 +432,7 @@ const VendorDashboard: React.FC = () => {
           // Calculate customer stats based on vendor_status
           const stats = {
             total_customers: response.data.length,
+            admin_sent: response.data.filter(c => c.is_admin_sent).length,
             contacted: response.data.filter(c => c.vendor_status === 'Contacted').length,
             customer_interested: response.data.filter(c => c.vendor_status === 'Customer Interested').length,
             deal_made: response.data.filter(c => c.vendor_status === 'Deal Made').length,
@@ -1140,11 +1141,17 @@ const VendorDashboard: React.FC = () => {
         {activeTab === 'customers' && (
           <div className="space-y-6">
         {/* Customer Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-[#001B5E]">{customerStats.total_customers || 0}</p>
               <p className="text-sm text-gray-600">Total Contacts</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-purple-600">{customerStats.admin_sent || 0}</p>
+              <p className="text-sm text-gray-600">👑 Admin Sent</p>
             </CardContent>
           </Card>
           <Card>
@@ -1196,18 +1203,32 @@ const VendorDashboard: React.FC = () => {
                   key={customer.contact_id} 
                   className="p-4 rounded-xl transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] animate-slide-up border-2"
                   style={{ 
-                    background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
-                    borderColor: '#FFA326',
-                    boxShadow: '0 4px 20px rgba(255, 163, 38, 0.1)',
+                    background: customer.is_admin_sent 
+                      ? 'linear-gradient(135deg, #F3E8FF 0%, #EDE9FE 100%)' 
+                      : 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+                    borderColor: customer.is_admin_sent ? '#8B5CF6' : '#FFA326',
+                    boxShadow: customer.is_admin_sent 
+                      ? '0 4px 20px rgba(139, 92, 246, 0.1)' 
+                      : '0 4px 20px rgba(255, 163, 38, 0.1)',
                     animationDelay: `${index * 0.1}s`
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(255, 163, 38, 0.2), 0 0 20px rgba(6, 29, 73, 0.1)';
-                    e.currentTarget.style.borderColor = '#FF8C00';
+                    if (customer.is_admin_sent) {
+                      e.currentTarget.style.boxShadow = '0 8px 30px rgba(139, 92, 246, 0.2), 0 0 20px rgba(6, 29, 73, 0.1)';
+                      e.currentTarget.style.borderColor = '#7C3AED';
+                    } else {
+                      e.currentTarget.style.boxShadow = '0 8px 30px rgba(255, 163, 38, 0.2), 0 0 20px rgba(6, 29, 73, 0.1)';
+                      e.currentTarget.style.borderColor = '#FF8C00';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 163, 38, 0.1)';
-                    e.currentTarget.style.borderColor = '#FFA326';
+                    if (customer.is_admin_sent) {
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(139, 92, 246, 0.1)';
+                      e.currentTarget.style.borderColor = '#8B5CF6';
+                    } else {
+                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 163, 38, 0.1)';
+                      e.currentTarget.style.borderColor = '#FFA326';
+                    }
                   }}
                 >
                   {/* Customer Info */}
@@ -1216,21 +1237,34 @@ const VendorDashboard: React.FC = () => {
                     <div 
                       className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0"
                       style={{ 
-                        background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-                        border: '2px solid #FFA326'
+                        background: customer.is_admin_sent 
+                          ? 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)' 
+                          : 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                        border: customer.is_admin_sent 
+                          ? '2px solid #8B5CF6' 
+                          : '2px solid #FFA326'
                       }}
                     >
                       {customer.customer_name ? customer.customer_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'NA'}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 
-                        className="font-bold text-gray-900 text-lg cursor-pointer hover:text-orange-600 transition-colors truncate"
-                        onClick={() => handleViewCustomerDetails(customer)}
-                        style={{ color: '#061D49' }}
-                      >
-                        {customer.customer_name}
-                      </h3>
+                      <div className="flex items-center gap-2">
+                        <h3 
+                          className="font-bold text-gray-900 text-lg cursor-pointer hover:text-orange-600 transition-colors truncate"
+                          onClick={() => handleViewCustomerDetails(customer)}
+                          style={{ color: '#061D49' }}
+                        >
+                          {customer.customer_name}
+                        </h3>
+                        
+                        {/* Admin-sent badge */}
+                        {customer.is_admin_sent && (
+                          <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-bold border border-purple-300">
+                            👑 ADMIN SENT
+                          </span>
+                        )}
+                      </div>
                       
                       {/* Contact Info Pills */}
                       <div className="flex flex-wrap gap-2 mt-1">

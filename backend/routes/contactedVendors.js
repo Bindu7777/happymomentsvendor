@@ -492,6 +492,7 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           customer_id: contacted.customer_id,
           vendor_id: contacted.vendor_id,
           status: contacted.status,
+          vendor_status: contacted.vendor_status || 'Contacted', // Vendor's perspective status
           contacted_at: contacted.contacted_at,
           created_at: contacted.created_at,
           // Customer details from customers table
@@ -508,6 +509,7 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           customer_id: contacted.customer_id,
           vendor_id: contacted.vendor_id,
           status: contacted.status,
+          vendor_status: contacted.vendor_status || 'Contacted', // Vendor's perspective status
           contacted_at: contacted.contacted_at,
           created_at: contacted.created_at,
           customer_name: `Customer ${contacted.customer_id}`,
@@ -555,6 +557,92 @@ router.get('/status-options', (req, res) => {
     success: true,
     data: statusOptions
   });
+});
+
+// Update vendor status for a contacted customer
+router.put('/update-vendor-status/:contact_id', async (req, res) => {
+  try {
+    const { contact_id } = req.params;
+    const { vendor_status } = req.body;
+
+    // Validate input
+    if (!contact_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contact ID is required'
+      });
+    }
+
+    if (!vendor_status) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vendor status is required'
+      });
+    }
+
+    // Validate vendor status values
+    const validStatuses = [
+      'Contacted',
+      'Customer Interested',
+      'Deal Made',
+      'Advance Received',
+      'Event Completed',
+      'Full Amount Settled',
+      'Closed'
+    ];
+
+    if (!validStatuses.includes(vendor_status)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid vendor status. Must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+
+    console.log(`Updating vendor status for contact ${contact_id} to: ${vendor_status}`);
+
+    // Update the vendor status
+    const { data, error } = await supabase
+      .from('contacted_vendors')
+      .update({ vendor_status })
+      .eq('contact_id', contact_id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating vendor status:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update vendor status'
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contact record not found'
+      });
+    }
+
+    console.log('Vendor status updated successfully:', data);
+
+    res.json({
+      success: true,
+      message: 'Vendor status updated successfully',
+      data: {
+        contact_id: data.contact_id,
+        vendor_status: data.vendor_status,
+        customer_id: data.customer_id,
+        vendor_id: data.vendor_id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in update-vendor-status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
 });
 
 module.exports = router;

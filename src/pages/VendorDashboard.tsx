@@ -37,7 +37,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
-import { getVendorCustomers } from '../services/contactedVendorsApiService';
+import { getVendorCustomers, updateVendorStatusForContact } from '../services/contactedVendorsApiService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
@@ -416,15 +416,17 @@ const VendorDashboard: React.FC = () => {
       if (response.success && response.data) {
         setCustomers(response.data);
         
-        // Calculate customer stats based on status
-        const stats = {
-          total_customers: response.data.length,
-          contacted: response.data.filter(c => c.status === 'Contacted').length,
-          in_discussion: response.data.filter(c => c.status === 'In Discussion').length,
-          deal_agreed: response.data.filter(c => c.status === 'Deal Agreed').length,
-          event_completed: response.data.filter(c => c.status === 'Event Completed').length,
-          successful_closed: response.data.filter(c => c.status === 'Closed - Successful').length
-        };
+          // Calculate customer stats based on vendor_status
+          const stats = {
+            total_customers: response.data.length,
+            contacted: response.data.filter(c => c.vendor_status === 'Contacted').length,
+            customer_interested: response.data.filter(c => c.vendor_status === 'Customer Interested').length,
+            deal_made: response.data.filter(c => c.vendor_status === 'Deal Made').length,
+            advance_received: response.data.filter(c => c.vendor_status === 'Advance Received').length,
+            event_completed: response.data.filter(c => c.vendor_status === 'Event Completed').length,
+            full_amount_settled: response.data.filter(c => c.vendor_status === 'Full Amount Settled').length,
+            closed: response.data.filter(c => c.vendor_status === 'Closed').length
+          };
         setCustomerStats(stats);
       } else {
         console.error('Failed to load customers:', response.error);
@@ -538,6 +540,25 @@ const VendorDashboard: React.FC = () => {
   const handleViewCustomerDetails = (customer: any) => {
     setSelectedCustomer(customer);
     setShowCustomerDetails(true);
+  };
+
+  const handleVendorStatusUpdate = async (contactId: string, newStatus: string) => {
+    try {
+      console.log(`Updating vendor status for contact ${contactId} to: ${newStatus}`);
+      
+      const result = await updateVendorStatusForContact(contactId, newStatus);
+      
+      if (result.success && vendor) {
+        // Reload customers data to reflect the change
+        loadCustomersData(parseInt(vendor.vendor_id));
+      } else {
+        console.error('Failed to update vendor status:', result.error);
+        alert('Failed to update vendor status. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating vendor status:', error);
+      alert('Error updating vendor status. Please try again.');
+    }
   };
 
   // Calendar event handlers
@@ -1064,33 +1085,33 @@ const VendorDashboard: React.FC = () => {
         {/* My Customers Tab */}
         {activeTab === 'customers' && (
           <div className="space-y-6">
-            {/* Customer Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-[#001B5E]">{customerStats.total_customers || 0}</p>
-                  <p className="text-sm text-gray-600">Total Contacts</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-blue-600">{customerStats.contacted || 0}</p>
-                  <p className="text-sm text-gray-600">Contacted</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-yellow-600">{customerStats.in_discussion || 0}</p>
-                  <p className="text-sm text-gray-600">In Discussion</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <p className="text-2xl font-bold text-green-600">{customerStats.event_completed || 0}</p>
-                  <p className="text-sm text-gray-600">Completed</p>
-                </CardContent>
-              </Card>
-            </div>
+        {/* Customer Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-[#001B5E]">{customerStats.total_customers || 0}</p>
+              <p className="text-sm text-gray-600">Total Contacts</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-blue-600">{customerStats.contacted || 0}</p>
+              <p className="text-sm text-gray-600">Contacted</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-yellow-600">{customerStats.customer_interested || 0}</p>
+              <p className="text-sm text-gray-600">Interested</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <p className="text-2xl font-bold text-green-600">{customerStats.event_completed || 0}</p>
+              <p className="text-sm text-gray-600">Completed</p>
+            </CardContent>
+          </Card>
+        </div>
 
             {/* Search Bar */}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -1176,28 +1197,36 @@ const VendorDashboard: React.FC = () => {
 
                   {/* Status and Actions Row */}
                   <div className="flex items-center justify-between gap-3">
-                    {/* Customer Status */}
+                    {/* Vendor Status Dropdown */}
                     <div className="flex-1">
-                      <div className={`text-sm px-3 py-2 rounded-lg font-semibold shadow-md text-white`}
-                        style={
-                          customer.status === 'Event Completed' ? 
-                          { background: 'linear-gradient(135deg, #228B22 0%, #006400 100%)' } :
-                          customer.status === 'Deal Agreed' ?
-                          { background: 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)' } :
-                          customer.status === 'In Discussion' ?
-                          { background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' } :
-                          customer.status === 'Closed - Successful' ?
-                          { background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' } :
-                          { background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' }
-                        }
+                      <select
+                        value={customer.vendor_status || 'Contacted'}
+                        onChange={(e) => handleVendorStatusUpdate(customer.contact_id.toString(), e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg font-semibold shadow-md text-white border-0 focus:ring-2 focus:ring-orange-300 transition-all"
+                        style={{
+                          background: customer.vendor_status === 'Event Completed' ? 
+                            'linear-gradient(135deg, #228B22 0%, #006400 100%)' :
+                            customer.vendor_status === 'Deal Made' ?
+                            'linear-gradient(135deg, #32CD32 0%, #228B22 100%)' :
+                            customer.vendor_status === 'Customer Interested' ?
+                            'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' :
+                            customer.vendor_status === 'Advance Received' ?
+                            'linear-gradient(135deg, #4169E1 0%, #0000CD 100%)' :
+                            customer.vendor_status === 'Full Amount Settled' ?
+                            'linear-gradient(135deg, #9370DB 0%, #8A2BE2 100%)' :
+                            customer.vendor_status === 'Closed' ?
+                            'linear-gradient(135deg, #696969 0%, #2F4F4F 100%)' :
+                            'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)'
+                        }}
                       >
-                        {customer.status === 'Contacted' ? '📞 Contacted' :
-                         customer.status === 'In Discussion' ? '💬 In Discussion' :
-                         customer.status === 'Deal Agreed' ? '🤝 Deal Agreed' :
-                         customer.status === 'Event Completed' ? '✅ Event Completed' :
-                         customer.status === 'Closed - Successful' ? '🎉 Closed Successfully' :
-                         customer.status || '📞 Contacted'}
-                      </div>
+                        <option value="Contacted">📞 Contacted</option>
+                        <option value="Customer Interested">💡 Customer Interested</option>
+                        <option value="Deal Made">🤝 Deal Made</option>
+                        <option value="Advance Received">💰 Advance Received</option>
+                        <option value="Event Completed">✅ Event Completed</option>
+                        <option value="Full Amount Settled">💳 Full Amount Settled</option>
+                        <option value="Closed">🔒 Closed</option>
+                      </select>
                     </div>
                     
                     {/* Action Buttons */}

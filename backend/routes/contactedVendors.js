@@ -31,9 +31,9 @@ router.post('/admin-send-customer', async (req, res) => {
       });
     }
 
-    // For admin-sent customers, we'll use a special customer ID (999999) to indicate admin-sent
-    // This avoids the need to create customer records in the customers table
-    const customerId = 999999; // Special ID for admin-sent customers
+    // For admin-sent customers, use a unique negative customer_id
+    // This avoids the unique constraint on (customer_id, vendor_id)
+    const customerId = -(Date.now() % 1000000); // Use timestamp to ensure uniqueness
     console.log(`Using admin-sent customer ID: ${customerId}`);
 
     // Admin can send multiple customers to the same vendor, so no duplicate check needed
@@ -581,8 +581,8 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
 
     console.log('Contacted data:', contactedData);
 
-    // Get customer details for each contacted customer (excluding admin-sent customers with ID 999999)
-    const customerIds = contactedData.map(item => item.customer_id).filter(id => id !== 999999);
+    // Get customer details for each contacted customer (excluding admin-sent customers with negative IDs)
+    const customerIds = contactedData.map(item => item.customer_id).filter(id => id > 0);
     console.log('Fetching details for customer IDs:', customerIds);
 
     let customersData = [];
@@ -609,8 +609,8 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
 
     // Combine contacted data with customer details
     const combinedData = contactedData.map(contacted => {
-      // Handle admin-sent customers (customer_id = 999999)
-      if (contacted.customer_id === 999999) {
+      // Handle admin-sent customers (customer_id < 0)
+      if (contacted.customer_id < 0) {
         // Extract customer name and phone from notes for admin-sent customers
         const notes = contacted.notes || '';
         const nameMatch = notes.match(/Admin-sent customer: ([^(]+)/);

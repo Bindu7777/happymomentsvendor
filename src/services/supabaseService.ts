@@ -1042,6 +1042,8 @@ export const clearVendorHardcodedServices = async (vendorId: string): Promise<{s
 // Get vendor notifications (from contacted_vendors table)
 export const getVendorNotifications = async (vendorId: number, unreadOnly: boolean = false): Promise<any[]> => {
   try {
+    console.log(`🔔 Fetching vendor notifications for vendor ID: ${vendorId}`);
+    
     let query = supabase
       .from('contacted_vendors')
       .select(`
@@ -1053,11 +1055,7 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
         notification_message,
         contacted_at,
         created_at,
-        customers:customer_id (
-          full_name,
-          email,
-          mobile_number
-        )
+        notes
       `)
       .eq('vendor_id', vendorId.toString())
       .order('contacted_at', { ascending: false })
@@ -1071,24 +1069,71 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('❌ Error fetching vendor notifications:', error);
       return [];
     }
 
+    console.log(`📊 Raw vendor notification data:`, data);
+
+    // Get customer details for regular customers (positive customer_id)
+    const customerIds = (data || []).map(contact => contact.customer_id).filter(id => id > 0);
+    let customerDetails = {};
+    
+    if (customerIds.length > 0) {
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select('id, full_name, email, mobile_number')
+        .in('id', customerIds);
+
+      if (customersError) {
+        console.error('❌ Error fetching customer details:', customersError);
+      } else {
+        customerDetails = (customersData || []).reduce((acc, customer) => {
+          acc[customer.id] = customer;
+          return acc;
+        }, {});
+        console.log(`✅ Customer details fetched:`, customerDetails);
+      }
+    }
+
     // Transform the data to match notification format
-    return (data || []).map(contact => ({
-      id: contact.contact_id,
-      vendor_id: contact.vendor_id,
-      customer_id: contact.customer_id,
-      notification_type: 'contact',
-      title: 'New Customer Contact',
-      message: contact.notification_message || 'Customer contacted you',
-      is_read: contact.vendor_notified,
-      created_at: contact.contacted_at,
-      customers: contact.customers
-    }));
+    const transformedData = (data || []).map(contact => {
+      let customerInfo = null;
+      
+      // Handle admin-sent customers (negative customer_id)
+      if (contact.customer_id < 0) {
+        // Extract customer name and phone from notes for admin-sent customers
+        const notes = contact.notes || '';
+        const nameMatch = notes.match(/Admin-sent customer: ([^(]+)/);
+        const phoneMatch = notes.match(/\(([^)]+)\)/);
+        
+        customerInfo = {
+          full_name: nameMatch ? nameMatch[1].trim() : 'Admin-sent Customer',
+          mobile_number: phoneMatch ? phoneMatch[1] : '',
+          email: ''
+        };
+      } else {
+        // Handle regular customers
+        customerInfo = customerDetails[contact.customer_id] || null;
+      }
+
+      return {
+        id: contact.contact_id,
+        vendor_id: contact.vendor_id,
+        customer_id: contact.customer_id,
+        notification_type: 'contact',
+        title: 'New Customer Contact',
+        message: contact.notification_message || 'Customer contacted you',
+        is_read: contact.vendor_notified,
+        created_at: contact.contacted_at,
+        customers: customerInfo
+      };
+    });
+
+    console.log(`✅ Transformed vendor notifications:`, transformedData);
+    return transformedData;
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('💥 Error fetching vendor notifications:', error);
     return [];
   }
 };

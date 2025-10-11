@@ -299,6 +299,17 @@ const VendorDashboard: React.FC = () => {
     }
   }, [customers, customerSearchQuery]);
 
+  // Auto-refresh notifications every 30 seconds
+  useEffect(() => {
+    if (vendor) {
+      const interval = setInterval(() => {
+        loadNotifications(parseInt(vendor.vendor_id));
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [vendor]);
+
   // Close notifications dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

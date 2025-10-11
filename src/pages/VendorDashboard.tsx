@@ -893,41 +893,51 @@ const VendorDashboard: React.FC = () => {
                 {showNotifications && (
                   <div className="notification-dropdown absolute right-0 top-full mt-2 w-80 md:w-96 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 md:max-h-96 overflow-y-auto">
                     <div className="p-4 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-900">Profile Change Notifications</h3>
+                      <h3 className="font-semibold text-gray-900">Notifications</h3>
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length > 0 ? (
                         notifications.map((notification) => (
                           <div key={notification.id} className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  {notification.status === 'approved' ? (
-                                    <CheckCircle className="w-5 h-5 text-green-600" />
-                                  ) : (
-                                    <AlertCircle className="w-5 h-5 text-red-600" />
-                                  )}
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    notification.status === 'approved' 
-                                      ? 'bg-green-100 text-green-800' 
-                                      : 'bg-red-100 text-red-800'
-                                  }`}>
-                                    {notification.status === 'approved' ? 'APPROVED' : 'REJECTED'}
-                                  </span>
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0">
+                                {notification.notification_type === 'contact' ? (
+                                  <MessageCircle className="w-5 h-5 text-blue-500" />
+                                ) : notification.notification_type === 'profile_view' ? (
+                                  <Eye className="w-5 h-5 text-green-500" />
+                                ) : (
+                                  <Bell className="w-5 h-5 text-orange-500" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge 
+                                    variant={notification.is_read ? 'secondary' : 'default'}
+                                    className="text-xs"
+                                  >
+                                    {notification.is_read ? 'READ' : 'NEW'}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline"
+                                    className="text-xs"
+                                  >
+                                    {notification.notification_type.toUpperCase()}
+                                  </Badge>
                                 </div>
-                                <p className="text-sm text-gray-900 font-medium">
-                                  Profile Update {notification.status === 'approved' ? 'Approved' : 'Rejected'}
+                                <h4 className="font-medium text-gray-900 mb-1">
+                                  {notification.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 mb-2">
+                                  {notification.message}
                                 </p>
-                                <p className="text-xs text-gray-600 mt-1">
-                                  Submitted: {new Date(notification.submitted_at).toLocaleDateString()}
+                                <p className="text-xs text-gray-500">
+                                  {new Date(notification.created_at).toLocaleDateString()} at {new Date(notification.created_at).toLocaleTimeString()}
                                 </p>
-                                <p className="text-xs text-gray-600">
-                                  Reviewed: {new Date(notification.reviewed_at).toLocaleDateString()}
-                                </p>
-                                {notification.admin_comments && (
-                                  <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                                    <span className="font-medium text-gray-700">Admin Comments:</span>
-                                    <p className="text-gray-600 mt-1">{notification.admin_comments}</p>
+                                {notification.customers && (
+                                  <div className="mt-2 p-2 bg-blue-50 rounded">
+                                    <p className="text-xs text-blue-600">
+                                      Customer: {notification.customers.full_name}
+                                    </p>
                                   </div>
                                 )}
                               </div>
@@ -938,7 +948,7 @@ const VendorDashboard: React.FC = () => {
                         <div className="p-8 text-center text-gray-500">
                           <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                           <p>No notifications yet</p>
-                          <p className="text-sm">Profile change updates will appear here</p>
+                          <p className="text-sm">Customer contacts and updates will appear here</p>
                         </div>
                       )}
                     </div>

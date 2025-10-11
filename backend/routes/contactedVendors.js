@@ -55,6 +55,42 @@ router.post('/save-contact', async (req, res) => {
 
     console.log('Contact saved successfully:', newContact);
 
+    // Create notification for vendor about customer contact
+    try {
+      // Get customer details for notification
+      const { data: customerData, error: customerError } = await supabase
+        .from('customers')
+        .select('full_name')
+        .eq('id', parseInt(customer_id))
+        .single();
+
+      if (customerData) {
+        const customerName = customerData.full_name || `Customer ${customer_id}`;
+        
+        // Create notification
+        const { error: notificationError } = await supabase
+          .from('vendor_notifications')
+          .insert({
+            vendor_id: parseInt(vendor_id),
+            customer_id: parseInt(customer_id),
+            notification_type: 'contact',
+            title: 'New Customer Contact',
+            message: `${customerName} viewed your profile and contacted you!`,
+            is_read: false
+          });
+
+        if (notificationError) {
+          console.error('Error creating notification:', notificationError);
+          // Don't fail the main request if notification fails
+        } else {
+          console.log('Notification created successfully for vendor:', vendor_id);
+        }
+      }
+    } catch (notificationErr) {
+      console.error('Error in notification creation:', notificationErr);
+      // Don't fail the main request if notification fails
+    }
+
     res.json({
       success: true,
       message: 'Contact recorded successfully',

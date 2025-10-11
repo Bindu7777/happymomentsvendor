@@ -1039,20 +1039,26 @@ export const clearVendorHardcodedServices = async (vendorId: string): Promise<{s
   }
 };
 
-// Get vendor notifications (approved/rejected changes)
+// Get vendor notifications (from new notifications table)
 export const getVendorNotifications = async (vendorId: number, unreadOnly: boolean = false): Promise<any[]> => {
   try {
     let query = supabase
-      .from('vendor_profile_changes')
-      .select('*')
+      .from('vendor_notifications')
+      .select(`
+        *,
+        customers:customer_id (
+          full_name,
+          email,
+          mobile_number
+        )
+      `)
       .eq('vendor_id', vendorId)
-      .in('status', ['approved', 'rejected'])
-      .order('reviewed_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(20); // Get latest 20 notifications
 
     // If we only want unread notifications (for count)
     if (unreadOnly) {
-      query = query.eq('notification_read', false);
+      query = query.eq('is_read', false);
     }
 
     const { data, error } = await query;
@@ -1069,13 +1075,13 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
   }
 };
 
-// Mark notification as read (optional - for future use)
-export const markNotificationAsRead = async (changeId: number): Promise<boolean> => {
+// Mark notification as read (for new notifications table)
+export const markNotificationAsRead = async (notificationId: number): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('vendor_profile_changes')
-      .update({ notification_read: true })
-      .eq('id', changeId);
+      .from('vendor_notifications')
+      .update({ is_read: true })
+      .eq('id', notificationId);
 
     if (error) {
       console.error('Error marking notification as read:', error);
@@ -1093,11 +1099,10 @@ export const markNotificationAsRead = async (changeId: number): Promise<boolean>
 export const markAllNotificationsAsRead = async (vendorId: number): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('vendor_profile_changes')
-      .update({ notification_read: true })
+      .from('vendor_notifications')
+      .update({ is_read: true })
       .eq('vendor_id', vendorId)
-      .in('status', ['approved', 'rejected'])
-      .eq('notification_read', false);
+      .eq('is_read', false);
 
     if (error) {
       console.error('Error marking all notifications as read:', error);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Phone, MessageCircle, Eye } from 'lucide-react';
+import { X, User, Phone, MessageCircle, Eye, FileText } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface CustomerDetailsModalProps {
@@ -138,6 +138,23 @@ const CustomerDetailsModal: React.FC<CustomerDetailsModalProps> = ({ lead, onClo
                   {lead.status || 'Not specified'}
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Notes Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-orange-600" />
+              Notes
+            </h3>
+            
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                Vendor Notes
+                </label>
+                  <p className="px-3 py-2 bg-gray-50 rounded-md min-h-[100px]">
+                {lead.notes || 'No notes added yet'}
+              </p>
             </div>
           </div>
 

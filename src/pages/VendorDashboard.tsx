@@ -37,7 +37,7 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
-import { getVendorCustomers, updateVendorStatusForContact } from '../services/contactedVendorsApiService';
+import { getVendorCustomers, updateVendorStatusForContact, updateNotesForContact } from '../services/contactedVendorsApiService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
@@ -98,6 +98,8 @@ const VendorDashboard: React.FC = () => {
   const [customerStats, setCustomerStats] = useState<any>({});
   const [customerSearchQuery, setCustomerSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [notesValue, setNotesValue] = useState('');
   
   const navigate = useNavigate();
 
@@ -559,6 +561,37 @@ const VendorDashboard: React.FC = () => {
       console.error('Error updating vendor status:', error);
       alert('Error updating vendor status. Please try again.');
     }
+  };
+
+  const handleNotesUpdate = async (contactId: string, notes: string) => {
+    try {
+      console.log(`Updating notes for contact ${contactId}:`, notes);
+      
+      const result = await updateNotesForContact(contactId, notes);
+      
+      if (result.success && vendor) {
+        // Reload customers data to reflect the change
+        loadCustomersData(parseInt(vendor.vendor_id));
+        setEditingNotes(null);
+        setNotesValue('');
+      } else {
+        console.error('Failed to update notes:', result.error);
+        alert('Failed to update notes. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating notes:', error);
+      alert('Error updating notes. Please try again.');
+    }
+  };
+
+  const handleStartEditingNotes = (contactId: string, currentNotes: string) => {
+    setEditingNotes(contactId);
+    setNotesValue(currentNotes || '');
+  };
+
+  const handleCancelEditingNotes = () => {
+    setEditingNotes(null);
+    setNotesValue('');
   };
 
   // Calendar event handlers
@@ -1300,23 +1333,73 @@ const VendorDashboard: React.FC = () => {
                     </div>
                   </div>
                   
-                  {/* Customer Contact Info */}
-                  <div className="mt-2 pt-2 border-t border-gray-100">
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>
-                        📧 {customer.customer_email || 'No email'}
-                      </span>
-                      <span>
-                        📞 {customer.customer_phone || 'No phone'}
-                      </span>
+              {/* Notes Section */}
+              <div className="mt-3 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-600">📝 Notes:</span>
+                  {editingNotes !== customer.contact_id.toString() && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleStartEditingNotes(customer.contact_id.toString(), customer.notes || '')}
+                      className="text-xs px-2 py-1 h-6 text-gray-600 hover:text-orange-600"
+                    >
+                      {customer.notes ? 'Edit' : 'Add'}
+                    </Button>
+                  )}
+                </div>
+                
+                {editingNotes === customer.contact_id.toString() ? (
+                  <div className="space-y-2">
+                    <textarea
+                      value={notesValue}
+                      onChange={(e) => setNotesValue(e.target.value)}
+                      placeholder="Add notes about this customer..."
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-200 focus:border-orange-400 resize-none"
+                      rows={2}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleNotesUpdate(customer.contact_id.toString(), notesValue)}
+                        className="text-xs px-3 py-1 h-6 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCancelEditingNotes}
+                        className="text-xs px-3 py-1 h-6 text-gray-600"
+                      >
+                        Cancel
+                      </Button>
                     </div>
-                    <p className="text-xs text-gray-500 text-center mt-1">
-                      Contacted: {customer.contacted_at ? 
-                        new Date(customer.contacted_at).toLocaleDateString() : 
-                        'Date not available'
-                      }
-                    </p>
                   </div>
+                ) : (
+                  <p className="text-xs text-gray-600 min-h-[20px]">
+                    {customer.notes || 'No notes added yet'}
+                  </p>
+                )}
+              </div>
+
+              {/* Customer Contact Info */}
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>
+                    📧 {customer.customer_email || 'No email'}
+                  </span>
+                  <span>
+                    📞 {customer.customer_phone || 'No phone'}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-1">
+                  Contacted: {customer.contacted_at ? 
+                    new Date(customer.contacted_at).toLocaleDateString() : 
+                    'Date not available'
+                  }
+                </p>
+              </div>
                 </div>
               )) : (
                 <div className="col-span-full text-center py-12 px-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)', border: '2px dashed #FFA326' }}>

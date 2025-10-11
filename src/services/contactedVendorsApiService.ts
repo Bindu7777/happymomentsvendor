@@ -318,6 +318,43 @@ export const updateVendorStatusForContact = async (contactId: string, vendorStat
   }
 };
 
+// Update notes for a contact
+export const updateNotesForContact = async (contactId: string, notes: string): Promise<ContactedVendorResponse> => {
+  try {
+    console.log(`🌐 API: Updating notes for contact ${contactId}`);
+    console.log(`🔗 API URL: ${API_BASE_URL}/update-notes/${contactId}`);
+    
+    const response = await fetch(`${API_BASE_URL}/update-notes/${contactId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ notes })
+    });
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    const data = await response.json();
+    console.log(`📦 Response data:`, data);
+    
+    if (!response.ok) {
+      console.error('❌ API Error updating notes:', data);
+      return {
+        success: false,
+        error: data.error || `HTTP ${response.status}: Failed to update notes`
+      };
+    }
+
+    console.log('✅ API: Notes updated successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('💥 API Error:', error);
+    return {
+      success: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+};
+
 // Legacy function names for backward compatibility
 export const saveContact = saveContactVendor;
 export const removeContact = removeContactVendor;

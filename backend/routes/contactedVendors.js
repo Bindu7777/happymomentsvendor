@@ -645,4 +645,72 @@ router.put('/update-vendor-status/:contact_id', async (req, res) => {
   }
 });
 
+// Update notes for a contact
+router.put('/update-notes/:contact_id', async (req, res) => {
+  try {
+    const { contact_id } = req.params;
+    const { notes } = req.body;
+
+    // Validate input
+    if (!contact_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contact ID is required'
+      });
+    }
+
+    if (notes === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'Notes field is required'
+      });
+    }
+
+    console.log(`Updating notes for contact ${contact_id}:`, notes);
+
+    // Update the notes
+    const { data, error } = await supabase
+      .from('contacted_vendors')
+      .update({ notes: notes || '' })
+      .eq('contact_id', contact_id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating notes:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update notes'
+      });
+    }
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contact record not found'
+      });
+    }
+
+    console.log('Notes updated successfully:', data);
+
+    res.json({
+      success: true,
+      message: 'Notes updated successfully',
+      data: {
+        contact_id: data.contact_id,
+        notes: data.notes,
+        customer_id: data.customer_id,
+        vendor_id: data.vendor_id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in update-notes:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
 module.exports = router;

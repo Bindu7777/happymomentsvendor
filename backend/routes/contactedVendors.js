@@ -36,25 +36,7 @@ router.post('/admin-send-customer', async (req, res) => {
     const customerId = 0; // Special ID for admin-sent customers
     console.log(`Using admin-sent customer ID: ${customerId}`);
 
-    // Check if contact already exists for this vendor with same customer details
-    const { data: existingContact, error: contactCheckError } = await supabase
-      .from('contacted_vendors')
-      .select('contact_id')
-      .eq('customer_id', customerId)
-      .eq('vendor_id', vendor_id.toString())
-      .like('notes', `%${customer_name}%`)
-      .like('notes', `%${customer_phone}%`)
-      .single();
-
-    if (existingContact) {
-      console.log('Contact already exists, returning existing record');
-      return res.json({
-        success: true,
-        message: 'Customer already contacted this vendor',
-        data: existingContact,
-        already_contacted: true
-      });
-    }
+    // Admin can send multiple customers to the same vendor, so no duplicate check needed
 
     // Create notification message
     const notificationMessage = `Admin sent customer ${customer_name} to you!`;

@@ -1149,12 +1149,7 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
         customer_notified,
         notification_message,
         contacted_at,
-        created_at,
-        vendors:vendor_id (
-          brand_name,
-          spoc_name,
-          category
-        )
+        created_at
       `)
       .eq('customer_id', customerId)
       .order('contacted_at', { ascending: false })
@@ -1182,7 +1177,7 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
       message: contact.notification_message || 'Vendor updated your status',
       is_read: false, // Show as unread so customer sees them
       created_at: contact.contacted_at,
-      vendors: contact.vendors
+      vendors: null // We'll add vendor details later if needed
     }));
 
     console.log(`✅ Transformed customer notifications:`, transformedData);

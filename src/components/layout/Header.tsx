@@ -385,11 +385,11 @@ const Header = () => {
                                 <p className="text-xs text-gray-600 mt-1">
                                   {notification.message}
                                 </p>
-                                {notification.vendors && notification.vendors.brand_name && (
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    Vendor: {notification.vendors.brand_name}
-                                  </p>
-                                )}
+                      {notification.vendor_id && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Vendor ID: {notification.vendor_id}
+                        </p>
+                      )}
                                 <p className="text-xs text-gray-500 mt-1">
                                   {new Date(notification.created_at).toLocaleDateString()}
                                 </p>

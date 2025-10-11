@@ -27,7 +27,7 @@ const eventTypes = [
 // Service types for dropdown
 const serviceTypes = [
   { value: 'all', label: 'All Services' },
-  { value: 'photography', label: 'Photographer' },
+  { value: 'photography', label: 'Photography/Videography' },
   { value: 'makeup', label: 'Makeup Artist' },
   { value: 'decor', label: 'Decorator' },
   { value: 'catering', label: 'Caterer' },

@@ -16,7 +16,7 @@ export const CATEGORY_CODES = {
 export const CATEGORY_NAMES = {
   [CATEGORY_CODES.EVENT_PLANNERS]: 'Event Planners',
   [CATEGORY_CODES.VENUES]: 'Venues',
-  [CATEGORY_CODES.PHOTOGRAPHERS]: 'Photographers',
+  [CATEGORY_CODES.PHOTOGRAPHERS]: 'Photography/Videography',
   [CATEGORY_CODES.DECORATORS]: 'Decorators',
   [CATEGORY_CODES.CATERERS]: 'Caterers',
   [CATEGORY_CODES.MAKEUP_ARTISTS]: 'Makeup Artists',
@@ -31,7 +31,7 @@ export const CATEGORY_NAMES = {
 export const CATEGORY_NAME_TO_CODE: Record<string, string> = {
   'Event Planners': CATEGORY_CODES.EVENT_PLANNERS,
   'Venues': CATEGORY_CODES.VENUES,
-  'Photographers': CATEGORY_CODES.PHOTOGRAPHERS,
+  'Photography/Videography': CATEGORY_CODES.PHOTOGRAPHERS,
   'Decorators': CATEGORY_CODES.DECORATORS,
   'Caterers': CATEGORY_CODES.CATERERS,
   'Makeup Artists': CATEGORY_CODES.MAKEUP_ARTISTS,

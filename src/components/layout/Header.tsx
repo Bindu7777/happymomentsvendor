@@ -385,9 +385,9 @@ const Header = () => {
                                 <p className="text-xs text-gray-600 mt-1">
                                   {notification.message}
                                 </p>
-                      {notification.vendor_id && (
+                      {notification.vendors && notification.vendors.brand_name && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Vendor ID: {notification.vendor_id}
+                          Vendor: {notification.vendors.brand_name}
                         </p>
                       )}
                                 <p className="text-xs text-gray-500 mt-1">

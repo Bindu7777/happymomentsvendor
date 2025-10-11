@@ -1167,18 +1167,46 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
 
     console.log(`📊 Raw customer notification data:`, data);
 
+    // Get unique vendor IDs from the notifications
+    const vendorIds = [...new Set((data || []).map(contact => contact.vendor_id))];
+    console.log(`🏢 Fetching vendor details for IDs:`, vendorIds);
+
+    // Fetch vendor details
+    let vendorDetails = {};
+    if (vendorIds.length > 0) {
+      const { data: vendorsData, error: vendorsError } = await supabase
+        .from('vendors')
+        .select('vendor_id, brand_name, spoc_name, category')
+        .in('vendor_id', vendorIds.map(id => parseInt(id)));
+
+      if (vendorsError) {
+        console.error('❌ Error fetching vendor details:', vendorsError);
+      } else {
+        vendorDetails = (vendorsData || []).reduce((acc, vendor) => {
+          acc[vendor.vendor_id] = vendor;
+          return acc;
+        }, {});
+        console.log(`✅ Vendor details fetched:`, vendorDetails);
+      }
+    }
+
     // Transform the data to match notification format
-    const transformedData = (data || []).map(contact => ({
-      id: contact.contact_id,
-      vendor_id: contact.vendor_id,
-      customer_id: contact.customer_id,
-      notification_type: 'status_change',
-      title: 'Vendor Status Update',
-      message: contact.notification_message || 'Vendor updated your status',
-      is_read: false, // Show as unread so customer sees them
-      created_at: contact.contacted_at,
-      vendors: null // We'll add vendor details later if needed
-    }));
+    const transformedData = (data || []).map(contact => {
+      const vendor = vendorDetails[parseInt(contact.vendor_id)];
+      const vendorName = vendor?.brand_name || `Vendor ${contact.vendor_id}`;
+      
+      return {
+        id: contact.contact_id,
+        vendor_id: contact.vendor_id,
+        customer_id: contact.customer_id,
+        notification_type: 'status_change',
+        title: 'Vendor Status Update',
+        message: contact.notification_message || `${vendorName} updated your status`,
+        is_read: false, // Show as unread so customer sees them
+        created_at: contact.contacted_at,
+        vendors: vendor
+      };
+    });
 
     console.log(`✅ Transformed customer notifications:`, transformedData);
     return transformedData;

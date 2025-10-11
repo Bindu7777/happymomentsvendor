@@ -31,49 +31,19 @@ router.post('/admin-send-customer', async (req, res) => {
       });
     }
 
-    // Check if customer already exists in customers table
-    let customerId;
-    const { data: existingCustomer, error: customerCheckError } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('mobile_number', customer_phone)
-      .single();
+    // For admin-sent customers, we'll use a special customer ID (0) to indicate admin-sent
+    // This avoids the need to create customer records in the customers table
+    const customerId = 0; // Special ID for admin-sent customers
+    console.log(`Using admin-sent customer ID: ${customerId}`);
 
-    if (existingCustomer) {
-      customerId = existingCustomer.id;
-      console.log(`Using existing customer ID: ${customerId}`);
-    } else {
-      // Create new customer record
-      const { data: newCustomer, error: customerInsertError } = await supabase
-        .from('customers')
-        .insert({
-          full_name: customer_name,
-          mobile_number: customer_phone,
-          email: '', // Admin doesn't provide email
-          gender: '', // Admin doesn't provide gender
-          password_hash: '' // No password for admin-created customers
-        })
-        .select('id')
-        .single();
-
-      if (customerInsertError) {
-        console.error('Error creating customer:', customerInsertError);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to create customer record'
-        });
-      }
-
-      customerId = newCustomer.id;
-      console.log(`Created new customer with ID: ${customerId}`);
-    }
-
-    // Check if contact already exists
+    // Check if contact already exists for this vendor with same customer details
     const { data: existingContact, error: contactCheckError } = await supabase
       .from('contacted_vendors')
       .select('contact_id')
       .eq('customer_id', customerId)
       .eq('vendor_id', vendor_id.toString())
+      .like('notes', `%${customer_name}%`)
+      .like('notes', `%${customer_phone}%`)
       .single();
 
     if (existingContact) {
@@ -629,22 +599,27 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
 
     console.log('Contacted data:', contactedData);
 
-    // Get customer details for each contacted customer
-    const customerIds = contactedData.map(item => item.customer_id);
+    // Get customer details for each contacted customer (excluding admin-sent customers with ID 0)
+    const customerIds = contactedData.map(item => item.customer_id).filter(id => id !== 0);
     console.log('Fetching details for customer IDs:', customerIds);
 
-    // Get customer details from customers table using correct column names
-    const { data: customersData, error: customersError } = await supabase
-      .from('customers')
-      .select('id, full_name, email, mobile_number, gender')
-      .in('id', customerIds);
+    let customersData = [];
+    if (customerIds.length > 0) {
+      // Get customer details from customers table using correct column names
+      const { data: customersDataResult, error: customersError } = await supabase
+        .from('customers')
+        .select('id, full_name, email, mobile_number, gender')
+        .in('id', customerIds);
 
-    if (customersError) {
-      console.error('Error fetching customer details:', customersError);
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to fetch customer details'
-      });
+      if (customersError) {
+        console.error('Error fetching customer details:', customersError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to fetch customer details'
+        });
+      }
+
+      customersData = customersDataResult || [];
     }
 
     console.log('Customers data from database:', customersData);
@@ -652,6 +627,37 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
 
     // Combine contacted data with customer details
     const combinedData = contactedData.map(contacted => {
+      // Handle admin-sent customers (customer_id = 0)
+      if (contacted.customer_id === 0) {
+        // Extract customer name and phone from notes for admin-sent customers
+        const notes = contacted.notes || '';
+        const nameMatch = notes.match(/Admin-sent customer: ([^(]+)/);
+        const phoneMatch = notes.match(/\(([^)]+)\)/);
+        
+        return {
+          contact_id: contacted.contact_id,
+          customer_id: contacted.customer_id,
+          vendor_id: contacted.vendor_id,
+          status: contacted.status,
+          vendor_status: contacted.vendor_status || 'Contacted',
+          contacted_at: contacted.contacted_at,
+          created_at: contacted.created_at,
+          // Notification fields
+          vendor_notified: contacted.vendor_notified,
+          customer_notified: contacted.customer_notified,
+          notification_message: contacted.notification_message,
+          notes: contacted.notes,
+          // Customer details extracted from notes
+          customer_name: nameMatch ? nameMatch[1].trim() : 'Admin-sent Customer',
+          customer_phone: phoneMatch ? phoneMatch[1] : '',
+          customer_email: '',
+          customer_location: '',
+          customer_gender: '',
+          is_admin_sent: true
+        };
+      }
+
+      // Handle regular customers
       const customer = customersData?.find(c => c.id === contacted.customer_id);
       if (customer) {
         return {
@@ -659,7 +665,7 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           customer_id: contacted.customer_id,
           vendor_id: contacted.vendor_id,
           status: contacted.status,
-          vendor_status: contacted.vendor_status || 'Contacted', // Vendor's perspective status
+          vendor_status: contacted.vendor_status || 'Contacted',
           contacted_at: contacted.contacted_at,
           created_at: contacted.created_at,
           // Notification fields
@@ -671,8 +677,9 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           customer_name: customer.full_name || 'Unknown Customer',
           customer_phone: customer.mobile_number || '',
           customer_email: customer.email || '',
-          customer_location: '', // Not available in customers table
-          customer_gender: customer.gender || ''
+          customer_location: '',
+          customer_gender: customer.gender || '',
+          is_admin_sent: false
         };
       } else {
         console.log(`Warning: Customer ${contacted.customer_id} not found in database`);
@@ -681,7 +688,7 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           customer_id: contacted.customer_id,
           vendor_id: contacted.vendor_id,
           status: contacted.status,
-          vendor_status: contacted.vendor_status || 'Contacted', // Vendor's perspective status
+          vendor_status: contacted.vendor_status || 'Contacted',
           contacted_at: contacted.contacted_at,
           created_at: contacted.created_at,
           // Notification fields
@@ -693,7 +700,8 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           customer_phone: '',
           customer_email: '',
           customer_location: '',
-          customer_gender: ''
+          customer_gender: '',
+          is_admin_sent: false
         };
       }
     });

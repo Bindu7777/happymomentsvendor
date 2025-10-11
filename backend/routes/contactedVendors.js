@@ -422,6 +422,120 @@ router.put('/update-status', async (req, res) => {
   }
 });
 
+// Get customers who contacted a specific vendor
+router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
+  try {
+    const { vendor_id } = req.params;
+
+    if (!vendor_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vendor ID is required'
+      });
+    }
+
+    console.log(`Getting customers who contacted vendor: ${vendor_id}`);
+
+    // Get customers who contacted this vendor
+    const { data: contactedData, error: contactedError } = await supabase
+      .from('contacted_vendors')
+      .select('*')
+      .eq('vendor_id', vendor_id.toString())
+      .order('contacted_at', { ascending: false });
+
+    if (contactedError) {
+      console.error('Error fetching vendor customers:', contactedError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch vendor customers'
+      });
+    }
+
+    if (!contactedData || contactedData.length === 0) {
+      console.log('No customers found for vendor:', vendor_id);
+      return res.json({
+        success: true,
+        message: 'No customers found',
+        data: []
+      });
+    }
+
+    console.log('Contacted data:', contactedData);
+
+    // Get customer details for each contacted customer
+    const customerIds = contactedData.map(item => item.customer_id);
+    console.log('Fetching details for customer IDs:', customerIds);
+
+    // Get customer details from customers table using correct column names
+    const { data: customersData, error: customersError } = await supabase
+      .from('customers')
+      .select('id, full_name, email, mobile_number, gender')
+      .in('id', customerIds);
+
+    if (customersError) {
+      console.error('Error fetching customer details:', customersError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to fetch customer details'
+      });
+    }
+
+    console.log('Customers data from database:', customersData);
+    console.log('Number of customers found:', customersData?.length || 0);
+
+    // Combine contacted data with customer details
+    const combinedData = contactedData.map(contacted => {
+      const customer = customersData?.find(c => c.id === contacted.customer_id);
+      if (customer) {
+        return {
+          contact_id: contacted.contact_id,
+          customer_id: contacted.customer_id,
+          vendor_id: contacted.vendor_id,
+          status: contacted.status,
+          contacted_at: contacted.contacted_at,
+          created_at: contacted.created_at,
+          // Customer details from customers table
+          customer_name: customer.full_name || 'Unknown Customer',
+          customer_phone: customer.mobile_number || '',
+          customer_email: customer.email || '',
+          customer_location: '', // Not available in customers table
+          customer_gender: customer.gender || ''
+        };
+      } else {
+        console.log(`Warning: Customer ${contacted.customer_id} not found in database`);
+        return {
+          contact_id: contacted.contact_id,
+          customer_id: contacted.customer_id,
+          vendor_id: contacted.vendor_id,
+          status: contacted.status,
+          contacted_at: contacted.contacted_at,
+          created_at: contacted.created_at,
+          customer_name: `Customer ${contacted.customer_id}`,
+          customer_phone: '',
+          customer_email: '',
+          customer_location: '',
+          customer_gender: ''
+        };
+      }
+    });
+
+    console.log(`Found ${combinedData.length} customers for vendor ${vendor_id}`);
+
+    res.json({
+      success: true,
+      message: `Found ${combinedData.length} customers`,
+      data: combinedData
+    });
+
+  } catch (error) {
+    console.error('Error in get-vendor-customers:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
 // Get status options
 router.get('/status-options', (req, res) => {
   const statusOptions = [

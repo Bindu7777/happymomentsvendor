@@ -250,6 +250,37 @@ export const getStatusOptions = async (): Promise<ContactedVendorResponse> => {
   }
 };
 
+// Get customers who contacted a specific vendor
+export const getVendorCustomers = async (vendorId: string): Promise<ContactedVendorResponse> => {
+  try {
+    console.log(`🌐 API: Getting customers who contacted vendor ${vendorId}`);
+    console.log(`🔗 API URL: ${API_BASE_URL}/get-vendor-customers/${vendorId}`);
+    
+    const response = await fetch(`${API_BASE_URL}/get-vendor-customers/${vendorId}`);
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    const data = await response.json();
+    console.log(`📦 Response data:`, data);
+    
+    if (!response.ok) {
+      console.error('❌ API Error getting vendor customers:', data);
+      return {
+        success: false,
+        error: data.error || `HTTP ${response.status}: Failed to get vendor customers`
+      };
+    }
+
+    console.log('✅ API: Got vendor customers:', data);
+    return data;
+  } catch (error) {
+    console.error('💥 API Error:', error);
+    return {
+      success: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+};
+
 // Legacy function names for backward compatibility
 export const saveContact = saveContactVendor;
 export const removeContact = removeContactVendor;

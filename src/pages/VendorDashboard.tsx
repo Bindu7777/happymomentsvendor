@@ -27,13 +27,17 @@ import {
   Bell,
   Settings,
   Trash2,
-  X
+  X,
+  UserCheck,
+  Heart,
+  History
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
+import { getVendorCustomers } from '../services/contactedVendorsApiService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
@@ -87,6 +91,14 @@ const VendorDashboard: React.FC = () => {
   });
   const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
   const [calendarStats, setCalendarStats] = useState<any>({});
+  
+  // Customers states
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [filteredCustomers, setFilteredCustomers] = useState<any[]>([]);
+  const [customerStats, setCustomerStats] = useState<any>({});
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  
   const navigate = useNavigate();
 
   // Clean filtering function: OR within categories, AND between categories
@@ -229,6 +241,30 @@ const VendorDashboard: React.FC = () => {
     );
   };
 
+  // Customer filtering function
+  const applyCustomerFilters = () => {
+    try {
+      let result = [...customers];
+      
+      // Search query filter
+      if (customerSearchQuery && customerSearchQuery.trim()) {
+        const query = customerSearchQuery.toLowerCase().trim();
+        result = result.filter(customer => 
+          customer.customer_name?.toLowerCase().includes(query) ||
+          customer.status?.toLowerCase().includes(query) ||
+          customer.customer_phone?.includes(query) ||
+          customer.customer_email?.toLowerCase().includes(query) ||
+          customer.customer_location?.toLowerCase().includes(query)
+        );
+      }
+      
+      setFilteredCustomers(result);
+    } catch (error) {
+      console.error('Error in applyCustomerFilters:', error);
+      setFilteredCustomers([...customers]);
+    }
+  };
+
   // Initialize filtered leads when leads first load
   useEffect(() => {
     if (leads.length > 0) {
@@ -236,6 +272,14 @@ const VendorDashboard: React.FC = () => {
       setFilteredLeads([...leads]);
     }
   }, [leads.length]);
+
+  // Initialize filtered customers when customers first load
+  useEffect(() => {
+    if (customers.length > 0) {
+      console.log('Initializing filtered customers with', customers.length, 'customers');
+      setFilteredCustomers([...customers]);
+    }
+  }, [customers.length]);
 
   // Sample data removed - now using real data from database
 
@@ -245,6 +289,13 @@ const VendorDashboard: React.FC = () => {
       applyFilters();
     }
   }, [leads, searchQuery, filters]);
+
+  // Apply customer filters when customers or search query change
+  useEffect(() => {
+    if (customers.length > 0) {
+      applyCustomerFilters();
+    }
+  }, [customers, customerSearchQuery]);
 
   // Close notifications dropdown when clicking outside
   useEffect(() => {
@@ -283,6 +334,7 @@ const VendorDashboard: React.FC = () => {
         loadNotifications(parseInt(vendorToUse.vendor_id));
         loadLeadsData(parseInt(vendorToUse.vendor_id));
         loadCalendarData(parseInt(vendorToUse.vendor_id));
+        loadCustomersData(parseInt(vendorToUse.vendor_id));
     setLoading(false);
     } catch (err) {
       console.error('Error in VendorDashboard useEffect:', err);
@@ -353,6 +405,36 @@ const VendorDashboard: React.FC = () => {
       setCalendarStats(calendarStatsData || {});
     } catch (error) {
       console.error('Error loading calendar data:', error);
+    }
+  };
+
+  const loadCustomersData = async (vendorId: number) => {
+    try {
+      // Get customers who contacted this vendor from contacted_vendors table
+      const response = await getVendorCustomers(vendorId.toString());
+      
+      if (response.success && response.data) {
+        setCustomers(response.data);
+        
+        // Calculate customer stats based on status
+        const stats = {
+          total_customers: response.data.length,
+          contacted: response.data.filter(c => c.status === 'Contacted').length,
+          in_discussion: response.data.filter(c => c.status === 'In Discussion').length,
+          deal_agreed: response.data.filter(c => c.status === 'Deal Agreed').length,
+          event_completed: response.data.filter(c => c.status === 'Event Completed').length,
+          successful_closed: response.data.filter(c => c.status === 'Closed - Successful').length
+        };
+        setCustomerStats(stats);
+      } else {
+        console.error('Failed to load customers:', response.error);
+        setCustomers([]);
+        setCustomerStats({});
+      }
+    } catch (error) {
+      console.error('Error loading customers data:', error);
+      setCustomers([]);
+      setCustomerStats({});
     }
   };
 
@@ -438,7 +520,7 @@ const VendorDashboard: React.FC = () => {
     }
   };
 
-  const handleViewCustomerDetails = (lead: any) => {
+  const handleViewLeadDetails = (lead: any) => {
     setSelectedLead(lead);
     setShowCustomerDetails(true);
   };
@@ -451,6 +533,11 @@ const VendorDashboard: React.FC = () => {
       const whatsappUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
       window.open(whatsappUrl, '_blank');
     }
+  };
+
+  const handleViewCustomerDetails = (customer: any) => {
+    setSelectedCustomer(customer);
+    setShowCustomerDetails(true);
   };
 
   // Calendar event handlers
@@ -829,6 +916,12 @@ const VendorDashboard: React.FC = () => {
               icon: User
             },
             { 
+              id: 'customers', 
+              label: 'MY CUSTOMERS', 
+              mobileLabel: 'Customers',
+              icon: UserCheck
+            },
+            { 
               id: 'leads', 
               label: 'CRM & LEADS', 
               mobileLabel: 'Leads',
@@ -965,6 +1058,258 @@ const VendorDashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* My Customers Tab */}
+        {activeTab === 'customers' && (
+          <div className="space-y-6">
+            {/* Customer Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-[#001B5E]">{customerStats.total_customers || 0}</p>
+                  <p className="text-sm text-gray-600">Total Contacts</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-600">{customerStats.contacted || 0}</p>
+                  <p className="text-sm text-gray-600">Contacted</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-yellow-600">{customerStats.in_discussion || 0}</p>
+                  <p className="text-sm text-gray-600">In Discussion</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="text-2xl font-bold text-green-600">{customerStats.event_completed || 0}</p>
+                  <p className="text-sm text-gray-600">Completed</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Search Bar */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  type="text"
+                  placeholder="Search customers by name, status, phone, email, or location..."
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                  className="pl-10 h-12 bg-white border-2 border-gray-200 rounded-xl text-gray-900 placeholder-gray-500 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Results Summary */}
+            <div className="flex justify-between items-center text-sm text-gray-400">
+              <span>
+                Showing {filteredCustomers.length} of {customers.length} customers
+                {customerSearchQuery.trim() && ` (filtered by "${customerSearchQuery}")`}
+              </span>
+            </div>
+
+            {/* Customer List */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {filteredCustomers && filteredCustomers.length > 0 ? filteredCustomers.map((customer, index) => (
+                <div 
+                  key={customer.id} 
+                  className="p-4 rounded-xl transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] animate-slide-up border-2"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',
+                    borderColor: '#FFA326',
+                    boxShadow: '0 4px 20px rgba(255, 163, 38, 0.1)',
+                    animationDelay: `${index * 0.1}s`
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 8px 30px rgba(255, 163, 38, 0.2), 0 0 20px rgba(6, 29, 73, 0.1)';
+                    e.currentTarget.style.borderColor = '#FF8C00';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 20px rgba(255, 163, 38, 0.1)';
+                    e.currentTarget.style.borderColor = '#FFA326';
+                  }}
+                >
+                  {/* Customer Info */}
+                  <div className="flex items-center gap-3 mb-3">
+                    {/* Customer Avatar */}
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold shadow-lg flex-shrink-0"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                        border: '2px solid #FFA326'
+                      }}
+                    >
+                      {customer.customer_name ? customer.customer_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'NA'}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 
+                        className="font-bold text-gray-900 text-lg cursor-pointer hover:text-orange-600 transition-colors truncate"
+                        onClick={() => handleViewCustomerDetails(customer)}
+                        style={{ color: '#061D49' }}
+                      >
+                        {customer.customer_name}
+                      </h3>
+                      
+                      {/* Contact Info Pills */}
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <span className="bg-[#F7941D]/20 text-[#001B5E] px-2 py-1 rounded-full text-xs font-medium">
+                          📍 {customer.customer_location || 'Location TBD'}
+                        </span>
+                        <span className="bg-[#001B5E]/20 text-[#001B5E] px-2 py-1 rounded-full text-xs font-medium">
+                          🕒 {customer.contacted_at ? new Date(customer.contacted_at).toLocaleDateString() : 'Contact Date TBD'}
+                        </span>
+                        {customer.customer_email && (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                            📧 {customer.customer_email}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status and Actions Row */}
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Customer Status */}
+                    <div className="flex-1">
+                      <div className={`text-sm px-3 py-2 rounded-lg font-semibold shadow-md text-white`}
+                        style={
+                          customer.status === 'Event Completed' ? 
+                          { background: 'linear-gradient(135deg, #228B22 0%, #006400 100%)' } :
+                          customer.status === 'Deal Agreed' ?
+                          { background: 'linear-gradient(135deg, #32CD32 0%, #228B22 100%)' } :
+                          customer.status === 'In Discussion' ?
+                          { background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' } :
+                          customer.status === 'Closed - Successful' ?
+                          { background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' } :
+                          { background: 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)' }
+                        }
+                      >
+                        {customer.status === 'Contacted' ? '📞 Contacted' :
+                         customer.status === 'In Discussion' ? '💬 In Discussion' :
+                         customer.status === 'Deal Agreed' ? '🤝 Deal Agreed' :
+                         customer.status === 'Event Completed' ? '✅ Event Completed' :
+                         customer.status === 'Closed - Successful' ? '🎉 Closed Successfully' :
+                         customer.status || '📞 Contacted'}
+                      </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="flex gap-1">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewCustomerDetails(customer);
+                        }}
+                        title="View Details"
+                        className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                        style={{ 
+                          background: 'linear-gradient(135deg, #061D49 0%, #233A66 100%)',
+                          boxShadow: '0 0 10px rgba(255, 163, 38, 0.2)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'linear-gradient(135deg, #061D49 0%, #233A66 100%)';
+                        }}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      
+                      {customer.customer_phone && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(`tel:${customer.customer_phone}`);
+                          }}
+                          title="Call Customer"
+                          className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                          style={{ background: 'linear-gradient(135deg, #233A66 0%, #2684FF 100%)' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #233A66 0%, #2684FF 100%)';
+                          }}
+                        >
+                          <Phone className="w-4 h-4" />
+                        </Button>
+                      )}
+                      
+                      {(customer.customer_whatsapp || customer.customer_phone) && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleWhatsAppChat(customer);
+                          }}
+                          title="WhatsApp"
+                          className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                          style={{ background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)' }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)';
+                          }}
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Customer Contact Info */}
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>
+                        📧 {customer.customer_email || 'No email'}
+                      </span>
+                      <span>
+                        📞 {customer.customer_phone || 'No phone'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 text-center mt-1">
+                      Contacted: {customer.contacted_at ? 
+                        new Date(customer.contacted_at).toLocaleDateString() : 
+                        'Date not available'
+                      }
+                    </p>
+                  </div>
+                </div>
+              )) : (
+                <div className="col-span-full text-center py-12 px-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)', border: '2px dashed #FFA326' }}>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)' }}>
+                    <UserCheck className="w-8 h-8 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold mb-2" style={{ color: '#061D49' }}>No customers yet</h3>
+                  <p className="text-gray-600 mb-4">Customers who contact you will appear here</p>
+                  <Button 
+                    onClick={() => setActiveTab('leads')}
+                    className="text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-lg py-2 px-6 font-semibold transform hover:scale-105 border-0"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)',
+                      boxShadow: '0 0 15px rgba(255, 163, 38, 0.3)'
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Manage Leads
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -1355,7 +1700,7 @@ const VendorDashboard: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <h3 
                         className="font-bold text-gray-900 text-lg cursor-pointer hover:text-orange-600 transition-colors truncate"
-                        onClick={() => handleViewCustomerDetails(lead)}
+                        onClick={() => handleViewLeadDetails(lead)}
                         style={{ color: '#061D49' }}
                       >
                         {lead.customer_name}
@@ -1405,7 +1750,7 @@ const VendorDashboard: React.FC = () => {
                             variant="outline"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleViewCustomerDetails(lead);
+                              handleViewLeadDetails(lead);
                             }}
                         title="View Details & Budget"
                         className="p-2 text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
@@ -1646,12 +1991,13 @@ const VendorDashboard: React.FC = () => {
       )}
 
       {/* Customer Details Modal */}
-      {showCustomerDetails && selectedLead && (
+      {showCustomerDetails && (selectedLead || selectedCustomer) && (
         <CustomerDetailsModal
-          lead={selectedLead}
+          lead={selectedLead || selectedCustomer}
           onClose={() => {
             setShowCustomerDetails(false);
             setSelectedLead(null);
+            setSelectedCustomer(null);
           }}
           onLeadUpdated={() => {
             if (vendor) {

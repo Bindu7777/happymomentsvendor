@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle, Calendar, Sparkles } from 'lucide-react';
+import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle, Sparkles } from 'lucide-react';
 import VendorLogin from '../VendorLogin';
 import {
   Carousel,
@@ -114,7 +114,6 @@ const Hero = () => {
   const [eventType, setEventType] = useState('all');
   const [serviceType, setServiceType] = useState('all');
   const [city, setCity] = useState('all');
-  const [eventDate, setEventDate] = useState('');
   const [activeBackground, setActiveBackground] = useState(0);
   const [showVendorLogin, setShowVendorLogin] = useState(false);
   const navigate = useNavigate();
@@ -129,13 +128,12 @@ const Hero = () => {
   }, []);
 
   const handleSearch = () => {
-    console.log('Searching for:', { eventType, serviceType, city, eventDate });
+    console.log('Searching for:', { eventType, serviceType, city });
     // Navigate to vendors page with search parameters
     const params = new URLSearchParams();
     if (eventType !== 'all') params.append('event', eventType);
     if (serviceType !== 'all') params.append('service', serviceType);
     if (city !== 'all') params.append('location', city);
-    if (eventDate) params.append('date', eventDate);
     
     navigate(`/vendors?${params.toString()}`);
   };
@@ -351,22 +349,6 @@ const Hero = () => {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                
-                {/* Event Date */}
-                <div className="flex-1">
-                  <label htmlFor="event-date" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-orange-500" />
-                    When? (Optional)
-                  </label>
-                  <input
-                    id="event-date"
-                    type="date"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl px-3 focus:outline-none focus:border-orange-500"
-                    placeholder="Select date"
-                  />
                 </div>
               </div>
               

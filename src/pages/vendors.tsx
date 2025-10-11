@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, User, Calendar, Shield, X, Sparkles } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, User, Shield, X, Sparkles } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -87,7 +87,6 @@ const VendorsPage = () => {
   const [eventType, setEventType] = useState(searchParams.get('event') || 'all');
   const [serviceType, setServiceType] = useState(searchParams.get('service') || 'all');
   const [location, setLocation] = useState(searchParams.get('location') || 'all');
-  const [eventDate, setEventDate] = useState(searchParams.get('date') || '');
   const [searchQuery, setSearchQuery] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
@@ -123,10 +122,9 @@ const VendorsPage = () => {
     if (eventType !== 'all') params.append('event', eventType);
     if (serviceType !== 'all') params.append('service', serviceType);
     if (location !== 'all') params.append('location', location);
-    if (eventDate) params.append('date', eventDate);
     
     setSearchParams(params, { replace: true });
-  }, [eventType, serviceType, location, eventDate, setSearchParams]);
+  }, [eventType, serviceType, location, setSearchParams]);
 
   // Enhanced filtering and sorting
   const filteredAndSortedVendors = vendors
@@ -336,22 +334,6 @@ const VendorsPage = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-            
-            {/* Event Date */}
-            <div className="flex-1">
-              <label htmlFor="event-date" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-orange-500" />
-                When? (Optional)
-              </label>
-              <input
-                id="event-date"
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl px-3 focus:outline-none focus:border-orange-500"
-                placeholder="Select date"
-              />
             </div>
           </div>
           

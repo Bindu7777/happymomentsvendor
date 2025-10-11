@@ -1039,26 +1039,33 @@ export const clearVendorHardcodedServices = async (vendorId: string): Promise<{s
   }
 };
 
-// Get vendor notifications (from new notifications table)
+// Get vendor notifications (from contacted_vendors table)
 export const getVendorNotifications = async (vendorId: number, unreadOnly: boolean = false): Promise<any[]> => {
   try {
     let query = supabase
-      .from('vendor_notifications')
+      .from('contacted_vendors')
       .select(`
-        *,
+        contact_id,
+        customer_id,
+        vendor_id,
+        vendor_notified,
+        customer_notified,
+        notification_message,
+        contacted_at,
+        created_at,
         customers:customer_id (
           full_name,
           email,
           mobile_number
         )
       `)
-      .eq('vendor_id', vendorId)
-      .order('created_at', { ascending: false })
-      .limit(20); // Get latest 20 notifications
+      .eq('vendor_id', vendorId.toString())
+      .order('contacted_at', { ascending: false })
+      .limit(20); // Get latest 20 contacts
 
-    // If we only want unread notifications (for count)
+    // If we only want unread notifications (vendor_notified = true means vendor was notified)
     if (unreadOnly) {
-      query = query.eq('is_read', false);
+      query = query.eq('vendor_notified', true);
     }
 
     const { data, error } = await query;
@@ -1068,20 +1075,31 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
       return [];
     }
 
-    return data || [];
+    // Transform the data to match notification format
+    return (data || []).map(contact => ({
+      id: contact.contact_id,
+      vendor_id: contact.vendor_id,
+      customer_id: contact.customer_id,
+      notification_type: 'contact',
+      title: 'New Customer Contact',
+      message: contact.notification_message || 'Customer contacted you',
+      is_read: contact.vendor_notified,
+      created_at: contact.contacted_at,
+      customers: contact.customers
+    }));
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return [];
   }
 };
 
-// Mark notification as read (for new notifications table)
-export const markNotificationAsRead = async (notificationId: number): Promise<boolean> => {
+// Mark notification as read (for contacted_vendors table)
+export const markNotificationAsRead = async (contactId: number): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('vendor_notifications')
-      .update({ is_read: true })
-      .eq('id', notificationId);
+      .from('contacted_vendors')
+      .update({ vendor_notified: true })
+      .eq('contact_id', contactId);
 
     if (error) {
       console.error('Error marking notification as read:', error);
@@ -1099,10 +1117,10 @@ export const markNotificationAsRead = async (notificationId: number): Promise<bo
 export const markAllNotificationsAsRead = async (vendorId: number): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('vendor_notifications')
-      .update({ is_read: true })
-      .eq('vendor_id', vendorId)
-      .eq('is_read', false);
+      .from('contacted_vendors')
+      .update({ vendor_notified: true })
+      .eq('vendor_id', vendorId.toString())
+      .eq('vendor_notified', false);
 
     if (error) {
       console.error('Error marking all notifications as read:', error);

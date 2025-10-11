@@ -34,13 +34,26 @@ router.post('/save-contact', async (req, res) => {
       });
     }
 
-    // Insert new contact record
+    // Get customer details for notification message
+    const { data: customerData, error: customerError } = await supabase
+      .from('customers')
+      .select('full_name')
+      .eq('id', parseInt(customer_id))
+      .single();
+
+    const customerName = customerData?.full_name || `Customer ${customer_id}`;
+    const notificationMessage = `${customerName} viewed your profile and contacted you!`;
+
+    // Insert new contact record with notification fields
     const { data: newContact, error: insertError } = await supabase
       .from('contacted_vendors')
       .insert({
         customer_id: parseInt(customer_id),
         vendor_id: vendor_id.toString(),
-        status: 'Contacted'
+        status: 'Contacted',
+        vendor_notified: true,  // Vendor is notified about this contact
+        customer_notified: false, // Customer hasn't been notified yet
+        notification_message: notificationMessage
       })
       .select()
       .single();
@@ -54,42 +67,7 @@ router.post('/save-contact', async (req, res) => {
     }
 
     console.log('Contact saved successfully:', newContact);
-
-    // Create notification for vendor about customer contact
-    try {
-      // Get customer details for notification
-      const { data: customerData, error: customerError } = await supabase
-        .from('customers')
-        .select('full_name')
-        .eq('id', parseInt(customer_id))
-        .single();
-
-      if (customerData) {
-        const customerName = customerData.full_name || `Customer ${customer_id}`;
-        
-        // Create notification
-        const { error: notificationError } = await supabase
-          .from('vendor_notifications')
-          .insert({
-            vendor_id: parseInt(vendor_id),
-            customer_id: parseInt(customer_id),
-            notification_type: 'contact',
-            title: 'New Customer Contact',
-            message: `${customerName} viewed your profile and contacted you!`,
-            is_read: false
-          });
-
-        if (notificationError) {
-          console.error('Error creating notification:', notificationError);
-          // Don't fail the main request if notification fails
-        } else {
-          console.log('Notification created successfully for vendor:', vendor_id);
-        }
-      }
-    } catch (notificationErr) {
-      console.error('Error in notification creation:', notificationErr);
-      // Don't fail the main request if notification fails
-    }
+    console.log('Vendor notified about new contact:', vendor_id);
 
     res.json({
       success: true,
@@ -425,10 +403,25 @@ router.put('/update-status', async (req, res) => {
       });
     }
 
-    // Update the status
+    // Get customer details for notification message
+    const { data: customerData, error: customerError } = await supabase
+      .from('customers')
+      .select('full_name')
+      .eq('id', parseInt(customer_id))
+      .single();
+
+    const customerName = customerData?.full_name || `Customer ${customer_id}`;
+    const notificationMessage = `${customerName} updated their status to: ${status}`;
+
+    // Update the status and notify vendor
     const { data, error } = await supabase
       .from('contacted_vendors')
-      .update({ status })
+      .update({ 
+        status,
+        vendor_notified: true,  // Vendor is notified about customer status change
+        customer_notified: false, // Customer doesn't need to be notified about their own change
+        notification_message: notificationMessage
+      })
       .eq('customer_id', parseInt(customer_id))
       .eq('vendor_id', vendor_id.toString())
       .select()
@@ -443,6 +436,7 @@ router.put('/update-status', async (req, res) => {
     }
 
     console.log('Status updated successfully:', data);
+    console.log('Vendor notified about customer status change:', vendor_id);
     res.json({
       success: true,
       message: 'Status updated successfully',
@@ -636,10 +630,38 @@ router.put('/update-vendor-status/:contact_id', async (req, res) => {
 
     console.log(`Updating vendor status for contact ${contact_id} to: ${vendor_status}`);
 
-    // Update the vendor status
+    // First get the current contact record to get vendor_id
+    const { data: currentContact, error: fetchError } = await supabase
+      .from('contacted_vendors')
+      .select('vendor_id')
+      .eq('contact_id', contact_id)
+      .single();
+
+    if (fetchError || !currentContact) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contact record not found'
+      });
+    }
+
+    // Get vendor details for notification message
+    const { data: vendorData, error: vendorError } = await supabase
+      .from('vendors')
+      .select('brand_name')
+      .eq('vendor_id', currentContact.vendor_id)
+      .single();
+
+    const vendorName = vendorData?.brand_name || `Vendor ${currentContact.vendor_id}`;
+    const notificationMessage = `${vendorName} updated your status to: ${vendor_status}`;
+
+    // Update the vendor status and notify customer
     const { data, error } = await supabase
       .from('contacted_vendors')
-      .update({ vendor_status })
+      .update({ 
+        vendor_status,
+        customer_notified: true,  // Customer is notified about status change
+        notification_message: notificationMessage
+      })
       .eq('contact_id', contact_id)
       .select()
       .single();
@@ -660,6 +682,7 @@ router.put('/update-vendor-status/:contact_id', async (req, res) => {
     }
 
     console.log('Vendor status updated successfully:', data);
+    console.log('Customer notified about status change:', data.customer_id);
 
     res.json({
       success: true,

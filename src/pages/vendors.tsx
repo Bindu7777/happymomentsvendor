@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, User, Shield, X, Sparkles } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, User, Shield, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -12,17 +12,6 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import { Vendor } from '@/lib/supabase';
 import { getAllVendors } from '@/services/supabaseService';
 
-// Event types for dropdown
-const eventTypes = [
-  { value: 'all', label: 'All Events' },
-  { value: 'wedding', label: 'Wedding' },
-  { value: 'birthday', label: 'Birthday Party' },
-  { value: 'corporate', label: 'Corporate Event' },
-  { value: 'baby-shower', label: 'Baby Shower' },
-  { value: 'anniversary', label: 'Anniversary' },
-  { value: 'festival', label: 'Festival Celebration' },
-  { value: 'graduation', label: 'Graduation' },
-];
 
 // Service types for dropdown
 const serviceTypes = [
@@ -35,6 +24,19 @@ const serviceTypes = [
   { value: 'music', label: 'DJ/Music' },
   { value: 'attire', label: 'Clothing Designer' },
   { value: 'planning', label: 'Event Planner' },
+];
+
+// Budget ranges for dropdown
+const budgetRanges = [
+  { value: 'all', label: 'All Budgets' },
+  { value: '10k-50k', label: '₹10,000 - ₹50,000' },
+  { value: '50k-1l', label: '₹50,000 - ₹1L' },
+  { value: '1l-3l', label: '₹1L - ₹3L' },
+  { value: '3l-10l', label: '₹3L - ₹10L' },
+  { value: '10l-15l', label: '₹10L - ₹15L' },
+  { value: '15l-25l', label: '₹15L - ₹25L' },
+  { value: '25l-50l', label: '₹25L - ₹50L' },
+  { value: '50l-1cr', label: '₹50L - ₹1CR' },
 ];
 
 // States for dropdown (matching the Hero component)
@@ -84,9 +86,9 @@ const VendorsPage = () => {
   const navigate = useNavigate();
   
   // Filter states
-  const [eventType, setEventType] = useState(searchParams.get('event') || 'all');
   const [serviceType, setServiceType] = useState(searchParams.get('service') || 'all');
   const [location, setLocation] = useState(searchParams.get('location') || 'all');
+  const [budget, setBudget] = useState(searchParams.get('budget') || 'all');
   const [searchQuery, setSearchQuery] = useState('');
   const [priceFilter, setPriceFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
@@ -119,50 +121,84 @@ const VendorsPage = () => {
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (eventType !== 'all') params.append('event', eventType);
     if (serviceType !== 'all') params.append('service', serviceType);
     if (location !== 'all') params.append('location', location);
+    if (budget !== 'all') params.append('budget', budget);
     
     setSearchParams(params, { replace: true });
-  }, [eventType, serviceType, location, setSearchParams]);
+  }, [serviceType, location, budget, setSearchParams]);
 
   // Enhanced filtering and sorting
   const filteredAndSortedVendors = vendors
     .filter(vendor => {
-      // Event type filter
-      const matchesEventType = eventType === 'all' || 
-        (vendor.specialties && Array.isArray(vendor.specialties) && 
-         vendor.specialties.some((specialty: string) => 
-          specialty.toLowerCase().includes(eventType.toLowerCase())
-         ));
       
       // Service type filter (map service types to categories)
       const serviceCategoryMap: Record<string, string[]> = {
-        'photography': ['Photographers'],
-        'makeup': ['Makeup Artists'],
-        'decor': ['Decorators'],
-        'catering': ['Caterers'],
-        'venues': ['Venues'],
-        'music': ['DJs, Lighting, and Entertainment'],
-        'attire': ['Fashion/Costume Designers'],
-        'planning': ['Event Planners']
+        'photography': ['Photographers', 'Photography/Videography', '03'], // Include category code
+        'makeup': ['Makeup Artists', '06'], // Include category code
+        'decor': ['Decorators', '04'], // Include category code
+        'catering': ['Caterers', '05'], // Include category code
+        'venues': ['Venues', '02'], // Include category code
+        'music': ['DJs, Lighting, and Entertainment', '07'], // Include category code
+        'attire': ['Fashion/Costume Designers', '10'], // Include category code
+        'planning': ['Event Planners', '01'] // Include category code
       };
       
       const matchesServiceType = serviceType === 'all' || 
         (serviceCategoryMap[serviceType] && 
          serviceCategoryMap[serviceType].includes(vendor.category));
+
+      // Debug logging for service type filtering
+      if (serviceType !== 'all' && serviceType === 'photography') {
+        console.log(`🔍 Checking vendor ${vendor.brand_name} for service type "${serviceType}":`, {
+          vendor_category: vendor.category,
+          expected_categories: serviceCategoryMap[serviceType],
+          matches: serviceCategoryMap[serviceType]?.includes(vendor.category)
+        });
+      }
       
       // Location filter - check both address and service_areas
       const matchesLocation = location === 'all' || 
         (vendor.address && vendor.address.toLowerCase().includes(location.toLowerCase())) ||
         (vendor.additional_info?.service_areas && Array.isArray(vendor.additional_info.service_areas) && 
          vendor.additional_info.service_areas.includes(location));
+
+      // Budget filter - Show vendors whose starting price is within or below the selected budget
+      const matchesBudget = (() => {
+        if (budget === 'all') return true;
+        
+        const vendorStartingPrice = vendor.starting_price || 0;
+        
+        switch (budget) {
+          case '10k-50k':
+            return vendorStartingPrice <= 50000; // Show vendors with starting price up to ₹50k
+          case '50k-1l':
+            return vendorStartingPrice <= 100000; // Show vendors with starting price up to ₹1L
+          case '1l-3l':
+            return vendorStartingPrice <= 300000; // Show vendors with starting price up to ₹3L
+          case '3l-10l':
+            return vendorStartingPrice <= 1000000; // Show vendors with starting price up to ₹10L
+          case '10l-15l':
+            return vendorStartingPrice <= 1500000; // Show vendors with starting price up to ₹15L
+          case '15l-25l':
+            return vendorStartingPrice <= 2500000; // Show vendors with starting price up to ₹25L
+          case '25l-50l':
+            return vendorStartingPrice <= 5000000; // Show vendors with starting price up to ₹50L
+          case '50l-1cr':
+            return vendorStartingPrice <= 10000000; // Show vendors with starting price up to ₹1CR
+          default:
+            return true;
+        }
+      })();
       
       // Debug logging for location filtering
-      if (location !== 'all' && vendor.additional_info?.service_areas) {
+      if (location !== 'all' && location === 'telangana') {
         console.log(`🔍 Checking vendor ${vendor.brand_name} for location "${location}":`, {
-          service_areas: vendor.additional_info.service_areas,
-          matches: vendor.additional_info.service_areas.includes(location)
+          vendor_address: vendor.address,
+          service_areas: vendor.additional_info?.service_areas,
+          address_matches: vendor.address?.toLowerCase().includes(location.toLowerCase()),
+          service_areas_matches: vendor.additional_info?.service_areas?.includes(location),
+          final_location_match: matchesLocation
         });
       }
       
@@ -194,8 +230,23 @@ const VendorsPage = () => {
         }
       })();
       
-      return matchesEventType && matchesServiceType && matchesLocation && 
+      const finalMatch = matchesServiceType && matchesLocation && matchesBudget && 
              matchesSearch && matchesPrice && matchesRating;
+
+      // Debug logging for overall filtering
+      if (serviceType === 'photography' && location === 'telangana') {
+        console.log(`🔍 Final filter result for vendor ${vendor.brand_name}:`, {
+          matchesServiceType,
+          matchesLocation,
+          matchesBudget,
+          matchesSearch,
+          matchesPrice,
+          matchesRating,
+          finalMatch
+        });
+      }
+
+      return finalMatch;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -219,10 +270,9 @@ const VendorsPage = () => {
 
   // Clear all filters
   const clearAllFilters = () => {
-    setEventType('all');
     setServiceType('all');
     setLocation('all');
-    setEventDate('');
+    setBudget('all');
     setSearchQuery('');
     setPriceFilter('all');
     setRatingFilter('all');
@@ -275,27 +325,7 @@ const VendorsPage = () => {
           </div>
           
           {/* Main Filter Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Event Type */}
-            <div className="flex-1">
-              <label htmlFor="event-type" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-orange-500" />
-                What's your event?
-              </label>
-              <Select value={eventType} onValueChange={setEventType}>
-                <SelectTrigger id="event-type" className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl">
-                  <SelectValue placeholder="Select event type" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-2 border-gray-200 rounded-xl">
-                  {eventTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value} className="rounded-lg">
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {/* Service Type */}
             <div className="flex-1">
               <label htmlFor="service-type" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
@@ -330,6 +360,26 @@ const VendorsPage = () => {
                   {cities.map((city) => (
                     <SelectItem key={city.value} value={city.value} className="rounded-lg">
                       {city.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Budget */}
+            <div className="flex-1">
+              <label htmlFor="budget" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
+                <Users className="h-4 w-4 text-orange-500" />
+                Your budget (Optional)
+              </label>
+              <Select value={budget} onValueChange={setBudget}>
+                <SelectTrigger id="budget" className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl">
+                  <SelectValue placeholder="Select budget range" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-2 border-gray-200 rounded-xl">
+                  {budgetRanges.map((range) => (
+                    <SelectItem key={range.value} value={range.value} className="rounded-lg">
+                      {range.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -412,9 +462,10 @@ const VendorsPage = () => {
               {filteredAndSortedVendors.length} Vendors Found
             </h2>
             <p className="text-gray-600">
-              Showing results for {eventType !== 'all' ? eventTypes.find(e => e.value === eventType)?.label : 'all events'} 
+              Showing results for all events
               {serviceType !== 'all' && ` • ${serviceTypes.find(s => s.value === serviceType)?.label}`}
               {location !== 'all' && ` • ${cities.find(c => c.value === location)?.label}`}
+              {budget !== 'all' && ` • ${budgetRanges.find(b => b.value === budget)?.label}`}
             </p>
           </div>
         </div>

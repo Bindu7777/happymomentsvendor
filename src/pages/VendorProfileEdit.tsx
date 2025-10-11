@@ -937,6 +937,7 @@ const VendorProfileEdit: React.FC = () => {
         caption: data.caption || '',
         detailed_intro: data.detailed_intro || '',
         highlight_features: data.highlight_features?.filter(h => h && h.trim() !== '') || [],
+        starting_price: data.starting_price || 0,
         services: data.services?.filter(s => s.name && s.name.trim() !== '') || [],
         packages: data.packages?.filter(p => p.name && p.name.trim() !== '').map(pkg => ({
           ...pkg,

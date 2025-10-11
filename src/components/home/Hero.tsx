@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle, Sparkles } from 'lucide-react';
+import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle } from 'lucide-react';
 import VendorLogin from '../VendorLogin';
 import {
   Carousel,
@@ -19,17 +19,6 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
-// Event types for dropdown
-const eventTypes = [
-  { value: 'all', label: 'All Events' },
-  { value: 'wedding', label: 'Wedding' },
-  { value: 'birthday', label: 'Birthday Party' },
-  { value: 'corporate', label: 'Corporate Event' },
-  { value: 'baby-shower', label: 'Baby Shower' },
-  { value: 'anniversary', label: 'Anniversary' },
-  { value: 'festival', label: 'Festival Celebration' },
-  { value: 'graduation', label: 'Graduation' },
-];
 
 // Service types for dropdown
 const serviceTypes = [
@@ -42,6 +31,19 @@ const serviceTypes = [
   { value: 'music', label: 'DJ/Music' },
   { value: 'attire', label: 'Clothing Designer' },
   { value: 'planning', label: 'Event Planner' },
+];
+
+// Budget ranges for dropdown
+const budgetRanges = [
+  { value: 'all', label: 'All Budgets' },
+  { value: '10k-50k', label: '₹10,000 - ₹50,000' },
+  { value: '50k-1l', label: '₹50,000 - ₹1L' },
+  { value: '1l-3l', label: '₹1L - ₹3L' },
+  { value: '3l-10l', label: '₹3L - ₹10L' },
+  { value: '10l-15l', label: '₹10L - ₹15L' },
+  { value: '15l-25l', label: '₹15L - ₹25L' },
+  { value: '25l-50l', label: '₹25L - ₹50L' },
+  { value: '50l-1cr', label: '₹50L - ₹1CR' },
 ];
 
 // States for dropdown
@@ -111,9 +113,9 @@ const heroBackgrounds = [
 ];
 
 const Hero = () => {
-  const [eventType, setEventType] = useState('all');
   const [serviceType, setServiceType] = useState('all');
   const [city, setCity] = useState('all');
+  const [budget, setBudget] = useState('all');
   const [activeBackground, setActiveBackground] = useState(0);
   const [showVendorLogin, setShowVendorLogin] = useState(false);
   const navigate = useNavigate();
@@ -128,12 +130,12 @@ const Hero = () => {
   }, []);
 
   const handleSearch = () => {
-    console.log('Searching for:', { eventType, serviceType, city });
+    console.log('Searching for:', { serviceType, city, budget });
     // Navigate to vendors page with search parameters
     const params = new URLSearchParams();
-    if (eventType !== 'all') params.append('event', eventType);
     if (serviceType !== 'all') params.append('service', serviceType);
     if (city !== 'all') params.append('location', city);
+    if (budget !== 'all') params.append('budget', budget);
     
     navigate(`/vendors?${params.toString()}`);
   };
@@ -290,27 +292,7 @@ const Hero = () => {
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">Or search the traditional way</h3>
                 <p className="text-gray-600">Use our filters to browse vendors by category and location</p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                {/* Event Type */}
-                <div className="flex-1">
-                  <label htmlFor="event-type" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-orange-500" />
-                    What's your event?
-                  </label>
-                  <Select value={eventType} onValueChange={setEventType}>
-                    <SelectTrigger id="event-type" className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl">
-                      <SelectValue placeholder="Select event type" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-2 border-gray-200 rounded-xl">
-                      {eventTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value} className="rounded-lg">
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Service Type */}
                 <div className="flex-1">
                   <label htmlFor="service-type" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
@@ -345,6 +327,26 @@ const Hero = () => {
                       {cities.map((city) => (
                         <SelectItem key={city.value} value={city.value} className="rounded-lg">
                           {city.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Budget */}
+                <div className="flex-1">
+                  <label htmlFor="budget" className="block text-wedding-navy text-sm font-semibold mb-3 text-left flex items-center gap-2">
+                    <Users className="h-4 w-4 text-orange-500" />
+                    Your budget (Optional)
+                  </label>
+                  <Select value={budget} onValueChange={setBudget}>
+                    <SelectTrigger id="budget" className="w-full h-12 border-2 border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-xl">
+                      <SelectValue placeholder="Select budget range" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-2 border-gray-200 rounded-xl">
+                      {budgetRanges.map((range) => (
+                        <SelectItem key={range.value} value={range.value} className="rounded-lg">
+                          {range.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

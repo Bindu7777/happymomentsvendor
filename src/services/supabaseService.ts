@@ -996,27 +996,57 @@ export const getVendorPendingChanges = async (vendorId: number): Promise<any[]> 
   }
 };
 
-// Get vendor's most recent rejected change (last 7 days)
+// Get vendor's most recent rejected change (last 7 days), but only if there are no more recent approved changes
 export const getVendorRejectedChanges = async (vendorId: number): Promise<any[]> => {
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
-    const { data, error } = await supabase
+    // First, get the most recent rejected change
+    const { data: rejectedData, error: rejectedError } = await supabase
       .from('vendor_profile_changes')
       .select('*')
       .eq('vendor_id', vendorId)
       .eq('status', 'rejected')
       .gte('reviewed_at', sevenDaysAgo.toISOString())
       .order('reviewed_at', { ascending: false })
-      .limit(1); // Only get the most recent rejection
+      .limit(1);
 
-    if (error) {
-      console.error('Error fetching rejected changes:', error);
+    if (rejectedError) {
+      console.error('Error fetching rejected changes:', rejectedError);
       return [];
     }
 
-    return data || [];
+    if (!rejectedData || rejectedData.length === 0) {
+      return [];
+    }
+
+    const mostRecentRejection = rejectedData[0];
+    const rejectionDate = new Date(mostRecentRejection.reviewed_at);
+
+    // Now check if there are any approved changes more recent than this rejection
+    const { data: approvedData, error: approvedError } = await supabase
+      .from('vendor_profile_changes')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .eq('status', 'approved')
+      .gte('reviewed_at', rejectionDate.toISOString())
+      .order('reviewed_at', { ascending: false })
+      .limit(1);
+
+    if (approvedError) {
+      console.error('Error checking for approved changes:', approvedError);
+      // If we can't check for approved changes, return the rejection to be safe
+      return [mostRecentRejection];
+    }
+
+    // If there are approved changes more recent than the rejection, don't show the rejection
+    if (approvedData && approvedData.length > 0) {
+      console.log('Found more recent approved changes, not showing rejection');
+      return [];
+    }
+
+    return [mostRecentRejection];
   } catch (error) {
     console.error('Error fetching rejected changes:', error);
     return [];

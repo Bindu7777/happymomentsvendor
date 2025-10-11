@@ -2,6 +2,143 @@ const express = require('express');
 const { supabase } = require('../config/supabase');
 const router = express.Router();
 
+// Admin endpoint: Send customer to vendor
+router.post('/admin-send-customer', async (req, res) => {
+  try {
+    const { vendor_id, customer_name, customer_phone } = req.body;
+
+    // Validate input
+    if (!vendor_id || !customer_name || !customer_phone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vendor ID, customer name, and phone number are required'
+      });
+    }
+
+    console.log(`Admin sending customer ${customer_name} (${customer_phone}) to vendor ${vendor_id}`);
+
+    // Check if vendor exists
+    const { data: vendorData, error: vendorError } = await supabase
+      .from('vendors')
+      .select('vendor_id, brand_name')
+      .eq('vendor_id', parseInt(vendor_id))
+      .single();
+
+    if (vendorError || !vendorData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Vendor not found'
+      });
+    }
+
+    // Check if customer already exists in customers table
+    let customerId;
+    const { data: existingCustomer, error: customerCheckError } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('mobile_number', customer_phone)
+      .single();
+
+    if (existingCustomer) {
+      customerId = existingCustomer.id;
+      console.log(`Using existing customer ID: ${customerId}`);
+    } else {
+      // Create new customer record
+      const { data: newCustomer, error: customerInsertError } = await supabase
+        .from('customers')
+        .insert({
+          full_name: customer_name,
+          mobile_number: customer_phone,
+          email: '', // Admin doesn't provide email
+          gender: '', // Admin doesn't provide gender
+          password_hash: '' // No password for admin-created customers
+        })
+        .select('id')
+        .single();
+
+      if (customerInsertError) {
+        console.error('Error creating customer:', customerInsertError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create customer record'
+        });
+      }
+
+      customerId = newCustomer.id;
+      console.log(`Created new customer with ID: ${customerId}`);
+    }
+
+    // Check if contact already exists
+    const { data: existingContact, error: contactCheckError } = await supabase
+      .from('contacted_vendors')
+      .select('contact_id')
+      .eq('customer_id', customerId)
+      .eq('vendor_id', vendor_id.toString())
+      .single();
+
+    if (existingContact) {
+      console.log('Contact already exists, returning existing record');
+      return res.json({
+        success: true,
+        message: 'Customer already contacted this vendor',
+        data: existingContact,
+        already_contacted: true
+      });
+    }
+
+    // Create notification message
+    const notificationMessage = `Admin sent customer ${customer_name} to you!`;
+
+    // Insert new contact record
+    const { data: newContact, error: insertError } = await supabase
+      .from('contacted_vendors')
+      .insert({
+        customer_id: customerId,
+        vendor_id: vendor_id.toString(),
+        status: 'Contacted',
+        vendor_status: 'Contacted',
+        vendor_notified: true,  // Vendor is notified about this contact
+        customer_notified: false, // Customer doesn't need notification for admin action
+        notification_message: notificationMessage,
+        notes: `Admin-sent customer: ${customer_name} (${customer_phone})`
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error creating contact:', insertError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create contact record'
+      });
+    }
+
+    console.log('Admin contact created successfully:', newContact);
+    console.log('Vendor notified about admin-sent customer:', vendor_id);
+
+    res.json({
+      success: true,
+      message: `Customer ${customer_name} successfully sent to ${vendorData.brand_name}`,
+      data: {
+        contact_id: newContact.contact_id,
+        customer_id: customerId,
+        vendor_id: vendor_id,
+        customer_name: customer_name,
+        customer_phone: customer_phone,
+        vendor_name: vendorData.brand_name,
+        notification_message: notificationMessage
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in admin-send-customer:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
 // Save contacted vendor - when customer successfully contacts vendor via WhatsApp
 router.post('/save-contact', async (req, res) => {
   try {

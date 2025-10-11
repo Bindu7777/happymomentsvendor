@@ -20,14 +20,17 @@ import {
   Sword,
   Crown,
   RefreshCw,
-  Archive
+  Archive,
+  Send
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Vendor } from "@/lib/supabase";
 import { getAllVendorsForAdmin, updateVendor, deleteVendor, getAllPendingChanges, reviewVendorProfileChange } from "@/services/supabaseService";
+import { adminSendCustomerToVendor } from "@/services/adminApiService";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import SuccessModal from "@/components/SuccessModal";
 import InputModal from "@/components/InputModal";
+import AdminSendCustomerModal from "@/components/AdminSendCustomerModal";
 
 interface DashboardStats {
   totalVendors: number;
@@ -90,6 +93,14 @@ const AdminDashboard = () => {
     message: '',
     placeholder: '',
     onConfirm: () => {}
+  });
+
+  const [sendCustomerModal, setSendCustomerModal] = useState<{
+    isOpen: boolean;
+    vendor: Vendor | null;
+  }>({
+    isOpen: false,
+    vendor: null
   });
 
 
@@ -329,6 +340,51 @@ const AdminDashboard = () => {
         }
       }
     });
+  };
+
+  const handleSendCustomer = (vendor: Vendor) => {
+    setSendCustomerModal({
+      isOpen: true,
+      vendor: vendor
+    });
+  };
+
+  const handleSendCustomerSubmit = async (customerData: { name: string; phone: string }) => {
+    if (!sendCustomerModal.vendor) return;
+
+    try {
+      const result = await adminSendCustomerToVendor({
+        vendor_id: sendCustomerModal.vendor.vendor_id,
+        customer_name: customerData.name,
+        customer_phone: customerData.phone
+      });
+
+      if (result.success) {
+        setSuccessModal({
+          isOpen: true,
+          title: "Customer Sent Successfully!",
+          message: result.message || `Customer ${customerData.name} has been sent to ${sendCustomerModal.vendor.brand_name}`
+        });
+        setSendCustomerModal({ isOpen: false, vendor: null });
+      } else {
+        setConfirmationModal({
+          isOpen: true,
+          title: "Error Sending Customer",
+          message: result.error || "Failed to send customer. Please try again.",
+          type: 'danger',
+          onConfirm: () => setConfirmationModal({ ...confirmationModal, isOpen: false })
+        });
+      }
+    } catch (error) {
+      console.error('Error sending customer:', error);
+      setConfirmationModal({
+        isOpen: true,
+        title: "Error Sending Customer",
+        message: "An unexpected error occurred. Please try again.",
+        type: 'danger',
+        onConfirm: () => setConfirmationModal({ ...confirmationModal, isOpen: false })
+      });
+    }
   };
 
   const handleLogout = () => {
@@ -958,6 +1014,13 @@ const AdminDashboard = () => {
                           <Edit className="h-4 w-4" />
                         </button>
                         <button
+                          onClick={() => handleSendCustomer(vendor)}
+                          className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
+                          title="Send Customer to Vendor"
+                        >
+                          <Send className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => handleArchiveVendor(vendor.vendor_id, vendor.brand_name)}
                           className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-lg hover:scale-110 transition-all duration-200"
                           title="Archive Vendor"
@@ -1438,6 +1501,13 @@ const AdminDashboard = () => {
         title={inputModal.title}
         message={inputModal.message}
         placeholder={inputModal.placeholder}
+      />
+
+      <AdminSendCustomerModal
+        isOpen={sendCustomerModal.isOpen}
+        onClose={() => setSendCustomerModal({ isOpen: false, vendor: null })}
+        vendor={sendCustomerModal.vendor!}
+        onSendCustomer={handleSendCustomerSubmit}
       />
 
     </div>

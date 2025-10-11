@@ -1158,7 +1158,7 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
       .order('contacted_at', { ascending: false })
       .limit(20); // Get latest 20 contacts
 
-    // If we only want unread notifications (customer_notified = true means customer was notified)
+    // If we only want unread notifications (customer_notified = true means customer was notified, so we want those)
     if (unreadOnly) {
       query = query.eq('customer_notified', true);
     }
@@ -1178,7 +1178,7 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
       notification_type: 'status_change',
       title: 'Vendor Status Update',
       message: contact.notification_message || 'Vendor updated your status',
-      is_read: contact.customer_notified,
+      is_read: false, // Always show as unread for now (we can add a "seen" field later)
       created_at: contact.contacted_at,
       vendors: contact.vendors
     }));

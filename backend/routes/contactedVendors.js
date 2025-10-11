@@ -525,6 +525,11 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           vendor_status: contacted.vendor_status || 'Contacted', // Vendor's perspective status
           contacted_at: contacted.contacted_at,
           created_at: contacted.created_at,
+          // Notification fields
+          vendor_notified: contacted.vendor_notified,
+          customer_notified: contacted.customer_notified,
+          notification_message: contacted.notification_message,
+          notes: contacted.notes,
           // Customer details from customers table
           customer_name: customer.full_name || 'Unknown Customer',
           customer_phone: customer.mobile_number || '',
@@ -542,6 +547,11 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           vendor_status: contacted.vendor_status || 'Contacted', // Vendor's perspective status
           contacted_at: contacted.contacted_at,
           created_at: contacted.created_at,
+          // Notification fields
+          vendor_notified: contacted.vendor_notified,
+          customer_notified: contacted.customer_notified,
+          notification_message: contacted.notification_message,
+          notes: contacted.notes,
           customer_name: `Customer ${contacted.customer_id}`,
           customer_phone: '',
           customer_email: '',
@@ -691,7 +701,9 @@ router.put('/update-vendor-status/:contact_id', async (req, res) => {
         contact_id: data.contact_id,
         vendor_status: data.vendor_status,
         customer_id: data.customer_id,
-        vendor_id: data.vendor_id
+        vendor_id: data.vendor_id,
+        customer_notified: data.customer_notified,
+        notification_message: data.notification_message
       }
     });
 

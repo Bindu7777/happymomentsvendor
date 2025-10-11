@@ -1139,7 +1139,7 @@ const VendorDashboard: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {filteredCustomers && filteredCustomers.length > 0 ? filteredCustomers.map((customer, index) => (
                 <div 
-                  key={customer.id} 
+                  key={customer.contact_id} 
                   className="p-4 rounded-xl transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] animate-slide-up border-2"
                   style={{ 
                     background: 'linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%)',

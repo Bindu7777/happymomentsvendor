@@ -8,11 +8,53 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { ArrowLeft, Save, AlertCircle, CheckCircle, Trash2, X, FileText } from 'lucide-react';
+import { Checkbox } from '../components/ui/checkbox';
 import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorByFieldId, saveVendorSession, refreshVendorSession, clearVendorHardcodedServices } from '../services/supabaseService';
 import { getVendorCatalogImagesFromStorage, listStorageBuckets, deleteImageFromStorage } from '../services/supabaseStorageService';
 import ImageUpload from '../components/ImageUpload';
 import { Vendor } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
+
+// Indian States and Union Territories
+const indianStates = [
+  { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
+  { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
+  { value: 'assam', label: 'Assam' },
+  { value: 'bihar', label: 'Bihar' },
+  { value: 'chhattisgarh', label: 'Chhattisgarh' },
+  { value: 'goa', label: 'Goa' },
+  { value: 'gujarat', label: 'Gujarat' },
+  { value: 'haryana', label: 'Haryana' },
+  { value: 'himachal-pradesh', label: 'Himachal Pradesh' },
+  { value: 'jharkhand', label: 'Jharkhand' },
+  { value: 'karnataka', label: 'Karnataka' },
+  { value: 'kerala', label: 'Kerala' },
+  { value: 'madhya-pradesh', label: 'Madhya Pradesh' },
+  { value: 'maharashtra', label: 'Maharashtra' },
+  { value: 'manipur', label: 'Manipur' },
+  { value: 'meghalaya', label: 'Meghalaya' },
+  { value: 'mizoram', label: 'Mizoram' },
+  { value: 'nagaland', label: 'Nagaland' },
+  { value: 'odisha', label: 'Odisha' },
+  { value: 'punjab', label: 'Punjab' },
+  { value: 'rajasthan', label: 'Rajasthan' },
+  { value: 'sikkim', label: 'Sikkim' },
+  { value: 'tamil-nadu', label: 'Tamil Nadu' },
+  { value: 'telangana', label: 'Telangana' },
+  { value: 'tripura', label: 'Tripura' },
+  { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
+  { value: 'uttarakhand', label: 'Uttarakhand' },
+  { value: 'west-bengal', label: 'West Bengal' },
+  { value: 'andaman-nicobar', label: 'Andaman and Nicobar Islands' },
+  { value: 'chandigarh', label: 'Chandigarh' },
+  { value: 'dadra-nagar-haveli', label: 'Dadra and Nagar Haveli' },
+  { value: 'daman-diu', label: 'Daman and Diu' },
+  { value: 'delhi', label: 'Delhi' },
+  { value: 'jammu-kashmir', label: 'Jammu and Kashmir' },
+  { value: 'ladakh', label: 'Ladakh' },
+  { value: 'lakshadweep', label: 'Lakshadweep' },
+  { value: 'puducherry', label: 'Puducherry' },
+];
 
 type VendorEditForm = {
   // Basic Information
@@ -100,7 +142,6 @@ const VendorProfileEdit: React.FC = () => {
   const [catalogImages, setCatalogImages] = useState<string[]>([]);
   const [originalCatalogImages, setOriginalCatalogImages] = useState<string[]>([]);
   const [catalogImagesWithMeta, setCatalogImagesWithMeta] = useState<any[]>([]);
-  const [forceRefresh, setForceRefresh] = useState(0);
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState<string>('');
   const [uploadedImageUrls, setUploadedImageUrls] = useState<string[]>([]);
@@ -108,8 +149,9 @@ const VendorProfileEdit: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteConfirmType, setDeleteConfirmType] = useState<'brand_logo' | 'contact_person' | 'catalog'>('brand_logo');
   const [deleteConfirmData, setDeleteConfirmData] = useState<any>(null);
-  const [sampleDataConfirmOpen, setSampleDataConfirmOpen] = useState(false);
   const [changesSummaryOpen, setChangesSummaryOpen] = useState(false);
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [showStatesDropdown, setShowStatesDropdown] = useState(false);
 
   // Debug useEffect to monitor catalogImagesWithMeta changes
   useEffect(() => {
@@ -192,6 +234,43 @@ const VendorProfileEdit: React.FC = () => {
     name: "catalog_images" as any
   });
 
+  // Handle state selection for service areas
+  const handleStateToggle = (stateValue: string) => {
+    setSelectedStates(prev => {
+      const newStates = prev.includes(stateValue) 
+        ? prev.filter(s => s !== stateValue)
+        : [...prev, stateValue];
+      
+      // Update form value
+      setValue('additional_info.service_areas', newStates);
+      return newStates;
+    });
+  };
+
+  const removeState = (stateValue: string) => {
+    setSelectedStates(prev => {
+      const newStates = prev.filter(s => s !== stateValue);
+      setValue('additional_info.service_areas', newStates);
+      return newStates;
+    });
+  };
+
+  const getStateLabel = (stateValue: string) => {
+    return indianStates.find(state => state.value === stateValue)?.label || stateValue;
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showStatesDropdown && !(event.target as Element).closest('.states-dropdown')) {
+        setShowStatesDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showStatesDropdown]);
+
 
   const { fields: customFields, append: appendCustomField, remove: removeCustomField } = useFieldArray({
     control,
@@ -270,7 +349,7 @@ const VendorProfileEdit: React.FC = () => {
     };
 
     initializeVendorData();
-  }, [navigate, forceRefresh]);
+  }, [navigate]);
 
   const loadVendorData = (vendorData: Vendor, catalogImagesData?: string[]) => {
     // Prevent multiple simultaneous calls
@@ -354,8 +433,8 @@ const VendorProfileEdit: React.FC = () => {
           ? vendorData.additional_info.languages.join(', ')
           : (vendorData.additional_info?.languages || ''),
         service_areas: Array.isArray(vendorData.additional_info?.service_areas) 
-          ? vendorData.additional_info.service_areas.join(', ')
-          : (vendorData.additional_info?.service_areas || ''),
+          ? vendorData.additional_info.service_areas
+          : [],
         awards: Array.isArray(vendorData.additional_info?.awards)
           ? vendorData.additional_info.awards.join(', ')
           : (vendorData.additional_info?.awards || ''),
@@ -370,6 +449,13 @@ const VendorProfileEdit: React.FC = () => {
     
     // Reset the entire form with new data - this clears everything and sets new values
     reset(formData);
+    
+    // Initialize selectedStates for service areas multi-select
+    if (Array.isArray(vendorData.additional_info?.service_areas)) {
+      setSelectedStates(vendorData.additional_info.service_areas);
+    } else {
+      setSelectedStates([]);
+    }
     
     console.log('Form reset completed');
     setLoading(false);
@@ -871,8 +957,8 @@ const VendorProfileEdit: React.FC = () => {
           languages: typeof data.additional_info.languages === 'string' 
             ? data.additional_info.languages.split(',').map(l => l.trim()).filter(l => l !== '')
             : (data.additional_info.languages || []),
-          service_areas: typeof data.additional_info.service_areas === 'string' 
-            ? data.additional_info.service_areas.split(',').map(area => area.trim()).filter(area => area !== '')
+          service_areas: Array.isArray(data.additional_info.service_areas) 
+            ? data.additional_info.service_areas
             : (data.additional_info.service_areas || []),
           awards: typeof data.additional_info.awards === 'string'
             ? data.additional_info.awards.split(',').map(a => a.trim()).filter(a => a !== '')
@@ -1201,87 +1287,6 @@ const VendorProfileEdit: React.FC = () => {
                 </div>
               </div>
               
-              {/* Sample Data Button */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={() => {
-                    console.log('=== VENDOR DATA DEBUG ===');
-                    console.log('Current vendor:', vendor);
-                    console.log('Vendor services:', vendor?.services);
-                    console.log('Vendor services type:', typeof vendor?.services);
-                    console.log('Vendor services JSON:', JSON.stringify(vendor?.services, null, 2));
-                    setHighlightMessage('✅ Check console for vendor data debug info!');
-                    setTimeout(() => setHighlightMessage(''), 3000);
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100"
-                >
-                  Debug Data
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    console.log('Quick test button clicked');
-                    setValue('brand_name', 'Test Photography');
-                    setValue('spoc_name', 'John Doe');
-                    setValue('quick_intro', 'Test quick intro');
-                    setHighlightMessage('✅ Quick test data filled!');
-                    setTimeout(() => setHighlightMessage(''), 3000);
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                >
-                  Quick Test
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setSampleDataConfirmOpen(true)}
-                  variant="outline"
-                  size="sm"
-                  className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Fill Sample Data
-                </Button>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    if (window.confirm('This will clear hardcoded services from the DATABASE for this vendor. This action cannot be undone. Are you sure?')) {
-                      try {
-                        const result = await clearVendorHardcodedServices(vendor?.vendor_id || '');
-                        if (result.success) {
-                          setHighlightMessage('✅ Hardcoded services cleared from database! Refresh the page to see changes.');
-                          setTimeout(() => setHighlightMessage(''), 5000);
-                          
-                          // Refresh vendor data
-                          if (vendor?.vendor_id) {
-                            const freshData = await getVendorByFieldId(vendor.vendor_id);
-                            if (freshData) {
-                              setVendor(freshData);
-                              loadVendorData(freshData, catalogImages);
-                            }
-                          }
-                        } else {
-                          setHighlightMessage('❌ Failed to clear services: ' + result.message);
-                          setTimeout(() => setHighlightMessage(''), 5000);
-                        }
-                      } catch (error) {
-                        console.error('Error clearing services:', error);
-                        setHighlightMessage('❌ Error clearing services from database');
-                        setTimeout(() => setHighlightMessage(''), 5000);
-                      }
-                    }
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
-                >
-                  Clear DB Services
-                </Button>
-              </div>
             </div>
           </div>
         </div>
@@ -2367,17 +2372,77 @@ const VendorProfileEdit: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Service Areas
                 </label>
-                <Input
-                  {...register("additional_info.service_areas")}
-                  placeholder="e.g., Hyderabad, Bangalore, Chennai (comma-separated)"
-                  onBlur={(e) => {
-                    const value = e.target.value;
-                    const serviceAreas = value.split(',').map(area => area.trim()).filter(area => area);
-                    setValue('additional_info.service_areas', serviceAreas);
-                  }}
-                />
+                
+                {/* Selected States Display */}
+                {selectedStates.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {selectedStates.map((stateValue) => (
+                      <div
+                        key={stateValue}
+                        className="flex items-center gap-1 bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm"
+                      >
+                        <span>{getStateLabel(stateValue)}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeState(stateValue)}
+                          className="hover:bg-orange-200 rounded-full p-0.5"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Multi-select Dropdown */}
+                <div className="relative states-dropdown">
+                  <button
+                    type="button"
+                    onClick={() => setShowStatesDropdown(!showStatesDropdown)}
+                    className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left bg-white"
+                  >
+                    {selectedStates.length === 0 
+                      ? "Select states where you provide services..." 
+                      : `${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''} selected`
+                    }
+                  </button>
+                  
+                  {showStatesDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      <div className="p-2">
+                        {indianStates.map((state) => {
+                          const isSelected = selectedStates.includes(state.value);
+                          return (
+                            <div
+                              key={state.value}
+                              className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                              onClick={() => {
+                                console.log('Clicked state:', state.value, 'Current selection:', selectedStates);
+                                handleStateToggle(state.value);
+                              }}
+                            >
+                              <div className="w-4 h-4 border-2 rounded flex items-center justify-center"
+                                   style={{ 
+                                     borderColor: isSelected ? '#f97316' : '#d1d5db',
+                                     backgroundColor: isSelected ? '#f97316' : 'white'
+                                   }}>
+                                {isSelected && (
+                                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="text-sm">{state.label}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 <p className="text-xs text-gray-500 mt-1">
-                  List the cities/areas where you provide services
+                  Select all states where you provide services
                 </p>
               </div>
 
@@ -2613,57 +2678,6 @@ const VendorProfileEdit: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Sample Data Confirmation Modal */}
-      <Dialog open={sampleDataConfirmOpen} onOpenChange={setSampleDataConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              Fill Sample Data
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-700 mb-3">
-              This will fill all form fields with sample data for a wedding photography business.
-            </p>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <p className="text-sm text-yellow-800">
-                <strong>⚠️ Warning:</strong> This will overwrite any existing data in the form. Make sure to save your current work if needed.
-              </p>
-            </div>
-            <div className="mt-3 text-sm text-gray-600">
-              <p><strong>Sample data includes:</strong></p>
-              <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Basic information (name, contact, etc.)</li>
-                <li>Services and packages</li>
-                <li>Customer reviews</li>
-                <li>Booking policies</li>
-                <li>Sample images and more</li>
-              </ul>
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setSampleDataConfirmOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                fillSampleData();
-                setSampleDataConfirmOpen(false);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Fill Sample Data
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

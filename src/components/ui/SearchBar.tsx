@@ -22,11 +22,43 @@ const categories = [
 
 const locations = [
   { value: 'all', label: 'All Locations' },
-  { value: 'new-york', label: 'New York, NY' },
-  { value: 'los-angeles', label: 'Los Angeles, CA' },
-  { value: 'chicago', label: 'Chicago, IL' },
-  { value: 'miami', label: 'Miami, FL' },
-  { value: 'dallas', label: 'Dallas, TX' },
+  { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
+  { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
+  { value: 'assam', label: 'Assam' },
+  { value: 'bihar', label: 'Bihar' },
+  { value: 'chhattisgarh', label: 'Chhattisgarh' },
+  { value: 'goa', label: 'Goa' },
+  { value: 'gujarat', label: 'Gujarat' },
+  { value: 'haryana', label: 'Haryana' },
+  { value: 'himachal-pradesh', label: 'Himachal Pradesh' },
+  { value: 'jharkhand', label: 'Jharkhand' },
+  { value: 'karnataka', label: 'Karnataka' },
+  { value: 'kerala', label: 'Kerala' },
+  { value: 'madhya-pradesh', label: 'Madhya Pradesh' },
+  { value: 'maharashtra', label: 'Maharashtra' },
+  { value: 'manipur', label: 'Manipur' },
+  { value: 'meghalaya', label: 'Meghalaya' },
+  { value: 'mizoram', label: 'Mizoram' },
+  { value: 'nagaland', label: 'Nagaland' },
+  { value: 'odisha', label: 'Odisha' },
+  { value: 'punjab', label: 'Punjab' },
+  { value: 'rajasthan', label: 'Rajasthan' },
+  { value: 'sikkim', label: 'Sikkim' },
+  { value: 'tamil-nadu', label: 'Tamil Nadu' },
+  { value: 'telangana', label: 'Telangana' },
+  { value: 'tripura', label: 'Tripura' },
+  { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
+  { value: 'uttarakhand', label: 'Uttarakhand' },
+  { value: 'west-bengal', label: 'West Bengal' },
+  { value: 'andaman-nicobar', label: 'Andaman and Nicobar Islands' },
+  { value: 'chandigarh', label: 'Chandigarh' },
+  { value: 'dadra-nagar-haveli', label: 'Dadra and Nagar Haveli' },
+  { value: 'daman-diu', label: 'Daman and Diu' },
+  { value: 'delhi', label: 'Delhi' },
+  { value: 'jammu-kashmir', label: 'Jammu and Kashmir' },
+  { value: 'ladakh', label: 'Ladakh' },
+  { value: 'lakshadweep', label: 'Lakshadweep' },
+  { value: 'puducherry', label: 'Puducherry' },
 ];
 
 interface SearchBarProps {
@@ -47,8 +79,12 @@ const SearchBar = ({ onCategoryChange }: SearchBarProps) => {
 
   const handleSearch = () => {
     console.log('Searching for:', { category, location });
-    // Navigate to search results page (currently redirects to home)
-    navigate('/vendors');
+    // Navigate to search results page with parameters
+    const params = new URLSearchParams();
+    if (category !== 'all') params.append('service', category);
+    if (location !== 'all') params.append('location', location);
+    
+    navigate(`/vendors?${params.toString()}`);
   };
 
   return (

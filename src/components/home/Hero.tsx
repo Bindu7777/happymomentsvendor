@@ -34,7 +34,7 @@ const eventTypes = [
 // Service types for dropdown
 const serviceTypes = [
   { value: 'all', label: 'All Services' },
-  { value: 'photography', label: 'Photographer' },
+  { value: 'photography', label: 'Photography/Videography' },
   { value: 'makeup', label: 'Makeup Artist' },
   { value: 'decor', label: 'Decorator' },
   { value: 'catering', label: 'Caterer' },
@@ -44,15 +44,46 @@ const serviceTypes = [
   { value: 'planning', label: 'Event Planner' },
 ];
 
-// Cities for dropdown
+// States for dropdown
 const cities = [
   { value: 'all', label: 'All Locations' },
+  { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
+  { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
+  { value: 'assam', label: 'Assam' },
+  { value: 'bihar', label: 'Bihar' },
+  { value: 'chhattisgarh', label: 'Chhattisgarh' },
+  { value: 'goa', label: 'Goa' },
+  { value: 'gujarat', label: 'Gujarat' },
+  { value: 'haryana', label: 'Haryana' },
+  { value: 'himachal-pradesh', label: 'Himachal Pradesh' },
+  { value: 'jharkhand', label: 'Jharkhand' },
+  { value: 'karnataka', label: 'Karnataka' },
+  { value: 'kerala', label: 'Kerala' },
+  { value: 'madhya-pradesh', label: 'Madhya Pradesh' },
+  { value: 'maharashtra', label: 'Maharashtra' },
+  { value: 'manipur', label: 'Manipur' },
+  { value: 'meghalaya', label: 'Meghalaya' },
+  { value: 'mizoram', label: 'Mizoram' },
+  { value: 'nagaland', label: 'Nagaland' },
+  { value: 'odisha', label: 'Odisha' },
+  { value: 'punjab', label: 'Punjab' },
+  { value: 'rajasthan', label: 'Rajasthan' },
+  { value: 'sikkim', label: 'Sikkim' },
+  { value: 'tamil-nadu', label: 'Tamil Nadu' },
+  { value: 'telangana', label: 'Telangana' },
+  { value: 'tripura', label: 'Tripura' },
+  { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
+  { value: 'uttarakhand', label: 'Uttarakhand' },
+  { value: 'west-bengal', label: 'West Bengal' },
+  { value: 'andaman-nicobar', label: 'Andaman and Nicobar Islands' },
+  { value: 'chandigarh', label: 'Chandigarh' },
+  { value: 'dadra-nagar-haveli', label: 'Dadra and Nagar Haveli' },
+  { value: 'daman-diu', label: 'Daman and Diu' },
   { value: 'delhi', label: 'Delhi' },
-  { value: 'mumbai', label: 'Mumbai' },
-  { value: 'bangalore', label: 'Bangalore' },
-  { value: 'chennai', label: 'Chennai' },
-  { value: 'hyderabad', label: 'Hyderabad' },
-  { value: 'kolkata', label: 'Kolkata' },
+  { value: 'jammu-kashmir', label: 'Jammu and Kashmir' },
+  { value: 'ladakh', label: 'Ladakh' },
+  { value: 'lakshadweep', label: 'Lakshadweep' },
+  { value: 'puducherry', label: 'Puducherry' },
 ];
 
 // High-quality wedding background images

@@ -8,10 +8,52 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
 import { ArrowLeft, Save, AlertCircle, CheckCircle, Trash2, X, FileText, Plus, Star } from 'lucide-react';
+import { Checkbox } from '../components/ui/checkbox';
 import { getVendorByFieldId, updateVendor, updateVendorVerified, getVendorMedia, updateVendorCatalogImages, toggleImageHighlight, deleteVendorMedia } from '../services/supabaseService';
 import ImageUpload from '../components/ImageUpload';
 import { Vendor } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
+
+// Indian States and Union Territories
+const indianStates = [
+  { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
+  { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
+  { value: 'assam', label: 'Assam' },
+  { value: 'bihar', label: 'Bihar' },
+  { value: 'chhattisgarh', label: 'Chhattisgarh' },
+  { value: 'goa', label: 'Goa' },
+  { value: 'gujarat', label: 'Gujarat' },
+  { value: 'haryana', label: 'Haryana' },
+  { value: 'himachal-pradesh', label: 'Himachal Pradesh' },
+  { value: 'jharkhand', label: 'Jharkhand' },
+  { value: 'karnataka', label: 'Karnataka' },
+  { value: 'kerala', label: 'Kerala' },
+  { value: 'madhya-pradesh', label: 'Madhya Pradesh' },
+  { value: 'maharashtra', label: 'Maharashtra' },
+  { value: 'manipur', label: 'Manipur' },
+  { value: 'meghalaya', label: 'Meghalaya' },
+  { value: 'mizoram', label: 'Mizoram' },
+  { value: 'nagaland', label: 'Nagaland' },
+  { value: 'odisha', label: 'Odisha' },
+  { value: 'punjab', label: 'Punjab' },
+  { value: 'rajasthan', label: 'Rajasthan' },
+  { value: 'sikkim', label: 'Sikkim' },
+  { value: 'tamil-nadu', label: 'Tamil Nadu' },
+  { value: 'telangana', label: 'Telangana' },
+  { value: 'tripura', label: 'Tripura' },
+  { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
+  { value: 'uttarakhand', label: 'Uttarakhand' },
+  { value: 'west-bengal', label: 'West Bengal' },
+  { value: 'andaman-nicobar', label: 'Andaman and Nicobar Islands' },
+  { value: 'chandigarh', label: 'Chandigarh' },
+  { value: 'dadra-nagar-haveli', label: 'Dadra and Nagar Haveli' },
+  { value: 'daman-diu', label: 'Daman and Diu' },
+  { value: 'delhi', label: 'Delhi' },
+  { value: 'jammu-kashmir', label: 'Jammu and Kashmir' },
+  { value: 'ladakh', label: 'Ladakh' },
+  { value: 'lakshadweep', label: 'Lakshadweep' },
+  { value: 'puducherry', label: 'Puducherry' },
+];
 
 type VendorEditForm = {
   // Basic Information

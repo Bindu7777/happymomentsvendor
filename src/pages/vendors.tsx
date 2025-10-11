@@ -37,15 +37,46 @@ const serviceTypes = [
   { value: 'planning', label: 'Event Planner' },
 ];
 
-// Cities for dropdown
+// States for dropdown (matching the Hero component)
 const cities = [
   { value: 'all', label: 'All Locations' },
+  { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
+  { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
+  { value: 'assam', label: 'Assam' },
+  { value: 'bihar', label: 'Bihar' },
+  { value: 'chhattisgarh', label: 'Chhattisgarh' },
+  { value: 'goa', label: 'Goa' },
+  { value: 'gujarat', label: 'Gujarat' },
+  { value: 'haryana', label: 'Haryana' },
+  { value: 'himachal-pradesh', label: 'Himachal Pradesh' },
+  { value: 'jharkhand', label: 'Jharkhand' },
+  { value: 'karnataka', label: 'Karnataka' },
+  { value: 'kerala', label: 'Kerala' },
+  { value: 'madhya-pradesh', label: 'Madhya Pradesh' },
+  { value: 'maharashtra', label: 'Maharashtra' },
+  { value: 'manipur', label: 'Manipur' },
+  { value: 'meghalaya', label: 'Meghalaya' },
+  { value: 'mizoram', label: 'Mizoram' },
+  { value: 'nagaland', label: 'Nagaland' },
+  { value: 'odisha', label: 'Odisha' },
+  { value: 'punjab', label: 'Punjab' },
+  { value: 'rajasthan', label: 'Rajasthan' },
+  { value: 'sikkim', label: 'Sikkim' },
+  { value: 'tamil-nadu', label: 'Tamil Nadu' },
+  { value: 'telangana', label: 'Telangana' },
+  { value: 'tripura', label: 'Tripura' },
+  { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
+  { value: 'uttarakhand', label: 'Uttarakhand' },
+  { value: 'west-bengal', label: 'West Bengal' },
+  { value: 'andaman-nicobar', label: 'Andaman and Nicobar Islands' },
+  { value: 'chandigarh', label: 'Chandigarh' },
+  { value: 'dadra-nagar-haveli', label: 'Dadra and Nagar Haveli' },
+  { value: 'daman-diu', label: 'Daman and Diu' },
   { value: 'delhi', label: 'Delhi' },
-  { value: 'mumbai', label: 'Mumbai' },
-  { value: 'bangalore', label: 'Bangalore' },
-  { value: 'chennai', label: 'Chennai' },
-  { value: 'hyderabad', label: 'Hyderabad' },
-  { value: 'kolkata', label: 'Kolkata' },
+  { value: 'jammu-kashmir', label: 'Jammu and Kashmir' },
+  { value: 'ladakh', label: 'Ladakh' },
+  { value: 'lakshadweep', label: 'Lakshadweep' },
+  { value: 'puducherry', label: 'Puducherry' },
 ];
 
 const VendorsPage = () => {
@@ -123,9 +154,19 @@ const VendorsPage = () => {
         (serviceCategoryMap[serviceType] && 
          serviceCategoryMap[serviceType].includes(vendor.category));
       
-      // Location filter
+      // Location filter - check both address and service_areas
       const matchesLocation = location === 'all' || 
-        (vendor.address && vendor.address.toLowerCase().includes(location.toLowerCase()));
+        (vendor.address && vendor.address.toLowerCase().includes(location.toLowerCase())) ||
+        (vendor.additional_info?.service_areas && Array.isArray(vendor.additional_info.service_areas) && 
+         vendor.additional_info.service_areas.includes(location));
+      
+      // Debug logging for location filtering
+      if (location !== 'all' && vendor.additional_info?.service_areas) {
+        console.log(`🔍 Checking vendor ${vendor.brand_name} for location "${location}":`, {
+          service_areas: vendor.additional_info.service_areas,
+          matches: vendor.additional_info.service_areas.includes(location)
+        });
+      }
       
       // Search query filter
       const matchesSearch = searchQuery === '' ||

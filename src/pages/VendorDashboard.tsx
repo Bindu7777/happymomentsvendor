@@ -36,7 +36,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
+import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorRejectedChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
 import { getVendorCustomers, updateVendorStatusForContact, updateNotesForContact } from '../services/contactedVendorsApiService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
@@ -59,6 +59,7 @@ const VendorDashboard: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
+  const [rejectedChanges, setRejectedChanges] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [filteredLeads, setFilteredLeads] = useState<any[]>([]);
   const [leadStats, setLeadStats] = useState<any>({});
@@ -344,6 +345,7 @@ const VendorDashboard: React.FC = () => {
         
         setVendor(vendorToUse);
         loadPendingChanges(parseInt(vendorToUse.vendor_id));
+        loadRejectedChanges(parseInt(vendorToUse.vendor_id));
         loadNotifications(parseInt(vendorToUse.vendor_id));
         loadLeadsData(parseInt(vendorToUse.vendor_id));
         loadCalendarData(parseInt(vendorToUse.vendor_id));
@@ -362,6 +364,11 @@ const VendorDashboard: React.FC = () => {
   const loadPendingChanges = async (vendorId: number) => {
     const pending = await getVendorPendingChanges(vendorId);
     setPendingChanges(pending);
+  };
+
+  const loadRejectedChanges = async (vendorId: number) => {
+    const rejected = await getVendorRejectedChanges(vendorId);
+    setRejectedChanges(rejected);
   };
 
   const loadNotifications = async (vendorId: number) => {
@@ -388,6 +395,8 @@ const VendorDashboard: React.FC = () => {
         const success = await markAllNotificationsAsRead(parseInt(vendor.vendor_id));
         if (success) {
           setUnreadNotificationCount(0); // Reset the count immediately
+          // Refresh notifications to update the UI
+          await loadNotifications(parseInt(vendor.vendor_id));
         }
       } catch (error) {
         console.error('Error marking notifications as read:', error);
@@ -917,6 +926,10 @@ const VendorDashboard: React.FC = () => {
                                   <MessageCircle className="w-5 h-5 text-blue-500" />
                                 ) : notification.notification_type === 'profile_view' ? (
                                   <Eye className="w-5 h-5 text-green-500" />
+                                ) : notification.notification_type === 'admin_notification' ? (
+                                  <UserCheck className="w-5 h-5 text-purple-500" />
+                                ) : notification.notification_type === 'admin_customer' ? (
+                                  <Heart className="w-5 h-5 text-pink-500" />
                                 ) : (
                                   <Bell className="w-5 h-5 text-orange-500" />
                                 )}
@@ -1063,7 +1076,7 @@ const VendorDashboard: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Pending Changes Status */}
+                {/* Profile Status */}
                 {pendingChanges.length > 0 ? (
                   <div className="space-y-4">
                     {pendingChanges.map((change) => (
@@ -1079,6 +1092,29 @@ const VendorDashboard: React.FC = () => {
                           </div>
                         </div>
                         <Badge variant="secondary">Pending Approval</Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : rejectedChanges.length > 0 ? (
+                  <div className="space-y-4">
+                    {rejectedChanges.map((change) => (
+                      <div key={change.id} className="flex items-center justify-between p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <AlertCircle className="w-5 h-5 text-red-600" />
+                          <div>
+                            <p className="font-medium text-red-800">Profile Changes Rejected</p>
+                            <p className="text-sm text-red-700">
+                              Rejected {new Date(change.reviewed_at).toLocaleDateString()} • 
+                              Change Type: {change.change_type}
+                            </p>
+                            {change.admin_comments && (
+                              <p className="text-sm text-red-600 mt-1">
+                                <strong>Reason:</strong> {change.admin_comments}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Badge className="bg-red-100 text-red-800">Rejected</Badge>
                       </div>
                     ))}
                   </div>

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { Toast } from "primereact/toast";
 import { addVendor, checkPhoneUnique, testConnection } from "@/services/supabaseService";
@@ -7,6 +7,50 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import { useNavigate } from "react-router-dom";
 import { CATEGORY_LIST } from "@/constants/categories";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
+
+// Indian States and Union Territories
+const indianStates = [
+  { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
+  { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
+  { value: 'assam', label: 'Assam' },
+  { value: 'bihar', label: 'Bihar' },
+  { value: 'chhattisgarh', label: 'Chhattisgarh' },
+  { value: 'goa', label: 'Goa' },
+  { value: 'gujarat', label: 'Gujarat' },
+  { value: 'haryana', label: 'Haryana' },
+  { value: 'himachal-pradesh', label: 'Himachal Pradesh' },
+  { value: 'jharkhand', label: 'Jharkhand' },
+  { value: 'karnataka', label: 'Karnataka' },
+  { value: 'kerala', label: 'Kerala' },
+  { value: 'madhya-pradesh', label: 'Madhya Pradesh' },
+  { value: 'maharashtra', label: 'Maharashtra' },
+  { value: 'manipur', label: 'Manipur' },
+  { value: 'meghalaya', label: 'Meghalaya' },
+  { value: 'mizoram', label: 'Mizoram' },
+  { value: 'nagaland', label: 'Nagaland' },
+  { value: 'odisha', label: 'Odisha' },
+  { value: 'punjab', label: 'Punjab' },
+  { value: 'rajasthan', label: 'Rajasthan' },
+  { value: 'sikkim', label: 'Sikkim' },
+  { value: 'tamil-nadu', label: 'Tamil Nadu' },
+  { value: 'telangana', label: 'Telangana' },
+  { value: 'tripura', label: 'Tripura' },
+  { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
+  { value: 'uttarakhand', label: 'Uttarakhand' },
+  { value: 'west-bengal', label: 'West Bengal' },
+  { value: 'andaman-nicobar', label: 'Andaman and Nicobar Islands' },
+  { value: 'chandigarh', label: 'Chandigarh' },
+  { value: 'dadra-nagar-haveli', label: 'Dadra and Nagar Haveli' },
+  { value: 'daman-diu', label: 'Daman and Diu' },
+  { value: 'delhi', label: 'Delhi' },
+  { value: 'jammu-kashmir', label: 'Jammu and Kashmir' },
+  { value: 'ladakh', label: 'Ladakh' },
+  { value: 'lakshadweep', label: 'Lakshadweep' },
+  { value: 'puducherry', label: 'Puducherry' },
+];
 
 type VendorFormInputs = {
   // Basic Information
@@ -31,7 +75,7 @@ type VendorFormInputs = {
   caption?: string;
   detailed_intro?: string;
   highlight_features?: string[];
-  service_areas?: string;
+  service_areas?: string[];
   starting_price?: number;
   
   // JSON Fields (will be stored as JSON)
@@ -79,6 +123,45 @@ export default function AddVendor() {
   const navigate = useNavigate();
   const [phoneUnique, setPhoneUnique] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [showStatesDropdown, setShowStatesDropdown] = useState(false);
+
+  // Handle state selection
+  const handleStateToggle = (stateValue: string) => {
+    setSelectedStates(prev => {
+      const newStates = prev.includes(stateValue) 
+        ? prev.filter(s => s !== stateValue)
+        : [...prev, stateValue];
+      
+      // Update form value
+      setValue('service_areas', newStates);
+      return newStates;
+    });
+  };
+
+  const removeState = (stateValue: string) => {
+    setSelectedStates(prev => {
+      const newStates = prev.filter(s => s !== stateValue);
+      setValue('service_areas', newStates);
+      return newStates;
+    });
+  };
+
+  const getStateLabel = (stateValue: string) => {
+    return indianStates.find(state => state.value === stateValue)?.label || stateValue;
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showStatesDropdown && !(event.target as Element).closest('.states-dropdown')) {
+        setShowStatesDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showStatesDropdown]);
 
   const {
     register,
@@ -112,7 +195,7 @@ export default function AddVendor() {
       caption: "",
       detailed_intro: "",
       highlight_features: [],
-      service_areas: "",
+      service_areas: [],
       starting_price: 0,
       
       // JSON Fields
@@ -232,6 +315,17 @@ export default function AddVendor() {
   };
 
   const onSubmit = async (data: VendorFormInputs) => {
+    // Validate service areas
+    if (!selectedStates || selectedStates.length === 0) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Please select at least one state for service areas.",
+        life: 3000,
+      });
+      return;
+    }
+
     if (phoneUnique === false) {
       toast.current?.show({
         severity: "error",
@@ -318,7 +412,7 @@ export default function AddVendor() {
       const { service_areas, ...dataWithoutServiceAreas } = processedData;
       const additional_info = {
         ...processedData.additional_info,
-        service_areas: service_areas ? service_areas.split(',').map(area => area.trim()).filter(area => area !== '') : []
+        service_areas: Array.isArray(service_areas) ? service_areas : []
       };
 
       const vendorData = {
@@ -364,15 +458,8 @@ export default function AddVendor() {
     <div className="bg-[#E6E6FA] min-h-screen flex items-center justify-center p-4">
       <Toast ref={toast} /> 
       <div className="max-w-4xl w-full mx-auto p-8 bg-white shadow-lg rounded-xl">
-        <div className="flex justify-between items-center mb-8">
+        <div className="mb-8">
           <h2 className="text-3xl font-bold">Add New Vendor</h2>
-          <button
-            type="button"
-            onClick={fillSampleData}
-            className="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium transition duration-200"
-          >
-            Fill Sample Data
-          </button>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -544,16 +631,78 @@ export default function AddVendor() {
             
             <div>
               <label className="block font-medium mb-2 text-gray-700">Service Areas *</label>
-              <input
-                {...register("service_areas", { 
-                  required: "Service areas is required"
-                })}
-                className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Hyderabad, Bangalore, Chennai (comma-separated)"
-              />
-              <p className="text-sm text-gray-500 mt-1">List the cities/areas where you provide services</p>
-              {errors.service_areas && (
-                <p className="text-red-500 text-sm mt-1">{errors.service_areas.message}</p>
+              
+              {/* Selected States Display */}
+              {selectedStates.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {selectedStates.map((stateValue) => (
+                    <div
+                      key={stateValue}
+                      className="flex items-center gap-1 bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm"
+                    >
+                      <span>{getStateLabel(stateValue)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeState(stateValue)}
+                        className="hover:bg-orange-200 rounded-full p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Multi-select Dropdown */}
+              <div className="relative states-dropdown">
+                <button
+                  type="button"
+                  onClick={() => setShowStatesDropdown(!showStatesDropdown)}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left bg-white"
+                >
+                  {selectedStates.length === 0 
+                    ? "Select states where you provide services..." 
+                    : `${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''} selected`
+                  }
+                </button>
+                
+                {showStatesDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="p-2">
+                      {indianStates.map((state) => {
+                        const isSelected = selectedStates.includes(state.value);
+                        return (
+                          <div
+                            key={state.value}
+                            className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                            onClick={() => {
+                              console.log('Clicked state:', state.value, 'Current selection:', selectedStates);
+                              handleStateToggle(state.value);
+                            }}
+                          >
+                            <div className="w-4 h-4 border-2 rounded flex items-center justify-center"
+                                 style={{ 
+                                   borderColor: isSelected ? '#f97316' : '#d1d5db',
+                                   backgroundColor: isSelected ? '#f97316' : 'white'
+                                 }}>
+                              {isSelected && (
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-sm">{state.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-sm text-gray-500 mt-1">Select all states where you provide services</p>
+              {selectedStates.length === 0 && (
+                <p className="text-red-500 text-sm mt-1">Please select at least one state</p>
               )}
             </div>
           </section>

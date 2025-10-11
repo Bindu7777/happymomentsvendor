@@ -181,8 +181,9 @@ const Header = () => {
       try {
         await markAllCustomerNotificationsAsRead(customer.id);
         setUnreadNotificationsCount(0);
-        // Update notifications to mark all as read
-        setNotifications(prev => prev.map(notification => ({ ...notification, is_read: true })));
+        // Refresh notifications to update the UI
+        const notificationsData = await getCustomerNotifications(customer.id);
+        setNotifications(notificationsData);
       } catch (error) {
         console.error('Error marking all notifications as read:', error);
       }

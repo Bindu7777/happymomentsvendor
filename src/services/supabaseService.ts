@@ -996,6 +996,33 @@ export const getVendorPendingChanges = async (vendorId: number): Promise<any[]> 
   }
 };
 
+// Get vendor's most recent rejected change (last 7 days)
+export const getVendorRejectedChanges = async (vendorId: number): Promise<any[]> => {
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    const { data, error } = await supabase
+      .from('vendor_profile_changes')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .eq('status', 'rejected')
+      .gte('reviewed_at', sevenDaysAgo.toISOString())
+      .order('reviewed_at', { ascending: false })
+      .limit(1); // Only get the most recent rejection
+
+    if (error) {
+      console.error('Error fetching rejected changes:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching rejected changes:', error);
+    return [];
+  }
+};
+
 // Clear hardcoded services from vendor (admin function)
 export const clearVendorHardcodedServices = async (vendorId: string): Promise<{success: boolean, message?: string}> => {
   try {
@@ -1050,6 +1077,7 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
         contact_id,
         customer_id,
         vendor_id,
+        status,
         vendor_notified,
         customer_notified,
         notification_message,
@@ -1061,7 +1089,7 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
       .order('contacted_at', { ascending: false })
       .limit(20); // Get latest 20 contacts
 
-    // If we only want unread notifications (vendor_notified = true means vendor was notified)
+    // If we only want unread notifications (vendor_notified = true means unread)
     if (unreadOnly) {
       query = query.eq('vendor_notified', true);
     }
@@ -1099,9 +1127,23 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
     // Transform the data to match notification format
     const transformedData = (data || []).map(contact => {
       let customerInfo = null;
+      let notificationType = 'contact';
+      let title = 'New Customer Contact';
       
+      // Handle admin notifications (negative customer_id with Approved/Rejected vendor_status)
+      if (contact.customer_id < 0 && (contact.vendor_status === 'Approved' || contact.vendor_status === 'Rejected')) {
+        notificationType = 'admin_notification';
+        title = contact.vendor_status === 'Approved' ? 'Profile Changes Approved' : 'Profile Changes Rejected';
+        customerInfo = {
+          full_name: 'Admin',
+          mobile_number: '',
+          email: ''
+        };
+      }
       // Handle admin-sent customers (negative customer_id)
-      if (contact.customer_id < 0) {
+      else if (contact.customer_id < 0) {
+        notificationType = 'admin_customer';
+        title = 'Admin Sent Customer';
         // Extract customer name and phone from notes for admin-sent customers
         const notes = contact.notes || '';
         const nameMatch = notes.match(/Admin-sent customer: ([^(]+)/);
@@ -1121,10 +1163,10 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
         id: contact.contact_id,
         vendor_id: contact.vendor_id,
         customer_id: contact.customer_id,
-        notification_type: 'contact',
-        title: 'New Customer Contact',
+        notification_type: notificationType,
+        title: title,
         message: contact.notification_message || 'Customer contacted you',
-        is_read: contact.vendor_notified,
+        is_read: !contact.vendor_notified,
         created_at: contact.contacted_at,
         customers: customerInfo
       };
@@ -1163,9 +1205,9 @@ export const markAllNotificationsAsRead = async (vendorId: number): Promise<bool
   try {
     const { error } = await supabase
       .from('contacted_vendors')
-      .update({ vendor_notified: true })
+      .update({ vendor_notified: false })
       .eq('vendor_id', vendorId.toString())
-      .eq('vendor_notified', false);
+      .eq('vendor_notified', true);
 
     if (error) {
       console.error('Error marking all notifications as read:', error);
@@ -1200,8 +1242,10 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
       .order('contacted_at', { ascending: false })
       .limit(20); // Get latest 20 contacts
 
-    // Show all notifications where customer was notified about status changes
-    query = query.eq('customer_notified', true);
+    // If we only want unread notifications (customer_notified = true means unread)
+    if (unreadOnly) {
+      query = query.eq('customer_notified', true);
+    }
 
     const { data, error } = await query;
 
@@ -1247,7 +1291,7 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
         notification_type: 'status_change',
         title: 'Vendor Status Update',
         message: contact.notification_message || `${vendorName} updated your status`,
-        is_read: false, // Show as unread so customer sees them
+        is_read: !contact.customer_notified,
         created_at: contact.contacted_at,
         vendors: vendor
       };
@@ -1286,9 +1330,9 @@ export const markAllCustomerNotificationsAsRead = async (customerId: number): Pr
   try {
     const { error } = await supabase
       .from('contacted_vendors')
-      .update({ customer_notified: true })
+      .update({ customer_notified: false })
       .eq('customer_id', customerId)
-      .eq('customer_notified', false);
+      .eq('customer_notified', true);
 
     if (error) {
       console.error('Error marking all customer notifications as read:', error);
@@ -1534,6 +1578,49 @@ export const reviewVendorProfileChange = async (
       }
 
       console.log('Vendor profile updated successfully');
+    }
+
+    // Create notification for vendor about admin decision
+    try {
+      console.log('🔔 Creating admin notification for vendor:', changeRecord.vendor_id);
+      const notificationMessage = status === 'approved' 
+        ? `Your profile changes have been approved${adminComments ? ` with comments: ${adminComments}` : ''}`
+        : `Your profile changes have been rejected${adminComments ? ` for the following reason: ${adminComments}` : ''}`;
+      
+      const notificationTitle = status === 'approved' 
+        ? 'Profile Changes Approved' 
+        : 'Profile Changes Rejected';
+
+      console.log('📝 Notification message:', notificationMessage);
+      console.log('📝 Admin decision:', status);
+
+      // Insert notification into contacted_vendors table (reusing existing notification system)
+      const { data: notificationData, error: notificationError } = await supabase
+        .from('contacted_vendors')
+        .insert({
+          customer_id: -(Date.now() % 1000000), // Use negative ID for admin notifications
+          vendor_id: changeRecord.vendor_id.toString(),
+          status: 'Contacted', // Use allowed status value
+          vendor_status: status === 'approved' ? 'Approved' : 'Rejected', // Store admin decision
+          vendor_notified: true, // Vendor needs to see this
+          customer_notified: false, // Not for customer
+          notification_message: notificationMessage,
+          notes: `Admin ${status} profile changes. Admin: ${adminUsername}`,
+          contacted_at: new Date().toISOString(), // Add timestamp
+          created_at: new Date().toISOString() // Add timestamp
+        })
+        .select();
+
+      if (notificationError) {
+        console.error('❌ Error creating admin notification:', notificationError);
+        console.error('Error details:', JSON.stringify(notificationError, null, 2));
+        // Don't fail the entire operation, just log the error
+      } else {
+        console.log(`✅ Admin notification created successfully for vendor ${changeRecord.vendor_id}:`, notificationData);
+      }
+    } catch (notificationError) {
+      console.error('💥 Exception creating admin notification:', notificationError);
+      // Don't fail the entire operation
     }
 
     return { 

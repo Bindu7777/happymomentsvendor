@@ -9,11 +9,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart, Users } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart, Users, Bell } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
-import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout } from "@/services/supabaseService";
+import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout, getCustomerNotifications, markAllCustomerNotificationsAsRead } from "@/services/supabaseService";
 import { getLikedVendors } from "@/services/likedVendorsApiService";
 
 const Header = () => {
@@ -27,6 +27,9 @@ const Header = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginType, setLoginType] = useState<'customer' | 'vendor'>('customer');
   const [likedVendorsCount, setLikedVendorsCount] = useState(0);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
@@ -76,6 +79,47 @@ const Header = () => {
       window.removeEventListener('vendorUnliked', handleLikeChange);
     };
   }, [customer]);
+
+  // Fetch customer notifications when customer is logged in
+  useEffect(() => {
+    const fetchCustomerNotifications = async () => {
+      if (customer) {
+        try {
+          const notificationsData = await getCustomerNotifications(customer.id);
+          setNotifications(notificationsData);
+          
+          // Count unread notifications
+          const unreadCount = notificationsData.filter(notification => !notification.is_read).length;
+          setUnreadNotificationsCount(unreadCount);
+        } catch (error) {
+          console.error('Error fetching customer notifications:', error);
+          setNotifications([]);
+          setUnreadNotificationsCount(0);
+        }
+      } else {
+        setNotifications([]);
+        setUnreadNotificationsCount(0);
+      }
+    };
+
+    fetchCustomerNotifications();
+    
+    // Refresh notifications every 30 seconds
+    const interval = setInterval(fetchCustomerNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [customer]);
+
+  // Close notifications dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showNotifications && !(event.target as Element).closest('.notifications-dropdown')) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotifications]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -131,6 +175,20 @@ const Header = () => {
     setLoggedInVendor(null);
     navigate('/');
   };
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    if (customer) {
+      try {
+        await markAllCustomerNotificationsAsRead(customer.id);
+        setUnreadNotificationsCount(0);
+        // Update notifications to mark all as read
+        setNotifications(prev => prev.map(notification => ({ ...notification, is_read: true })));
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+      }
+    }
+  };
+
   const [scrollDirection, setScrollDirection] = useState<"up" | "down" | null>(null);
   const [lastScrollY, setLastScrollY] = useState(0);
   
@@ -275,6 +333,81 @@ const Header = () => {
                   </span>
                 )}
               </Link>
+
+              {/* Notifications Bell Icon */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="relative flex items-center text-white hover:text-wedding-orange transition-colors"
+                  title="Notifications"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadNotificationsCount > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* Notifications Dropdown */}
+                {showNotifications && (
+                  <div className="notifications-dropdown absolute right-0 top-full mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-4 border-b border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-gray-900">Notifications</h3>
+                        {unreadNotificationsCount > 0 && (
+                          <button
+                            onClick={handleMarkAllNotificationsAsRead}
+                            className="text-xs text-orange-600 hover:text-orange-800 font-medium"
+                          >
+                            Mark all as read
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                          <div key={notification.id} className={`p-4 border-b border-gray-100 hover:bg-gray-50 ${!notification.is_read ? 'bg-orange-50' : ''}`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Bell className="w-4 h-4 text-orange-600" />
+                                  {!notification.is_read && (
+                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                      NEW
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-900 font-medium">
+                                  {notification.title}
+                                </p>
+                                <p className="text-xs text-gray-600 mt-1">
+                                  {notification.message}
+                                </p>
+                                {notification.vendors && notification.vendors.brand_name && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    Vendor: {notification.vendors.brand_name}
+                                  </p>
+                                )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(notification.created_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-8 text-center text-gray-500">
+                          <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p>No notifications yet</p>
+                          <p className="text-sm">Vendor status updates will appear here</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* My Vendors Link */}
               <Link 

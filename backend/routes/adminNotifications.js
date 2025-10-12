@@ -1,12 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const { supabase } = require('../config/supabase');
 
 // Get admin notifications for a vendor
 router.get('/get-vendor-admin-notifications/:vendor_id', async (req, res) => {

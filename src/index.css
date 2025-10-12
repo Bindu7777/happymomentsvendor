@@ -92,6 +92,28 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-wedding-gray/30;
   }
+
+  /* Dropdown positioning fixes */
+  [data-radix-popper-content-wrapper] {
+    z-index: 9999 !important;
+  }
+  
+  [data-radix-dropdown-menu-content] {
+    z-index: 9999 !important;
+  }
+
+  /* Ensure dropdown content is not clipped */
+  [data-radix-dropdown-menu-content] {
+    max-height: calc(100vh - 120px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+
+  /* Fix for categories dropdown specifically */
+  .categories-dropdown [data-radix-dropdown-menu-content] {
+    position: fixed !important;
+    z-index: 9999 !important;
+  }
 }
 
 /* Reusable components */

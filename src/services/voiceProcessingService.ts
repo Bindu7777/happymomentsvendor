@@ -449,19 +449,25 @@ const SERVICE_KEYWORDS: Record<string, string[]> = {
     'photographer', 'photography', 'photo', 'camera', 'videography', 'video',
     'photoshoot', 'photo shoot', 'wedding photography', 'event photography',
     'cinematography', 'camera man', 'cameraman', 'photography services',
-    'video shooting', 'photo session', 'picture', 'pictures', 'photographs'
+    'video shooting', 'photo session', 'picture', 'pictures', 'photographs',
+    // Telugu transliterations
+    'fotografer', 'foto', 'camera man', 'photographer 1', 'photographer one'
   ],
   'makeup': [
     'makeup', 'makeup artist', 'make up', 'beauty', 'bridal makeup',
     'party makeup', 'beauty artist', 'cosmetics', 'makeup services',
     'beauty services', 'glamour', 'styling', 'hair and makeup',
-    'beauty expert', 'makeup specialist'
+    'beauty expert', 'makeup specialist',
+    // Telugu transliterations
+    'mekap', 'beauty artist', 'makeup artist'
   ],
   'decor': [
     'decorator', 'decoration', 'decor', 'decoration services',
     'wedding decoration', 'event decoration', 'floral decoration',
     'stage decoration', 'venue decoration', 'decoration setup',
-    'decoration design', 'party decoration', 'decoration work'
+    'decoration design', 'party decoration', 'decoration work',
+    // Telugu transliterations
+    'decoration', 'decorator'
   ],
   'catering': [
     'catering', 'caterer', 'food', 'catering services', 'catering company',
@@ -622,8 +628,20 @@ export const processVoiceInput = (transcript: string): VoiceExtractedData => {
     rawText: transcript
   };
   
+  // Special handling for Telugu transliterations and mixed text
+  // Clean up common Telugu transliteration issues
+  let cleanedText = normalizedText
+    .replace(/\bphotographer\s+1\s+(lakh|lakhs?)\b/g, 'photographer budget 1 lakh')
+    .replace(/\bphotographer\s+one\s+(lakh|lakhs?)\b/g, 'photographer budget 1 lakh')
+    .replace(/\bphotographer\s+(\d+)\s+(lakh|lakhs?)\b/g, 'photographer budget $1 lakh')
+    .replace(/\b(lakh|lakhs?)\s+within\s+budget\b/g, 'budget 1 lakh')
+    .replace(/\bbudget\s+lo\b/g, 'budget')
+    .replace(/\bkavali\b/g, 'needed')
+    .replace(/\boka\b/g, 'one')
+    .replace(/\buplakshya\b/g, 'within budget');
+  
   // Extract city and state - prioritize city extraction for better state mapping
-  const cityMatch = normalizedText.match(/\b(hyderabad|bangalore|chennai|mumbai|delhi|kolkata|pune|ahmedabad|jaipur|lucknow|kanpur|nagpur|indore|bhopal|visakhapatnam|pimpri|patna|vadodara|ludhiana|agra|nashik|faridabad|meerut|rajkot|kalyan|vasai|varanasi|srinagar|aurangabad|noida|solapur|ranchi|howrah|coimbatore|raipur|jabalpur|gwalior|madurai|mysore|tiruchirapalli|bhubaneswar|kochi|bhavnagar|salem|warangal|guntur|bhiwandi|amravati|nanded|kolhapur|sangli|malegaon|ulhasnagar|jalgaon|akola|latur|dhule|ahmednagar|chandrapur|parbhani|ichalkaranji|jalna|ambarnath|bhusawal|panvel|satna|ratlam|rewa|murwara|singrauli|burhanpur|khandwa|morena|bhind|vidisha|chhindwara|guna|shivpuri|durg|rajnandgaon|raigarh|ambikapur|jagdalpur|dhamtari|korba|bhilai|bilaspur|rourkela|berhampur|sambalpur|puri|balasore|bhadrak|baripada|baleshwar|jajpur|kendujhar|jagatsinghpur|kendrapara|guwahati|silchar|dibrugarh|jorhat|nagaon|tezpur|tinsukia|bongaigaon|dhubri|karimganj|goalpara|barpeta|lakhimpur|kokrajhar|nalbari|ranchi|jamshedpur|dhanbad|bokaro|deoghar|phusro|hazaribagh|giridih|ramgarh|medininagar|chaibasa|gumla|dumka|hazaribag|raipur|bhilai|bilaspur|korba|rajnandgaon|raigarh|ambikapur|jagdalpur|durg|dhamtari|dehradun|haridwar|roorkee|kashipur|rudrapur|haldwani|nainital|mussoorie|rishikesh|shimla|dharamshala|solan|baddi|parwanoo|una|palampur|mandi|chamba|kullu|manali|panaji|margao|vasco da gama|mapusa|ponda|bicholim|srinagar|jammu|baramulla|anantnag|sopore|udhampur|leh|kargil|imphal|aizawl|kohima|shillong|agartala|gangtok|itanagar|port blair|kavaratti|pondicherry|puducherry|daman|diu|silvassa)\b/);
+  const cityMatch = cleanedText.match(/\b(hyderabad|bangalore|chennai|mumbai|delhi|kolkata|pune|ahmedabad|jaipur|lucknow|kanpur|nagpur|indore|bhopal|visakhapatnam|pimpri|patna|vadodara|ludhiana|agra|nashik|faridabad|meerut|rajkot|kalyan|vasai|varanasi|srinagar|aurangabad|noida|solapur|ranchi|howrah|coimbatore|raipur|jabalpur|gwalior|madurai|mysore|tiruchirapalli|bhubaneswar|kochi|bhavnagar|salem|warangal|guntur|bhiwandi|amravati|nanded|kolhapur|sangli|malegaon|ulhasnagar|jalgaon|akola|latur|dhule|ahmednagar|chandrapur|parbhani|ichalkaranji|jalna|ambarnath|bhusawal|panvel|satna|ratlam|rewa|murwara|singrauli|burhanpur|khandwa|morena|bhind|vidisha|chhindwara|guna|shivpuri|durg|rajnandgaon|raigarh|ambikapur|jagdalpur|dhamtari|korba|bhilai|bilaspur|rourkela|berhampur|sambalpur|puri|balasore|bhadrak|baripada|baleshwar|jajpur|kendujhar|jagatsinghpur|kendrapara|guwahati|silchar|dibrugarh|jorhat|nagaon|tezpur|tinsukia|bongaigaon|dhubri|karimganj|goalpara|barpeta|lakhimpur|kokrajhar|nalbari|ranchi|jamshedpur|dhanbad|bokaro|deoghar|phusro|hazaribagh|giridih|ramgarh|medininagar|chaibasa|gumla|dumka|hazaribag|raipur|bhilai|bilaspur|korba|rajnandgaon|raigarh|ambikapur|jagdalpur|durg|dhamtari|dehradun|haridwar|roorkee|kashipur|rudrapur|haldwani|nainital|mussoorie|rishikesh|shimla|dharamshala|solan|baddi|parwanoo|una|palampur|mandi|chamba|kullu|manali|panaji|margao|vasco da gama|mapusa|ponda|bicholim|srinagar|jammu|baramulla|anantnag|sopore|udhampur|leh|kargil|imphal|aizawl|kohima|shillong|agartala|gangtok|itanagar|port blair|kavaratti|pondicherry|puducherry|daman|diu|silvassa)\b/);
   
   if (cityMatch) {
     const city = cityMatch[0];
@@ -652,7 +670,7 @@ export const processVoiceInput = (transcript: string): VoiceExtractedData => {
   ];
   
   for (const pattern of budgetPatterns) {
-    const match = transcript.match(pattern);
+    const match = cleanedText.match(pattern);
     if (match) {
       // Handle different pattern types
       let budgetValue: number | null = null;
@@ -681,8 +699,8 @@ export const processVoiceInput = (transcript: string): VoiceExtractedData => {
     }
   }
   
-  // Extract service type
-  const serviceType = identifyServiceType(transcript);
+  // Extract service type - use cleaned text for better recognition
+  const serviceType = identifyServiceType(cleanedText);
   if (serviceType) {
     extractedData.serviceType = serviceType;
     confidence += 0.4;

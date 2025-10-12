@@ -83,6 +83,8 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       'within': 'within',
       'budgetw': 'budget', // Speech recognition error correction
       'budget': 'budget',
+      // Special handling for mixed service + budget phrases
+      'uplakshya': 'within budget',
       // Telugu number mappings
       'oka': '1',
       'rendu': '2',
@@ -180,6 +182,18 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       const regex = new RegExp(telugu, 'gi');
       processed = processed.replace(regex, english);
     });
+
+    // Special handling for mixed service + budget phrases
+    // Fix cases like "photographer 1 lakh" being treated as location
+    processed = processed
+      .replace(/\bphotographer\s+(\d+)\s+(lakh|lakhs?)\b/gi, 'photographer budget $1 lakh')
+      .replace(/\bphotographer\s+one\s+(lakh|lakhs?)\b/gi, 'photographer budget 1 lakh')
+      .replace(/\bphotographer\s+oka\s+(lakh|lakhs?)\b/gi, 'photographer budget 1 lakh')
+      .replace(/\b(makeup|decorator|catering|dj|music|venue|planner)\s+(\d+)\s+(lakh|lakhs?)\b/gi, '$1 budget $2 lakh')
+      .replace(/\b(makeup|decorator|catering|dj|music|venue|planner)\s+(one|oka)\s+(lakh|lakhs?)\b/gi, '$1 budget 1 lakh')
+      .replace(/\bbudget\s+lo\b/gi, 'budget')
+      .replace(/\buplakshya\s+budget\b/gi, 'within budget')
+      .replace(/\bbudget\s+within\b/gi, 'within budget');
 
     // Clean up common speech recognition errors
     processed = processed

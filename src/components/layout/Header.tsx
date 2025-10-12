@@ -15,6 +15,7 @@ import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
 import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout, getCustomerNotifications, markAllCustomerNotificationsAsRead } from "@/services/supabaseService";
 import { getLikedVendors } from "@/services/likedVendorsApiService";
+import { CATEGORY_LIST } from "@/constants/categories";
 
 const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -247,43 +248,43 @@ const Header = () => {
               <MessageCircle className="h-4 w-4" />
               Smart Request
             </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
-                Categories <ChevronDown className="ml-1 h-4 w-4" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-56 animate-fade-in">
-              <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                  <Link to="/mandapas" className="w-full">
-                    Mandapas
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                  <Link to="/category/photography" className="w-full">
-                    Photography
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                  <Link to="/category/venues" className="w-full">
-                    Venues
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                  <Link to="/category/catering" className="w-full">
-                    Catering
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                  <Link to="/category/decor-design" className="w-full">
-                    Decor & Design
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                  <Link to="/category/attire-accessories" className="w-full">
-                    Attire & Accessories
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="categories-dropdown">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
+                  Categories <ChevronDown className="ml-1 h-4 w-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-64 animate-fade-in max-h-96 overflow-y-auto"
+                  side="bottom"
+                  align="start"
+                  sideOffset={8}
+                  avoidCollisions={true}
+                  collisionPadding={20}
+                  sticky="always"
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
+                  {CATEGORY_LIST.map((category) => {
+                    // Convert category name to URL-friendly format
+                    const categorySlug = category.name.toLowerCase()
+                      .replace(/\s+/g, '-')
+                      .replace(/\//g, '-')
+                      .replace(/,/g, '')
+                      .replace(/&/g, 'and');
+                    
+                    return (
+                      <DropdownMenuItem 
+                        key={category.code}
+                        className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2"
+                      >
+                        <Link to={`/vendors?category=${categorySlug}`} className="w-full">
+                          {category.name}
+                        </Link>
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
           </nav>
         </div>
@@ -293,34 +294,11 @@ const Header = () => {
           {customer ? (
             <div className="flex items-center space-x-3">
 
-              {/* Customer Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
-                  <User className="h-4 w-4 mr-2" />
-                  {customer.full_name}
-                  <ChevronDown className="ml-1 h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-48 animate-fade-in">
-                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                    <Link to="/customer-dashboard" className="w-full flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                    <Link to="/liked-vendors" className="w-full flex items-center">
-                      <Heart className="h-4 w-4 mr-2" />
-                      Liked Vendors
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                    <Link to="/my-vendors" className="w-full flex items-center">
-                      <Users className="h-4 w-4 mr-2" />
-                      My Vendors
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Customer Name Display */}
+              <div className="flex items-center text-white">
+                <User className="h-4 w-4 mr-2" />
+                {customer.full_name}
+              </div>
 
               {/* Liked Vendors Heart Icon */}
               <Link 

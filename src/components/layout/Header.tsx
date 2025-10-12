@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart, Users, Bell } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart, Users, Bell, LogOut } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
@@ -217,7 +217,7 @@ const Header = () => {
   return (
     <header
     className={`fixed top-0 left-0 right-0 z-50 py-3 transition-all duration-300 transform
-      ${scrolled ? "bg-wedding-navy/95 backdrop-blur-md shadow-sm" : "bg-wedding-navy/95 backdrop-blur-md"}
+      ${scrolled ? "bg-wedding-navy/95 backdrop-blur-md shadow-lg shadow-orange-500/20" : "bg-wedding-navy/95 backdrop-blur-md"}
       ${scrollDirection === "down" ? "-translate-y-full" : "translate-y-0"}
     `}
     style={{ zIndex: 9999, height: '80px' }}
@@ -286,29 +286,20 @@ const Header = () => {
               </DropdownMenu>
             </div>
 
-          </nav>
-        </div>
+            {/* Separator */}
+            <div className="w-px h-6 bg-white/30"></div>
 
-        {/* Auth buttons - kept on right */}
-        <div className="flex items-center space-x-3 z-50 relative">
-          {customer ? (
-            <div className="flex items-center space-x-3">
-
-              {/* Customer Name Display */}
-              <div className="flex items-center text-white">
-                <User className="h-4 w-4 mr-2" />
-                {customer.full_name}
-              </div>
-
+            {/* Quick Access Icons */}
+            <div className="flex items-center space-x-2">
               {/* Liked Vendors Heart Icon */}
               <Link 
                 to="/liked-vendors"
-                className="relative flex items-center text-white hover:text-red-400 transition-colors"
+                className="relative flex items-center text-white hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-white/10"
                 title="Liked Vendors"
               >
-                <Heart className="h-5 w-5" />
+                <Heart className="h-5 w-5 stroke-2" />
                 {likedVendorsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
                     {likedVendorsCount > 99 ? '99+' : likedVendorsCount}
                   </span>
                 )}
@@ -318,12 +309,12 @@ const Header = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative flex items-center text-white hover:text-wedding-orange transition-colors"
+                  className="relative flex items-center text-white hover:text-wedding-orange transition-colors p-2 rounded-lg hover:bg-white/10"
                   title="Notifications"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-5 w-5 stroke-2" />
                   {unreadNotificationsCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
                       {unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}
                     </span>
                   )}
@@ -389,14 +380,62 @@ const Header = () => {
                 )}
               </div>
 
-              {/* My Vendors Link */}
+              {/* My Vendors */}
               <Link 
                 to="/my-vendors"
-                className="text-white hover:text-orange-400 transition-colors font-medium"
-                title="My Vendors - Vendors I've contacted"
+                className="flex items-center text-white hover:text-orange-400 transition-colors p-2 rounded-lg hover:bg-white/10"
+                title="My Vendors"
               >
-                My Vendors
+                <Users className="h-5 w-5 stroke-2" />
               </Link>
+            </div>
+
+          </nav>
+        </div>
+
+        {/* Auth buttons - kept on right */}
+        <div className="flex items-center space-x-3 z-50 relative">
+          {customer ? (
+            <div className="flex items-center space-x-3">
+              {/* Profile Icon Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-colors p-2 rounded-lg hover:bg-white/10" title="My Profile">
+                  <User className="h-6 w-6 stroke-2" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-48 animate-fade-in"
+                  side="bottom"
+                  align="end"
+                  sideOffset={8}
+                  avoidCollisions={true}
+                  collisionPadding={20}
+                  sticky="always"
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
+                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
+                    <Link to="/customer-dashboard" className="w-full flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
+                    <Link to="/customer-profile" className="w-full flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      View Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <DropdownMenuItem 
+                    className="hover:bg-red-50 rounded-lg transition-custom cursor-pointer px-3 py-2 text-red-600"
+                    onClick={() => {
+                      logout();
+                    }}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ) : (
             <>

@@ -160,11 +160,11 @@ const Hero = () => {
       <div className="container-custom relative z-10 flex flex-col items-center h-full w-full">
         {/* Main content positioned in the upper-middle part of the hero */}
         <div className="flex flex-col items-center justify-center mt-[15vh] md:mt-[20vh] mb-10 w-full">
-          <div className="max-w-3xl mx-auto text-center mb-10">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold space text-white mb-4 leading-[1.1] animate-fade-up tracking-normal drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] whitespace-normal">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold space text-white mb-8 leading-[1.1] animate-fade-up tracking-normal drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] whitespace-normal">
             Crafting Celebrations Full of Heart and Magic!
             </h1>
-            <p className="text-sm md:text-base text-white/95 mb-2 max-w-2xl mx-auto animate-fade-up drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]" style={{ animationDelay: '100ms' }}>
+            <p className="text-base md:text-lg text-white/95 mb-4 max-w-2xl mx-auto animate-fade-up drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] font-medium" style={{ animationDelay: '100ms' }}>
             A–Z Event Tools & Top Vendors with Trusted Reviews!
             </p>
           </div>
@@ -174,8 +174,10 @@ const Hero = () => {
             {/* Smart Search Panel */}
             <div className="bg-gradient-to-br from-white/95 to-orange-50/95 backdrop-blur-xl p-8 md:p-10 rounded-3xl shadow-2xl border-2 border-orange-200/50 relative overflow-hidden">
               {/* Decorative Elements */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200/20 to-amber-200/20 rounded-full -translate-y-16 translate-x-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-amber-200/20 to-orange-200/20 rounded-full translate-y-12 -translate-x-12"></div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200/20 to-amber-200/20 rounded-full -translate-y-16 translate-x-16 animate-pulse"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-amber-200/20 to-orange-200/20 rounded-full translate-y-12 -translate-x-12 animate-pulse" style={{ animationDelay: '1s' }}></div>
+              <div className="absolute top-1/2 left-1/2 w-16 h-16 bg-gradient-to-br from-orange-300/10 to-amber-300/10 rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute top-1/4 left-1/4 w-12 h-12 bg-gradient-to-br from-amber-200/15 to-orange-200/15 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
               
               <div className="relative z-10">
                 {/* Smart Search Header */}
@@ -196,15 +198,15 @@ const Hero = () => {
                 {/* Smart Search Options */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   {/* Voice Input */}
-                  <div className="text-center p-6 bg-white/80 rounded-2xl border border-orange-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <Mic className="h-8 w-8 text-white animate-pulse" />
+                  <div className="text-center p-8 bg-gradient-to-br from-white/90 to-orange-50/90 rounded-2xl border border-orange-200/60 hover:shadow-xl hover:shadow-orange-200/30 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                    <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl hover:shadow-2xl hover:shadow-orange-300/50 transition-all duration-300 hover:scale-110">
+                      <Mic className="h-10 w-10 text-white animate-pulse hover:animate-bounce" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-2">Voice Input</h3>
-                    <p className="text-sm text-gray-600 mb-4">Speak naturally and let our AI understand your exact needs</p>
+                    <h3 className="text-xl font-bold text-gray-800 mb-3">Voice Input</h3>
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">Speak naturally and let our AI understand your exact needs</p>
                     <Link
                       to="/smart-request"
-                      className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                     >
                       <Mic className="h-4 w-4" />
                       Start Speaking
@@ -212,15 +214,15 @@ const Hero = () => {
                   </div>
 
                   {/* Text Input */}
-                  <div className="text-center p-6 bg-white/80 rounded-2xl border border-orange-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                    <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <MessageCircle className="h-8 w-8 text-white" />
+                  <div className="text-center p-8 bg-gradient-to-br from-white/90 to-amber-50/90 rounded-2xl border border-amber-200/60 hover:shadow-xl hover:shadow-amber-200/30 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                    <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl hover:shadow-2xl hover:shadow-amber-300/50 transition-all duration-300 hover:scale-110">
+                      <MessageCircle className="h-10 w-10 text-white hover:animate-pulse" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-2">Text Input</h3>
-                    <p className="text-sm text-gray-600 mb-4">Type your requirements in plain English, just like chatting</p>
+                    <h3 className="text-xl font-bold text-gray-800 mb-3">Text Input</h3>
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">Type your requirements in plain English, just like chatting</p>
                     <Link
                       to="/smart-request"
-                      className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                     >
                       <MessageCircle className="h-4 w-4" />
                       Start Typing
@@ -228,15 +230,15 @@ const Hero = () => {
                   </div>
 
                   {/* Smart Matching */}
-                  <div className="text-center p-6 bg-white/80 rounded-2xl border border-orange-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                    <div className="w-16 h-16 bg-gradient-to-br from-orange-600 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                      <Sparkles className="h-8 w-8 text-white" />
+                  <div className="text-center p-8 bg-gradient-to-br from-white/90 to-orange-50/90 rounded-2xl border border-orange-300/60 hover:shadow-xl hover:shadow-orange-300/30 transition-all duration-300 hover:scale-105 hover:-translate-y-1">
+                    <div className="w-20 h-20 bg-gradient-to-br from-orange-600 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl hover:shadow-2xl hover:shadow-orange-400/50 transition-all duration-300 hover:scale-110">
+                      <Sparkles className="h-10 w-10 text-white hover:animate-spin" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-2">Smart Matching</h3>
-                    <p className="text-sm text-gray-600 mb-4">Get perfect vendor matches based on your specific requirements</p>
+                    <h3 className="text-xl font-bold text-gray-800 mb-3">Smart Matching</h3>
+                    <p className="text-sm text-gray-600 mb-6 leading-relaxed">Get perfect vendor matches based on your specific requirements</p>
                     <Link
                       to="/smart-request"
-                      className="inline-flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-105"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
                     >
                       <Sparkles className="h-4 w-4" />
                       Get Matches
@@ -245,26 +247,26 @@ const Hero = () => {
                 </div>
 
                 {/* Example Queries */}
-                <div className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl border border-orange-200/50 mb-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">Try these examples:</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
-                      <p className="text-sm text-gray-700 font-medium">
+                <div className="bg-gradient-to-br from-white/70 to-orange-50/70 backdrop-blur-sm p-8 rounded-2xl border border-orange-200/60 mb-8 shadow-lg">
+                  <h3 className="text-xl font-bold text-gray-800 mb-6 text-center">Try these examples:</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-xl border-l-4 border-orange-400 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer hover:bg-gradient-to-r hover:from-orange-100 hover:to-amber-100">
+                      <p className="text-sm text-gray-700 font-medium leading-relaxed">
                         "Wedding photographer in Mumbai, budget 50k, traditional style"
                       </p>
                     </div>
-                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
-                      <p className="text-sm text-gray-700 font-medium">
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-xl border-l-4 border-orange-400 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer hover:bg-gradient-to-r hover:from-orange-100 hover:to-amber-100">
+                      <p className="text-sm text-gray-700 font-medium leading-relaxed">
                         "Birthday party decorator for 50 guests, Delhi, next month"
                       </p>
                     </div>
-                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
-                      <p className="text-sm text-gray-700 font-medium">
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-xl border-l-4 border-orange-400 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer hover:bg-gradient-to-r hover:from-orange-100 hover:to-amber-100">
+                      <p className="text-sm text-gray-700 font-medium leading-relaxed">
                         "Corporate event caterer, vegetarian, 200 people, Bangalore"
                       </p>
                     </div>
-                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border-l-4 border-orange-400">
-                      <p className="text-sm text-gray-700 font-medium">
+                    <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-xl border-l-4 border-orange-400 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer hover:bg-gradient-to-r hover:from-orange-100 hover:to-amber-100">
+                      <p className="text-sm text-gray-700 font-medium leading-relaxed">
                         "Mehendi artist for wedding, traditional designs, Hyderabad"
                       </p>
                     </div>
@@ -275,12 +277,12 @@ const Hero = () => {
                 <div className="text-center">
                   <Link
                     to="/smart-request"
-                    className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-8 py-4 rounded-xl text-xl font-bold shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+                    className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-10 py-5 rounded-2xl text-xl font-bold shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 hover:-translate-y-1 animate-pulse hover:animate-none"
                   >
-                    <Mic className="h-6 w-6" />
+                    <Mic className="h-6 w-6 hover:animate-bounce" />
                     <MessageCircle className="h-5 w-5" />
                     Make a Smart Request
-                    <Sparkles className="h-5 w-5" />
+                    <Sparkles className="h-5 w-5 hover:animate-spin" />
                   </Link>
                 </div>
               </div>
@@ -359,19 +361,19 @@ const Hero = () => {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                   <Button
                     onClick={handleSearch}
-                    className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-3 px-8 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+                    className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-4 px-10 rounded-2xl text-lg font-semibold shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 flex items-center gap-2 transition-all duration-300 hover:-translate-y-1"
                     aria-label="Find vendors for your event"
                   >
-                    <Users className="h-5 w-5" />
+                    <Users className="h-5 w-5 hover:animate-bounce" />
                     Browse Vendors
                   </Button>
                   
                   <Button
                     onClick={() => navigate('/voice-search')}
-                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-3 px-8 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white py-4 px-10 rounded-2xl text-lg font-semibold shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 flex items-center gap-2 transition-all duration-300 hover:-translate-y-1"
                     aria-label="Use voice search"
                   >
-                    <Mic className="h-5 w-5" />
+                    <Mic className="h-5 w-5 hover:animate-pulse" />
                     Voice Search
                   </Button>
                 </div>

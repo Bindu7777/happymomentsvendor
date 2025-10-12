@@ -40,6 +40,7 @@ import TestPage from "./pages/TestPage";
 import CustomerSignup from "./pages/CustomerSignup";
 import CustomerLogin from "./pages/CustomerLogin";
 import CustomerDashboard from "./pages/CustomerDashboard";
+import CustomerProfile from "./pages/CustomerProfile";
 import EmailVerification from "./pages/EmailVerification";
 import LikedVendors from "./pages/LikedVendors";
 import MyVendors from "./pages/MyVendors";
@@ -101,6 +102,10 @@ const App = () => {
                 <Route 
                   path="/customer-dashboard" 
                   element={<CustomerDashboard />} 
+                />
+                <Route 
+                  path="/customer-profile" 
+                  element={<CustomerProfile />} 
                 />
                 <Route 
                   path="/liked-vendors" 

@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Mic, MessageCircle, Heart, Users, Bell, LogOut } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bell, LogOut } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
@@ -31,6 +31,7 @@ const Header = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
@@ -191,6 +192,15 @@ const Header = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await customerSignOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
   const [scrollDirection, setScrollDirection] = useState<"up" | "down" | null>(null);
   const [lastScrollY, setLastScrollY] = useState(0);
   
@@ -240,14 +250,6 @@ const Header = () => {
 
           {/* Desktop Navigation - moved next to logo */}
           <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              to="/smart-request"
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 flex items-center gap-2"
-            >
-              <Mic className="h-5 w-5" />
-              <MessageCircle className="h-4 w-4" />
-              Smart Request
-            </Link>
             <div className="categories-dropdown">
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
@@ -286,11 +288,13 @@ const Header = () => {
               </DropdownMenu>
             </div>
 
-            {/* Separator */}
-            <div className="w-px h-6 bg-white/30"></div>
+          </nav>
+        </div>
 
-            {/* Quick Access Icons */}
-            <div className="flex items-center space-x-2">
+        {/* Right side navigation - properly aligned */}
+        <div className="flex items-center z-50 relative">
+          {customer ? (
+            <div className="flex items-center" style={{ gap: '24px' }}>
               {/* Liked Vendors Heart Icon */}
               <Link 
                 to="/liked-vendors"
@@ -380,26 +384,18 @@ const Header = () => {
                 )}
               </div>
 
-              {/* My Vendors */}
+              {/* My Vendors as Text Link */}
               <Link 
                 to="/my-vendors"
-                className="flex items-center text-white hover:text-orange-400 transition-colors p-2 rounded-lg hover:bg-white/10"
+                className="text-white hover:text-orange-400 transition-colors font-medium text-sm px-2 py-1 rounded hover:bg-white/10"
                 title="My Vendors"
               >
-                <Users className="h-5 w-5 stroke-2" />
+                My Vendors
               </Link>
-            </div>
 
-          </nav>
-        </div>
-
-        {/* Auth buttons - kept on right */}
-        <div className="flex items-center space-x-3 z-50 relative">
-          {customer ? (
-            <div className="flex items-center space-x-3">
-              {/* Profile Icon Dropdown */}
+              {/* Profile Icon Dropdown - styled as rounded button */}
               <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-colors p-2 rounded-lg hover:bg-white/10" title="My Profile">
+                <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-colors p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 shadow-lg" title="My Profile">
                   <User className="h-6 w-6 stroke-2" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
@@ -428,7 +424,7 @@ const Header = () => {
                   <DropdownMenuItem 
                     className="hover:bg-red-50 rounded-lg transition-custom cursor-pointer px-3 py-2 text-red-600"
                     onClick={() => {
-                      logout();
+                      setShowLogoutConfirm(true);
                     }}
                   >
                     <LogOut className="h-4 w-4 mr-2" />
@@ -492,15 +488,6 @@ const Header = () => {
         >
           <div className="container-custom py-4 flex flex-col space-y-4">
             <div className="flex flex-col space-y-2">
-              <Link
-                to="/smart-request"
-                className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-4 py-3 rounded-lg font-bold text-center transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Mic className="h-5 w-5" />
-                <MessageCircle className="h-4 w-4" />
-                Smart Request
-              </Link>
               <div className="py-2">
                 <div className="font-medium mb-2 text-white">Categories</div>
                 <div className="ml-4 flex flex-col space-y-2">
@@ -655,6 +642,42 @@ const Header = () => {
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold text-gray-800">
+              Are you sure?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Are you sure you want to logout? You will need to sign in again to access your account.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowLogoutConfirm(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  handleLogout();
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Logout
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

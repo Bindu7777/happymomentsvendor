@@ -15,7 +15,8 @@ import {
   Heart,
   Users,
   Bell,
-  Settings
+  Settings,
+  ArrowLeft
 } from 'lucide-react';
 
 const CustomerProfile = () => {
@@ -51,19 +52,19 @@ const CustomerProfile = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Profile Header */}
+      <main className="container mx-auto px-8 sm:px-12 pt-28 pb-8 max-w-4xl">
+        {/* Profile Header with Back Button */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
+          <div className="flex items-center gap-4 mb-6">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/customer-dashboard')}
-              className="flex items-center gap-2"
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 border-gray-300 hover:border-gray-400 bg-white shadow-sm"
             >
-              <Settings className="h-4 w-4" />
-              Dashboard
+              <ArrowLeft className="h-4 w-4" />
+              Back
             </Button>
+            <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
           </div>
           
           {/* Profile Card */}

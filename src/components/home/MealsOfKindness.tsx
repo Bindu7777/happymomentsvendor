@@ -5,7 +5,7 @@ const MealsOfKindness = () => {
   const whatsappNumber = '917330732710';
 
   return (
-    <section className="py-16 bg-gradient-to-br from-orange-50 via-white to-amber-50">
+    <section id="meals-of-kindness" className="py-16 bg-gradient-to-br from-orange-50 via-white to-amber-50">
       <div className="container-custom">
         <div className="max-w-4xl mx-auto">
           {/* Main Card */}

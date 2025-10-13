@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bell, LogOut, Headphones } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bell, LogOut, Headphones, Utensils } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
@@ -288,6 +288,21 @@ const Header = () => {
               </DropdownMenu>
             </div>
 
+            {/* Donate Food Button - Prominent placement */}
+            <button 
+              onClick={() => {
+                const element = document.getElementById('meals-of-kindness');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
+              className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-2 rounded-full font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              title="Donate Food - Meals of Kindness"
+            >
+              <Heart className="h-4 w-4" />
+              <span>Donate Food</span>
+            </button>
+
           </nav>
         </div>
 
@@ -544,6 +559,21 @@ const Header = () => {
               </div>
             </div>
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
+              {/* Donate Food Button for Mobile */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  const element = document.getElementById('meals-of-kindness');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
+                className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Heart className="h-5 w-5" />
+                Donate Food
+              </button>
+
               {/* Helpline Button for Mobile */}
               <Link
                 to="/contact"

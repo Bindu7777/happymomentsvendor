@@ -201,7 +201,7 @@ const Hero = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
                   {/* Voice Input */}
                   <div className="text-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-white/95 to-orange-50/95 rounded-xl md:rounded-2xl border border-orange-200/60 shadow-lg hover:shadow-2xl hover:shadow-orange-200/40 transition-all duration-300 hover:scale-105 hover:-translate-y-2 group">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl hover:shadow-2xl hover:shadow-orange-300/60 transition-all duration-300 hover:scale-110 group-hover:animate-bounce">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl hover:shadow-2xl hover:shadow-orange-300/60 transition-all duration-300 hover:scale-110">
                       <Mic className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
                     </div>
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Voice Input</h3>
@@ -210,14 +210,14 @@ const Hero = () => {
                       to="/smart-request"
                       className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 hover:-translate-y-1"
                     >
-                      <Mic className="h-4 w-4 group-hover:animate-bounce" />
+                      <Mic className="h-4 w-4" />
                       Start Speaking
                     </Link>
                   </div>
 
                   {/* Text Input */}
                   <div className="text-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-white/95 to-amber-50/95 rounded-xl md:rounded-2xl border border-amber-200/60 shadow-lg hover:shadow-2xl hover:shadow-amber-200/40 transition-all duration-300 hover:scale-105 hover:-translate-y-2 group">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl hover:shadow-2xl hover:shadow-amber-300/60 transition-all duration-300 hover:scale-110 group-hover:animate-pulse">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl hover:shadow-2xl hover:shadow-amber-300/60 transition-all duration-300 hover:scale-110">
                       <MessageCircle className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
                     </div>
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Text Input</h3>
@@ -226,14 +226,14 @@ const Hero = () => {
                       to="/smart-request"
                       className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 hover:-translate-y-1"
                     >
-                      <MessageCircle className="h-4 w-4 group-hover:animate-pulse" />
+                      <MessageCircle className="h-4 w-4" />
                       Start Typing
                     </Link>
                   </div>
 
                   {/* Smart Matching */}
                   <div className="text-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-white/95 to-orange-50/95 rounded-xl md:rounded-2xl border border-orange-300/60 shadow-lg hover:shadow-2xl hover:shadow-orange-300/40 transition-all duration-300 hover:scale-105 hover:-translate-y-2 group sm:col-span-2 lg:col-span-1">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-600 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl hover:shadow-2xl hover:shadow-orange-400/60 transition-all duration-300 hover:scale-110 group-hover:animate-spin">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-600 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl hover:shadow-2xl hover:shadow-orange-400/60 transition-all duration-300 hover:scale-110">
                       <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
                     </div>
                     <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Smart Matching</h3>
@@ -242,7 +242,7 @@ const Hero = () => {
                       to="/smart-request"
                       className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white px-6 py-3 rounded-xl text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 hover:-translate-y-1"
                     >
-                      <Sparkles className="h-4 w-4 group-hover:animate-spin" />
+                      <Sparkles className="h-4 w-4" />
                       Get Matches
                     </Link>
                   </div>
@@ -255,11 +255,11 @@ const Hero = () => {
                     to="/smart-request"
                     className="inline-flex items-center gap-2 md:gap-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white px-6 md:px-12 py-4 md:py-6 rounded-2xl md:rounded-3xl text-lg md:text-xl font-bold shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-300 hover:-translate-y-2 animate-pulse hover:animate-none group"
                   >
-                    <Mic className="h-5 w-5 md:h-6 md:w-6 group-hover:animate-spin" />
-                    <MessageCircle className="h-4 w-4 md:h-5 md:w-5 group-hover:animate-spin" />
+                    <Mic className="h-5 w-5 md:h-6 md:w-6" />
+                    <MessageCircle className="h-4 w-4 md:h-5 md:w-5" />
                     <span className="hidden sm:inline">Make a Smart Request</span>
                     <span className="sm:hidden">Smart Request</span>
-                    <Sparkles className="h-4 w-4 md:h-5 md:w-5 group-hover:animate-spin" />
+                    <Sparkles className="h-4 w-4 md:h-5 md:w-5" />
                   </Link>
                 </div>
               </div>
@@ -367,7 +367,7 @@ const Hero = () => {
                     className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white py-4 px-10 rounded-3xl text-lg font-semibold shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 flex items-center gap-2 transition-all duration-300 hover:-translate-y-2 group"
                     aria-label="Find vendors for your event"
                   >
-                    <Users className="h-5 w-5 group-hover:animate-bounce" />
+                    <Users className="h-5 w-5" />
                     Browse Vendors
                   </Button>
                 </div>

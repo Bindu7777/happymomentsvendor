@@ -18,6 +18,7 @@ import { AdminRoute } from "./pages/adminRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CustomerAuthProvider } from "./contexts/CustomerAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import AuthRequired from "./components/AuthRequired";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Mandapas from "./pages/mandapas";
 import GuestTracker from "./pages/guest";
@@ -147,27 +148,35 @@ const App = () => {
                 <Route path="/test/signup" element={<TestSignup />} />
                 <Route path="/test" element={<TestPage />} />
                 
-                {/* Category pages */}
+                {/* Category pages - No auth required, users can browse */}
                 <Route
                   path="/category/:category"
                   element={<CategoryVendors />}
                 />
                 <Route path="/categories" element={<Navigate to="/" />} />
                 
-                {/* Vendor pages */}
+                {/* Vendor pages - Viewable without login, actions require login */}
                 <Route path="/vendor/:vendorId" element={<VendorDetails />} />
                 <Route path="/vendor" element={<VendorDetails />} />
                 <Route path="/vendor-profile" element={<VendorProfile />} />
-                <Route path="/decor-profile" element={<DecorProfile />} />
+                <Route path="/decor-profile" element={
+                  <AuthRequired>
+                    <DecorProfile />
+                  </AuthRequired>
+                } />
                 <Route path="/photography-vendors" element={<PhotographyVendors />} />
                 <Route path="/photography-profile/:vendorId" element={<VendorProfile />} />
                 <Route path="/mandapas" element={<Mandapas />} />
-                <Route path="/guestTracker" element={<GuestTracker />} />
+                <Route path="/guestTracker" element={
+                  <AuthRequired>
+                    <GuestTracker />
+                  </AuthRequired>
+                } />
                 <Route path="/insta-edit-packages" element={<InstaEditPackages />} />
                 <Route path="/beautyvendor" element={<BeautyVendor />} />
+                <Route path="/vendors" element={<VendorsPage />} />
                 <Route path="/smart-request" element={<SmartRequest />} />
                 <Route path="/voice-search" element={<SmartVoiceRequest />} />
-                <Route path="/vendors" element={<VendorsPage />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/coming-soon" element={<ComingSoon />} />
                 

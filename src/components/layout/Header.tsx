@@ -583,37 +583,100 @@ const Header = () => {
                 <Headphones className="h-5 w-5" />
                 Helpline
               </Link>
-              <Button
-                onClick={() => {
-                  navigate('/signup');
-                  setMobileMenuOpen(false);
-                }}
-                variant="outline"
-                className="border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-4 py-3 rounded-lg font-medium text-center"
-              >
-                Sign Up
-              </Button>
-              <Button
-                onClick={() => {
-                  setLoginType('customer');
-                  setShowLoginModal(true);
-                  setMobileMenuOpen(false);
-                }}
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-3 rounded-lg font-medium text-center"
-              >
-                Customer Login
-              </Button>
-              <Button
-                onClick={() => {
-                  setLoginType('vendor');
-                  setShowLoginModal(true);
-                  setMobileMenuOpen(false);
-                }}
-                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-3 rounded-lg font-medium text-center"
-              >
-                Vendor Login
-              </Button>
+
+              {/* Mobile menu content based on login status */}
+              {customer ? (
+                // Logged in user mobile menu
+                <div className="flex flex-col space-y-2">
+                  {/* Liked Vendors */}
+                  <Link
+                    to="/liked-vendors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 text-white hover:text-red-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-red-400/50"
+                  >
+                    <Heart className="h-5 w-5" />
+                    Liked Vendors {likedVendorsCount > 0 && `(${likedVendorsCount})`}
+                  </Link>
+
+                  {/* My Vendors */}
+                  <Link
+                    to="/my-vendors"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
+                  >
+                    <Users className="h-5 w-5" />
+                    My Vendors
+                  </Link>
+
+                  {/* Notifications */}
+                  <button
+                    onClick={() => {
+                      setShowNotifications(!showNotifications);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
+                  >
+                    <Bell className="h-5 w-5" />
+                    Notifications {unreadNotificationsCount > 0 && `(${unreadNotificationsCount})`}
+                  </button>
+
+                  {/* Customer Dashboard */}
+                  <Link
+                    to="/customer-dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
+                  >
+                    <User className="h-5 w-5" />
+                    Dashboard
+                  </Link>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setShowLogoutConfirm(true);
+                    }}
+                    className="flex items-center justify-center gap-2 text-red-400 hover:text-red-300 transition-colors font-medium px-4 py-3 rounded-lg bg-red-500/10 border border-red-400/20 hover:border-red-400/50"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                // Not logged in user mobile menu
+                <div className="flex flex-col space-y-2">
+                  <Button
+                    onClick={() => {
+                      navigate('/customer-signup');
+                      setMobileMenuOpen(false);
+                    }}
+                    variant="outline"
+                    className="border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-4 py-3 rounded-lg font-medium text-center"
+                  >
+                    Sign Up
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigate('/customer-login');
+                      setMobileMenuOpen(false);
+                    }}
+                    variant="outline"
+                    className="border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-3 rounded-lg font-medium text-center"
+                  >
+                    Customer Login
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setLoginType('vendor');
+                      setShowLoginModal(true);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-3 rounded-lg font-medium text-center"
+                  >
+                    Vendor Login
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

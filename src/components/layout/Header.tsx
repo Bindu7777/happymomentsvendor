@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bell, LogOut } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bell, LogOut, Headphones } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
@@ -393,6 +393,16 @@ const Header = () => {
                 My Vendors
               </Link>
 
+              {/* Helpline Button */}
+              <Link 
+                to="/contact"
+                className="flex items-center gap-2 text-white hover:text-orange-400 transition-colors font-medium text-sm px-3 py-2 rounded-lg hover:bg-white/10 whitespace-nowrap border border-white/20 hover:border-orange-400/50"
+                title="Contact Support"
+              >
+                <Headphones className="h-4 w-4" />
+                <span className="hidden lg:inline">Helpline</span>
+              </Link>
+
               {/* Profile Icon Dropdown - styled as rounded button */}
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-colors p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 shadow-lg" title="My Profile">
@@ -435,6 +445,15 @@ const Header = () => {
             </div>
           ) : (
             <div className="hidden md:flex items-center space-x-3">
+              {/* Helpline Button for non-logged in users */}
+              <Link 
+                to="/contact"
+                className="flex items-center gap-2 text-white hover:text-orange-400 transition-colors font-medium text-sm px-3 py-2 rounded-lg hover:bg-white/10 border border-white/20 hover:border-orange-400/50"
+                title="Contact Support"
+              >
+                <Headphones className="h-4 w-4" />
+                <span className="hidden lg:inline">Helpline</span>
+              </Link>
               <button
                 onClick={() => {
                   console.log('Customer Sign Up clicked');
@@ -525,6 +544,15 @@ const Header = () => {
               </div>
             </div>
             <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
+              {/* Helpline Button for Mobile */}
+              <Link
+                to="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
+              >
+                <Headphones className="h-5 w-5" />
+                Helpline
+              </Link>
               <Button
                 onClick={() => {
                   navigate('/signup');

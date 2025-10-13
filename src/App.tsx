@@ -44,6 +44,8 @@ import CustomerProfile from "./pages/CustomerProfile";
 import EmailVerification from "./pages/EmailVerification";
 import LikedVendors from "./pages/LikedVendors";
 import MyVendors from "./pages/MyVendors";
+import Contact from "./pages/Contact";
+import ComingSoon from "./pages/ComingSoon";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -166,6 +168,8 @@ const App = () => {
                 <Route path="/smart-request" element={<SmartRequest />} />
                 <Route path="/voice-search" element={<SmartVoiceRequest />} />
                 <Route path="/vendors" element={<VendorsPage />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/coming-soon" element={<ComingSoon />} />
                 
                 {/* Redirect blog pages to home for now */}
                 <Route path="/blog/:blogId" element={<Navigate to="/" />} />

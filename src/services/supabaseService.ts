@@ -2118,3 +2118,87 @@ export const getVendorCalendarStats = async (vendorId: number) => {
     return null;
   }
 };
+
+// Review interface
+export interface Review {
+  id: number;
+  name: string;
+  state: string;
+  review: string;
+  rating: number;
+  created_at: string;
+}
+
+// Get all reviews
+export const getAllReviews = async (): Promise<{ success: boolean; data?: Review[]; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching reviews:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error in getAllReviews:', error);
+    return { success: false, error: 'Failed to fetch reviews' };
+  }
+};
+
+// Add a new review
+export const addReview = async (
+  name: string,
+  state: string,
+  review: string,
+  rating: number = 5
+): Promise<{ success: boolean; data?: Review; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .insert([
+        {
+          name,
+          state,
+          review,
+          rating
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error adding review:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in addReview:', error);
+    return { success: false, error: 'Failed to add review' };
+  }
+};
+
+// Get reviews by state
+export const getReviewsByState = async (state: string): Promise<{ success: boolean; data?: Review[]; error?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('state', state)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching reviews by state:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error('Error in getReviewsByState:', error);
+    return { success: false, error: 'Failed to fetch reviews by state' };
+  }
+};

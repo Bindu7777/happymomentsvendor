@@ -1,5 +1,5 @@
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Camera, Building2, Utensils, Flower2, ShoppingBag, Music, Users, Sparkles, Mic, Car, Tent } from 'lucide-react';
 import { CATEGORY_LIST } from '@/constants/categories';
 import { useState, useEffect } from 'react';
@@ -23,6 +23,7 @@ const categoryIcons = {
 const CategorySection = () => {
   const [vendorCounts, setVendorCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   // Generate categories from constants with icons and styling
   const categories = CATEGORY_LIST.map((category, index) => ({
@@ -97,19 +98,16 @@ const CategorySection = () => {
 
         {/* PlanPulse Tools Section */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">PlanPulse <br />
-              Ultimate Free Event Tools</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-navy-600 mb-4">Ultimate Free Event Tools</h2>
           <p className="text-wedding-gray max-w-2xl mx-auto">Smarter planning, happier celebrations!</p>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           {planPulseTools.map((tool, index) => (
-            <a 
+            <button 
               key={index}
-              href={tool.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group rounded-2xl border border-navy-300 bg-white p-6 text-center transition-all hover:shadow-card overflow-hidden relative animate-fade-up"
+              onClick={() => navigate('/coming-soon')}
+              className="group rounded-2xl border border-navy-300 bg-white p-6 text-center transition-all hover:shadow-card overflow-hidden relative animate-fade-up cursor-pointer"
               style={{ animationDelay: `${index * 50}ms` }}
             >
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-navy-100 text-navy-600 text-2xl transition-all duration-300 group-hover:scale-110">
@@ -119,18 +117,8 @@ const CategorySection = () => {
 
               {/* Background hover effect */}
               <div className="absolute inset-0 -z-10 bg-gradient-to-r from-navy-100/0 to-navy-200/0 opacity-0 group-hover:opacity-5 transition-all duration-300"></div>
-            </a>
+            </button>
           ))}
-        </div>
-
-        {/* View All Vendors Button */}
-        <div className="text-center mt-10">
-          <Link to="/categories" className="text-wedding-orange hover:text-wedding-orange-hover font-medium inline-flex items-center transition-custom text-lg">
-            View all categories
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
         </div>
 
       </div>

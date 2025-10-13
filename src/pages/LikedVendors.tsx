@@ -122,7 +122,7 @@ const LikedVendors = () => {
       <div className="container mx-auto px-4 py-8 main-content">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
+          <div className="flex items-baseline space-x-6">
             <button
               onClick={() => navigate(-1)}
               className="flex items-center text-gray-600 hover:text-wedding-orange transition-colors"
@@ -130,14 +130,18 @@ const LikedVendors = () => {
               <ArrowLeft className="h-5 w-5 mr-2" />
               Back
             </button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center">
-                <Heart className="h-8 w-8 mr-3 text-red-500 fill-red-500" />
+            <div className="flex items-baseline">
+              <Heart className="h-8 w-8 mr-3 text-red-500 fill-red-500" />
+              <h1 className="text-3xl font-bold text-gray-800">
                 Liked Vendors
               </h1>
-              <p className="text-gray-600 mt-1">Your favorite vendors for your special day</p>
             </div>
           </div>
+        </div>
+        
+        {/* Subtitle */}
+        <div className="mb-8">
+          <p className="text-gray-600">Your favorite vendors for your special day</p>
         </div>
 
         {/* Loading State */}

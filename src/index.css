@@ -9,6 +9,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* High-quality image rendering */
+@layer utilities {
+  .bg-high-quality {
+    image-rendering: high-quality;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+  
+  .bg-sharp {
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    will-change: transform;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

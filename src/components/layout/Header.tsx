@@ -226,30 +226,30 @@ const Header = () => {
   
   return (
     <header
-    className={`fixed top-0 left-0 right-0 z-50 py-3 transition-all duration-300 transform
+    className={`fixed top-0 left-0 right-0 z-50 py-2 md:py-3 transition-all duration-300 transform
       ${scrolled ? "bg-wedding-navy/95 backdrop-blur-md shadow-lg shadow-orange-500/20" : "bg-wedding-navy/95 backdrop-blur-md"}
       ${scrollDirection === "down" ? "-translate-y-full" : "translate-y-0"}
     `}
-    style={{ zIndex: 9999, height: '80px' }}
+    style={{ zIndex: 9999, height: 'auto', minHeight: '64px' }}
   >
-      <div className="container-custom flex items-center justify-between">
-        <div className="flex items-center space-x-8">
+      <div className="container-custom flex items-center justify-between px-4 md:px-6">
+        <div className="flex items-center space-x-2 md:space-x-8">
           {/* Logo with image - updated with white background */}
           <Link to="/" className="flex items-center">
-            <div className="bg-white rounded-full mx-1 h-8 w-8 flex items-center justify-center shadow-md">
+            <div className="bg-white rounded-full mx-1 h-6 w-6 md:h-8 md:w-8 flex items-center justify-center shadow-md">
               <img
                 src="/favicon.ico"
                 alt="HappyMoments Logo"
-                // className="w-8 rounded-full h-8"
+                className="w-4 h-4 md:w-6 md:h-6"
               />
             </div>
-            <span className="text-2xl font-bold text-white font-playfair">
+            <span className="text-lg md:text-2xl font-bold text-white font-playfair">
               Happy<span className="text-wedding-orange">Moments</span>
             </span>
           </Link>
 
           {/* Desktop Navigation - moved next to logo */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden lg:flex items-center space-x-8">
             <div className="categories-dropdown">
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-custom">
@@ -294,7 +294,7 @@ const Header = () => {
         {/* Right side navigation - properly aligned */}
         <div className="flex items-center z-50 relative">
           {customer ? (
-            <div className="flex items-center" style={{ gap: '24px' }}>
+            <div className="hidden md:flex items-center" style={{ gap: '16px' }}>
               {/* Liked Vendors Heart Icon */}
               <Link 
                 to="/liked-vendors"
@@ -387,7 +387,7 @@ const Header = () => {
               {/* My Vendors as Text Link */}
               <Link 
                 to="/my-vendors"
-                className="text-white hover:text-orange-400 transition-colors font-medium text-sm px-2 py-1 rounded hover:bg-white/10"
+                className="text-white hover:text-orange-400 transition-colors font-medium text-sm px-2 py-1 rounded hover:bg-white/10 whitespace-nowrap"
                 title="My Vendors"
               >
                 My Vendors
@@ -434,24 +434,24 @@ const Header = () => {
               </DropdownMenu>
             </div>
           ) : (
-            <>
+            <div className="hidden md:flex items-center space-x-3">
               <button
                 onClick={() => {
                   console.log('Customer Sign Up clicked');
                   navigate('/customer-signup');
                 }}
-                className="border-2 border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+                className="border-2 border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
               >
-                Customer Sign Up
+                Sign Up
               </button>
               <button
                 onClick={() => {
                   console.log('Customer Login clicked');
                   navigate('/customer-login');
                 }}
-                className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+                className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
               >
-                Customer Login
+                Login
               </button>
               <button
                 onClick={() => {
@@ -459,22 +459,22 @@ const Header = () => {
                   setLoginType('vendor');
                   setShowLoginModal(true);
                 }}
-                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-2 rounded-lg font-medium shadow-lg transition-all duration-200"
+                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
               >
-                Vendor Login
+                Vendor
               </button>
-            </>
+            </div>
           )}
         </div>
         {/* Mobile menu button */}
         <button
           onClick={toggleMobileMenu}
-          className="md:hidden rounded-full p-2 hover:bg-wedding-navy-hover transition-custom"
+          className="lg:hidden rounded-full p-2 hover:bg-wedding-navy-hover transition-custom"
         >
           {mobileMenuOpen ? (
-            <X className="h-6 w-6 text-white" />
+            <X className="h-5 w-5 md:h-6 md:w-6 text-white" />
           ) : (
-            <Menu className="h-6 w-6 text-white" />
+            <Menu className="h-5 w-5 md:h-6 md:w-6 text-white" />
           )}
         </button>
       </div>
@@ -482,7 +482,7 @@ const Header = () => {
       {/* Mobile menu - matching desktop transparency effect */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden absolute top-full left-0 right-0 ${
+          className={`lg:hidden absolute top-full left-0 right-0 ${
             scrolled ? "bg-wedding-navy/95" : "bg-wedding-navy/80"
           } backdrop-blur-md shadow-lg border-t border-white/10 animate-fade-in`}
         >

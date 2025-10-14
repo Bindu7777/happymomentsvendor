@@ -22,13 +22,15 @@ const Footer = () => {
               >
                 <Facebook className="h-5 w-5" />
               </Link>
-              <Link 
-                to="/" 
+              <a 
+                href="https://www.instagram.com/happymomentsupaya" 
+                target="_blank" 
+                rel="noopener noreferrer"
                 className="text-white/80 hover:text-wedding-orange transition-custom p-2 bg-wedding-navy-hover rounded-full"
                 aria-label="Instagram"
               >
                 <Instagram className="h-5 w-5" />
-              </Link>
+              </a>
               <Link 
                 to="/" 
                 className="text-white/80 hover:text-wedding-orange transition-custom p-2 bg-wedding-navy-hover rounded-full"

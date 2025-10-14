@@ -198,7 +198,7 @@ const SmartRequest: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pt-20 pb-8">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -405,87 +405,6 @@ const SmartRequest: React.FC = () => {
           </div>
         )}
 
-        {/* Features Section */}
-        {!matchingResult && (
-          <div className="mt-16">
-            <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-              Why Choose Smart Request?
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-                <CardContent>
-                  <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <MessageCircle className="h-8 w-8 text-orange-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">Natural Language</h3>
-                  <p className="text-gray-600">
-                    Describe your needs in plain English. No complex forms or filters to fill out.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-                <CardContent>
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Zap className="h-8 w-8 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">AI-Powered Matching</h3>
-                  <p className="text-gray-600">
-                    Our AI understands context and finds vendors that truly match your requirements.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-                <CardContent>
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="h-8 w-8 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">Smart Recommendations</h3>
-                  <p className="text-gray-600">
-                    Get personalized suggestions based on budget, location, and preferences.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-                <CardContent>
-                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Calendar className="h-8 w-8 text-purple-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">Availability Check</h3>
-                  <p className="text-gray-600">
-                    See vendor availability instantly for your event date.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-                <CardContent>
-                  <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users className="h-8 w-8 text-yellow-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">Multi-Service Bundling</h3>
-                  <p className="text-gray-600">
-                    Book multiple services in one go - photographer, makeup artist, decorator, and more.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-                <CardContent>
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <ShoppingCart className="h-8 w-8 text-red-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">Smart Cart</h3>
-                  <p className="text-gray-600">
-                    Compare vendors side-by-side and manage your selections easily.
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
 
         {/* Cart Sidebar */}
         {showCart && (

@@ -35,8 +35,6 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTimeout, setRecordingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [selectedLanguage, setSelectedLanguage] = useState<'en-IN' | 'te-IN' | 'auto'>('auto');
-  const [showConfirmation, setShowConfirmation] = useState(false);
-  const [extractedDetails, setExtractedDetails] = useState<any>(null);
   const [enhancedEntities, setEnhancedEntities] = useState<ExtractedEntities | null>(null);
   const [audioProcessingResult, setAudioProcessingResult] = useState<any>(null);
   
@@ -299,7 +297,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
     if (newText.trim().length > 10) {
       setIsProcessing(true);
       
-      // Debounce the parsing
+      // Debounce the parsing - only parse, don't submit automatically
       const timeoutId = setTimeout(async () => {
         try {
           // Use our improved voice processing service
@@ -325,43 +323,23 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
             setParsedRequest(parsed);
             onRequestParsed(parsed);
             
-            // Show confirmation UI for both voice and text input
             // Track voice search when it's processed
             if (isRecording || transcript) {
               await trackVoiceSearch(newText, voiceResult);
             }
             
-            setExtractedDetails({
-              eventType: parsed.eventType || 'Not specified',
-              services: voiceResult.serviceType ? [voiceResult.serviceType] : parsed.serviceTypes || [],
-              budget: voiceResult.budgetRange || parsed.budgetRange || 'Not specified',
-              location: voiceResult.state || voiceResult.city || parsed.location || 'Not specified',
-              duration: parsed.duration || 'Not specified',
-              guestCount: parsed.guestCount || 'Not specified',
-              additionalRequirements: parsed.additionalRequirements || [],
-              confidence: voiceResult.confidence,
-              language: 'en',
-              originalText: newText
-            });
-            setShowConfirmation(true);
+            // Only auto-submit for voice input, not manual typing
+            if (isRecording || transcript) {
+              onRequestSubmit(parsed);
+            }
           } else {
             setParsedRequest(null);
-            // Show partial results even if incomplete
-            setExtractedDetails({
-              eventType: parsed.eventType || 'Not specified',
-              services: voiceResult.serviceType ? [voiceResult.serviceType] : parsed.serviceTypes || [],
-              budget: voiceResult.budgetRange || parsed.budgetRange || 'Not specified',
-              location: voiceResult.state || voiceResult.city || parsed.location || 'Not specified',
-              duration: parsed.duration || 'Not specified',
-              guestCount: parsed.guestCount || 'Not specified',
-              additionalRequirements: parsed.additionalRequirements || [],
-              confidence: voiceResult.confidence,
-              language: 'en',
-              originalText: newText,
-              isIncomplete: true,
-              errors: validation.errors
-            });
-            setShowConfirmation(true);
+            // For invalid requests, still try to submit with available data only for voice input
+            if ((isRecording || transcript) && parsed.serviceTypes && parsed.serviceTypes.length > 0) {
+              setParsedRequest(parsed);
+              onRequestParsed(parsed);
+              onRequestSubmit(parsed);
+            }
           }
         } catch (error) {
           console.error('Error processing request:', error);
@@ -388,8 +366,6 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       setIsRecording(true);
       setIsListening(true);
       setTranscript('');
-      setShowConfirmation(false);
-      setExtractedDetails(null);
       recognition.start();
       
       // Set a timeout to stop recording after 30 seconds
@@ -436,155 +412,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
     }
   };
 
-  const navigateToVendors = () => {
-    if (!extractedDetails && !parsedRequest) return;
-    
-    // Build URL parameters from extracted details or parsed request
-    const params = new URLSearchParams();
-    
-    if (extractedDetails) {
-      // Use voice processing results
-      if (extractedDetails.services && extractedDetails.services.length > 0) {
-        // Map service type to the format expected by vendors page
-        const serviceMap: Record<string, string> = {
-          'photography': 'photography',
-          'makeup': 'makeup',
-          'decor': 'decor',
-          'catering': 'catering',
-          'venues': 'venues',
-          'music': 'music',
-          'attire': 'attire',
-          'planning': 'planning'
-        };
-        const serviceType = extractedDetails.services[0];
-        if (serviceMap[serviceType]) {
-          params.append('service', serviceMap[serviceType]);
-        }
-      }
-      
-      if (extractedDetails.location && extractedDetails.location !== 'Not specified') {
-        // Map location to the format expected by vendors page
-        const locationMap: Record<string, string> = {
-          'telangana': 'telangana',
-          'andhra pradesh': 'andhra-pradesh',
-          'tamil nadu': 'tamil-nadu',
-          'karnataka': 'karnataka',
-          'maharashtra': 'maharashtra',
-          'kerala': 'kerala',
-          'delhi': 'delhi',
-          'punjab': 'punjab',
-          'rajasthan': 'rajasthan',
-          'gujarat': 'gujarat',
-          'west bengal': 'west-bengal',
-          'uttar pradesh': 'uttar-pradesh'
-        };
-        const location = extractedDetails.location.toLowerCase();
-        if (locationMap[location]) {
-          params.append('location', locationMap[location]);
-        }
-      }
-      
-      if (extractedDetails.budget && extractedDetails.budget !== 'Not specified') {
-        // Map budget to the format expected by vendors page
-        const budgetMap: Record<string, string> = {
-          '₹10K - ₹50K': '10k-50k',
-          '₹50K - ₹1L': '50k-1l',
-          '₹1L - ₹3L': '1l-3l',
-          '₹3L - ₹10L': '3l-10l',
-          '₹10L - ₹15L': '10l-15l',
-          '₹15L - ₹25L': '15l-25l',
-          '₹25L - ₹50L': '25l-50l',
-          '₹50L - ₹1CR': '50l-1cr'
-        };
-        if (budgetMap[extractedDetails.budget]) {
-          params.append('budget', budgetMap[extractedDetails.budget]);
-        }
-      }
-    } else if (parsedRequest) {
-      // Use parsed request results
-      if (parsedRequest.serviceTypes && parsedRequest.serviceTypes.length > 0) {
-        const serviceMap: Record<string, string> = {
-          'photography': 'photography',
-          'makeup': 'makeup',
-          'decor': 'decor',
-          'catering': 'catering',
-          'venues': 'venues',
-          'music': 'music',
-          'attire': 'attire',
-          'planning': 'planning'
-        };
-        const serviceType = parsedRequest.serviceTypes[0];
-        if (serviceMap[serviceType]) {
-          params.append('service', serviceMap[serviceType]);
-        }
-      }
-      
-      if (parsedRequest.location) {
-        const locationMap: Record<string, string> = {
-          'telangana': 'telangana',
-          'andhra pradesh': 'andhra-pradesh',
-          'tamil nadu': 'tamil-nadu',
-          'karnataka': 'karnataka',
-          'maharashtra': 'maharashtra',
-          'kerala': 'kerala',
-          'delhi': 'delhi',
-          'punjab': 'punjab',
-          'rajasthan': 'rajasthan',
-          'gujarat': 'gujarat',
-          'west bengal': 'west-bengal',
-          'uttar pradesh': 'uttar-pradesh'
-        };
-        const location = parsedRequest.location.toLowerCase();
-        if (locationMap[location]) {
-          params.append('location', locationMap[location]);
-        }
-      }
-      
-      if (parsedRequest.budgetRange) {
-        const budgetMap: Record<string, string> = {
-          '10k-50k': '10k-50k',
-          '50k-1l': '50k-1l',
-          '1l-3l': '1l-3l',
-          '3l-10l': '3l-10l',
-          '10l-15l': '10l-15l',
-          '15l-25l': '15l-25l',
-          '25l-50l': '25l-50l',
-          '50l-1cr': '50l-1cr'
-        };
-        if (budgetMap[parsedRequest.budgetRange]) {
-          params.append('budget', budgetMap[parsedRequest.budgetRange]);
-        }
-      }
-    }
-    
-    // Navigate to vendors page with parameters
-    const url = `/vendors?${params.toString()}`;
-    console.log('Navigating to vendors page with URL:', url);
-    navigate(url);
-  };
 
-  const handleConfirmDetails = () => {
-    if (extractedDetails && parsedRequest) {
-      setShowConfirmation(false);
-      onRequestSubmit(parsedRequest);
-    }
-  };
-
-  const handleEditDetails = () => {
-    setShowConfirmation(false);
-    setIsEditing(true);
-  };
-
-  const handleReRecord = () => {
-    setShowConfirmation(false);
-    setText('');
-    setTranscript('');
-    setExtractedDetails(null);
-    setParsedRequest(null);
-    if (recognition) {
-      startRecording();
-    }
-  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -600,9 +428,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   const handleClearInput = () => {
     setText('');
     setTranscript('');
-    setExtractedDetails(null);
     setParsedRequest(null);
-    setShowConfirmation(false);
     setIsEditing(false);
     setIsProcessing(false);
     // Clear the textarea focus
@@ -713,6 +539,12 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                 ref={textareaRef}
                 value={text}
                 onChange={(e) => handleTextChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
                 placeholder="E.g., 'I need a wedding photographer and makeup artist for my wedding on 15th March in Hyderabad, budget around 1 lakh'"
                 className="min-h-[120px] text-lg pr-20"
                 disabled={isLoading}
@@ -919,7 +751,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t mt-4">
                   <Button
-                    onClick={navigateToVendors}
+                    onClick={handleSubmit}
                     className="bg-orange-500 hover:bg-orange-600 text-white flex-1"
                     disabled={!parsedRequest || (!parsedRequest.serviceTypes || parsedRequest.serviceTypes.length === 0)}
                   >
@@ -949,230 +781,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
         </Card>
       )}
 
-      {/* Voice Confirmation Modal */}
-      {showConfirmation && extractedDetails && (
-        <Card className="border-2 border-blue-200 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardTitle className="text-xl font-bold text-blue-800 flex items-center gap-2">
-              <Check className="h-5 w-5" />
-              Please confirm your request details
-            </CardTitle>
-            <p className="text-blue-600 text-sm">
-              We've extracted the following information from your input. Please review and confirm.
-            </p>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {/* Original Text */}
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Original input:</p>
-                <p className="text-gray-800 italic">"{extractedDetails.originalText}"</p>
-              </div>
 
-              {/* Enhanced Extracted Details */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                    <span className="font-medium text-gray-700">Event Type:</span>
-                    <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                      {extractedDetails.eventType}
-                    </Badge>
-                    {extractedDetails.confidence && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-600 text-xs">
-                        {Math.round(extractedDetails.confidence * 100)}% confidence
-                      </Badge>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-purple-600" />
-                    <span className="font-medium text-gray-700">Services:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {extractedDetails.services.map((service: string, index: number) => (
-                        <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
-                          {service}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-green-600" />
-                    <span className="font-medium text-gray-700">Budget:</span>
-                    {extractedDetails.budget && extractedDetails.budget !== 'Not specified' ? (
-                      <Badge variant="outline" className="bg-green-100 text-green-800">
-                        {formatBudget(extractedDetails.budget)}
-                      </Badge>
-                    ) : (
-                      <span className="text-gray-500 text-sm">Not specified</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-indigo-600" />
-                    <span className="font-medium text-gray-700">Duration:</span>
-                    <span className="text-sm text-gray-600">{extractedDetails.duration}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-purple-600" />
-                    <span className="font-medium text-gray-700">Location:</span>
-                    <Badge variant="outline" className="bg-green-100 text-green-800">
-                      {extractedDetails.location}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-purple-600" />
-                    <span className="font-medium text-gray-700">Guest Count:</span>
-                    <span className="text-sm text-gray-600">{extractedDetails.guestCount}</span>
-                  </div>
-
-                  {/* Language Detection */}
-                  {extractedDetails.language && (
-                    <div className="flex items-center gap-2">
-                      <Languages className="h-4 w-4 text-indigo-600" />
-                      <span className="font-medium text-gray-700">Language:</span>
-                      <Badge variant="outline" className="bg-indigo-100 text-indigo-800">
-                        {extractedDetails.language === 'en' ? 'English' : 
-                         extractedDetails.language === 'te' ? 'Telugu' : 'Mixed'}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Enhanced Preferences */}
-              {extractedDetails.preferences && Object.keys(extractedDetails.preferences).length > 0 && (
-                <div className="mt-4">
-                  <h4 className="font-medium text-gray-700 mb-2">Preferences:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {extractedDetails.preferences.gender && (
-                      <Badge variant="outline" className="bg-pink-100 text-pink-800">
-                        Gender: {extractedDetails.preferences.gender}
-                      </Badge>
-                    )}
-                    {extractedDetails.preferences.experience && (
-                      <Badge variant="outline" className="bg-purple-100 text-purple-800">
-                        Experience: {extractedDetails.preferences.experience}
-                      </Badge>
-                    )}
-                    {extractedDetails.preferences.style && extractedDetails.preferences.style.length > 0 && (
-                      extractedDetails.preferences.style.map((style: string, index: number) => (
-                        <Badge key={index} variant="outline" className="bg-yellow-100 text-yellow-800">
-                          Style: {style}
-                        </Badge>
-                      ))
-                    )}
-                    {extractedDetails.preferences.urgency && (
-                      <Badge variant="outline" className="bg-red-100 text-red-800">
-                        Urgency: {extractedDetails.preferences.urgency.replace('_', ' ')}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Additional Requirements */}
-              {extractedDetails.additionalRequirements && extractedDetails.additionalRequirements.length > 0 && (
-                <div>
-                  <span className="font-medium text-gray-700">Additional Requirements:</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {extractedDetails.additionalRequirements.map((req: string, index: number) => (
-                      <Badge key={index} variant="outline" className="bg-gray-100 text-gray-800 text-xs">
-                        {req}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Errors for incomplete requests */}
-              {extractedDetails.isIncomplete && extractedDetails.errors && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-yellow-800 font-medium text-sm mb-2">Some information is missing:</p>
-                  <ul className="text-yellow-700 text-sm space-y-1">
-                    {extractedDetails.errors.map((error: string, index: number) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <X className="h-3 w-3" />
-                        {error}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  onClick={navigateToVendors}
-                  className="bg-green-500 hover:bg-green-600 text-white flex-1"
-                  disabled={!extractedDetails || (!extractedDetails.services || extractedDetails.services.length === 0)}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Confirm & Find Vendors
-                </Button>
-                <Button
-                  onClick={handleEditDetails}
-                  variant="outline"
-                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                >
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit Details
-                </Button>
-                <Button
-                  onClick={handleReRecord}
-                  variant="outline"
-                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
-                >
-                  <Mic className="h-4 w-4 mr-2" />
-                  Re-record
-                </Button>
-                <Button
-                  onClick={handleClearInput}
-                  variant="outline"
-                  className="border-red-300 text-red-700 hover:bg-red-50"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear All
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Examples */}
-      <Card className="border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-lg text-gray-700">Need inspiration? Try these examples:</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {[
-              "Wedding photographer and makeup artist for 15th March in Hyderabad, budget 1 lakh",
-              "Birthday decoration for my daughter's 5th birthday next week in Bangalore",
-              "Corporate event planner for our annual conference in Mumbai, 200 guests",
-              "DJ and lighting for wedding reception on 20th April in Chennai"
-            ].map((example, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                className="text-left justify-start h-auto p-3 text-sm hover:bg-orange-50 hover:border-orange-200"
-                onClick={() => {
-                  setText(example);
-                  handleTextChange(example);
-                }}
-              >
-                {example}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

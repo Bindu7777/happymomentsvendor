@@ -304,33 +304,33 @@ const VendorsPage = () => {
       <Header />
       
       {/* Smart Request Input Section - Compact */}
-      <div className="relative py-4 mt-16 overflow-hidden">
+      <div className="relative py-2 mt-12 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-600 via-orange-500 to-orange-400"></div>
         
         <div className="container mx-auto px-4 relative z-10">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-3 mb-2">
             <Button
               variant="ghost"
               onClick={() => navigate('/')}
-              className="text-white hover:bg-white/20 p-2 rounded-xl transition-all duration-200 backdrop-blur-sm"
+              className="text-white hover:bg-white/20 p-1.5 rounded-lg transition-all duration-200 backdrop-blur-sm"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </Button>
             <div className="flex-1">
-              <h2 className="text-lg font-semibold text-white drop-shadow-lg mb-3">
+              <h2 className="text-base font-semibold text-white drop-shadow-lg mb-2">
                 Your Smart Request
               </h2>
               
               {/* Compact Smart Request Input */}
               <Card className="border border-orange-200 shadow-md">
-                <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 py-4">
-                  <div className="flex items-center gap-2 mb-2">
+                <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 py-2">
+                  <div className="flex items-center gap-1.5 mb-1">
                     <Volume2 className="h-4 w-4 text-orange-600" />
-                    <span className="text-sm font-semibold text-orange-800">Edit your request:</span>
+                    <span className="text-xs font-semibold text-orange-800">Edit your request:</span>
                   </div>
                   
                   {/* Compact Language Selection */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Languages className="h-3 w-3 text-orange-600" />
                     <span className="text-xs text-orange-700">Language:</span>
                     <div className="flex gap-1">
@@ -344,7 +344,7 @@ const VendorsPage = () => {
                           variant={selectedLanguage === lang.value ? 'default' : 'outline'}
                           size="sm"
                           onClick={() => setSelectedLanguage(lang.value as any)}
-                          className={`text-xs h-6 px-2 ${selectedLanguage === lang.value ? 'bg-orange-500 text-white' : 'border-orange-300 text-orange-700 hover:bg-orange-50'}`}
+                          className={`text-xs h-5 px-1.5 ${selectedLanguage === lang.value ? 'bg-orange-500 text-white' : 'border-orange-300 text-orange-700 hover:bg-orange-50'}`}
                         >
                           {lang.flag} {lang.label}
                         </Button>
@@ -359,8 +359,8 @@ const VendorsPage = () => {
                     </div>
                   )}
                 </CardHeader>
-                <CardContent className="p-4">
-                  <div className="space-y-3">
+                <CardContent className="p-3">
+                  <div className="space-y-2">
                     {/* Compact Text Input */}
                     <div className="relative">
                       <Textarea
@@ -382,75 +382,75 @@ const VendorsPage = () => {
                         className="min-h-[60px] text-sm pr-16"
                         disabled={loading}
                       />
-                      
-                      {/* Compact Action Buttons */}
-                      <div className="absolute bottom-2 right-2 flex gap-1">
-                        {/* Clear Button */}
-                        {(originalSmartRequest || searchQuery) && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setOriginalSmartRequest('');
-                              setSearchQuery('');
-                            }}
-                            disabled={loading}
-                            className="h-6 w-6 p-0 bg-white hover:bg-red-50 border-red-300 hover:border-red-400 text-red-600 hover:text-red-700"
-                            title="Clear input"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
                         
-                        {!isRecording ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
+                      {/* Compact Action Buttons */}
+                      <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                        {/* Clear Button */}
+                          {(originalSmartRequest || searchQuery) && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setOriginalSmartRequest('');
+                                setSearchQuery('');
+                              }}
+                              disabled={loading}
+                            className="h-5 w-5 p-0 bg-white hover:bg-red-50 border-red-300 hover:border-red-400 text-red-600 hover:text-red-700"
+                              title="Clear input"
+                            >
+                            <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                          
+                          {!isRecording ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
                             onClick={() => {
                               // Voice recording functionality would go here
                               console.log('Start recording');
                             }}
-                            disabled={loading}
-                            className="h-6 w-6 p-0 bg-white hover:bg-gray-50 border-orange-300 hover:border-orange-400"
-                            title="Start voice recording"
-                          >
-                            <Mic className="h-3 w-3" />
-                          </Button>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
+                              disabled={loading}
+                            className="h-5 w-5 p-0 bg-white hover:bg-gray-50 border-orange-300 hover:border-orange-400"
+                              title="Start voice recording"
+                            >
+                            <Mic className="h-4 w-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
                             onClick={() => {
                               setIsRecording(false);
                               console.log('Stop recording');
                             }}
-                            className="h-6 w-6 p-0 animate-pulse bg-red-500 hover:bg-red-600"
-                            title="Stop voice recording"
-                          >
-                            <MicOff className="h-3 w-3" />
-                          </Button>
-                        )}
-                        
-                        <Button
-                          type="button"
-                          onClick={() => {
-                            // Re-search with updated query
-                            const params = new URLSearchParams(searchParams);
-                            params.set('query', originalSmartRequest || searchQuery);
-                            setSearchParams(params);
-                          }}
-                          disabled={!originalSmartRequest && !searchQuery}
-                          className="h-6 w-6 p-0 bg-orange-500 hover:bg-orange-600 text-white"
-                        >
-                          {loading ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Send className="h-3 w-3" />
+                            className="h-5 w-5 p-0 animate-pulse bg-red-500 hover:bg-red-600"
+                              title="Stop voice recording"
+                            >
+                            <MicOff className="h-4 w-4" />
+                            </Button>
                           )}
-                        </Button>
+                          
+                          <Button
+                            type="button"
+                            onClick={() => {
+                            // Re-search with updated query
+                              const params = new URLSearchParams(searchParams);
+                              params.set('query', originalSmartRequest || searchQuery);
+                              setSearchParams(params);
+                            }}
+                            disabled={!originalSmartRequest && !searchQuery}
+                          className="h-5 w-5 p-0 bg-orange-500 hover:bg-orange-600 text-white"
+                          >
+                            {loading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </Button>
                       </div>
                     </div>
 
@@ -471,13 +471,13 @@ const VendorsPage = () => {
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
             </div>
           </div>
         </div>
         
-        <div className="absolute bottom-0 left-0 right-0 h-4 bg-white rounded-t-2xl shadow-inner"></div>
+        <div className="absolute bottom-0 left-0 right-0 h-2 bg-white rounded-t-2xl shadow-inner"></div>
       </div>
 
       {/* Compact Filters Section */}
@@ -570,22 +570,22 @@ const VendorsPage = () => {
                   className="pl-8 h-9 border border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm"
                 />
               </div>
-            </div>
-            
+              </div>
+
             {/* Additional Filters Toggle Button */}
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                 className="h-9 border border-gray-200 hover:border-orange-400 text-gray-700 hover:text-orange-600 transition-all duration-200 text-sm"
-              >
+                >
                 <SlidersHorizontal className="w-3 h-3 mr-1" />
-                {showAdvancedFilters ? 'Hide' : 'More'}
+                  {showAdvancedFilters ? 'Hide' : 'More'}
                 <ChevronDown className={`w-3 h-3 ml-1 transition-transform duration-200 ${showAdvancedFilters ? 'rotate-180' : ''}`} />
-              </Button>
+                </Button>
+              </div>
             </div>
-          </div>
-          
+            
           {/* Advanced Filters - Only shown when showAdvancedFilters is true */}
           {showAdvancedFilters && (
             <div className="border-t border-gray-200 pt-3 mb-3">
@@ -744,6 +744,17 @@ const VendorsPage = () => {
                         )}
                       </div>
 
+                      {/* Experience and Availability */}
+                      <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{vendor.experience_years || 1} year{vendor.experience_years !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span>Available: {vendor.currently_available ? 'Yes' : 'No'}</span>
+                        </div>
+                      </div>
+
                       {/* Specialty Tags */}
                       <div className="flex flex-wrap gap-1 mb-3">
                         {vendor.specialties && Array.isArray(vendor.specialties) && 
@@ -796,6 +807,24 @@ const VendorsPage = () => {
                           >
                             View Profile
                           </Button>
+                        </div>
+                        
+                        {/* Add to Compare Button */}
+                        <Button
+                          variant="outline"
+                          className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 py-2 text-sm font-medium rounded-lg"
+                          onClick={(e) => { e.stopPropagation(); }}
+                        >
+                          Add to Compare
+                        </Button>
+                      </div>
+                      
+                      {/* Verified Professional Footer */}
+                      <div className="mt-3 pt-2 border-t border-gray-100">
+                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
+                          <span>0</span>
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Verified Professional</span>
                         </div>
                       </div>
                     </div>

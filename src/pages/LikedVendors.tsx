@@ -249,7 +249,7 @@ const LikedVendors = () => {
                     <div className="p-4">
                       {/* Vendor Info */}
                       <div className="mb-3">
-                        <h3 className="vendor-name text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors">
+                        <h3 className="vendor-name text-lg font-bold text-amber-600 mb-1 group-hover:text-amber-700 transition-colors">
                           {vendor.brand_name}
                         </h3>
                         <p className="text-xs text-amber-600 font-medium mb-1">{vendor.category}</p>

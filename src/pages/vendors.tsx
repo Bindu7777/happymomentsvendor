@@ -300,37 +300,38 @@ const VendorsPage = () => {
   // WhatsApp integration - now handled by WhatsAppButton component
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50/30 via-white to-orange-50/30">
-      <Header />
-      
-      {/* Smart Request Input Section - Compact */}
-      <div className="relative py-2 mt-12 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50/30 via-white to-orange-50/30 pb-8">
+      {/* Smart Request Input Section - Fixed Layout */}
+      <div className="relative py-4 mt-0 overflow-visible min-h-[180px]">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-600 via-orange-500 to-orange-400"></div>
         
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <Button
-              variant="ghost"
-              onClick={() => navigate('/')}
-              className="text-white hover:bg-white/20 p-1.5 rounded-lg transition-all duration-200 backdrop-blur-sm"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex-1">
-              <h2 className="text-base font-semibold text-white drop-shadow-lg mb-2">
-                Your Smart Request
-              </h2>
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+          <div className="mb-3">
+            {/* Main Content Area with Back Button */}
+            <div className="flex items-start gap-4">
+              {/* Back Button */}
+              <div className="flex-shrink-0 mt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => window.history.back()}
+                  className="bg-white/90 hover:bg-white border-white/50 text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg shadow-sm"
+                >
+                  <ChevronLeft className="w-4 h-4 mr-2" />
+                  Back
+                </Button>
+              </div>
               
-              {/* Compact Smart Request Input */}
-              <Card className="border border-orange-200 shadow-md">
-                <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 py-2">
-                  <div className="flex items-center gap-1.5 mb-1">
+              {/* Smart Request Input Card */}
+              <div className="flex-1">
+              <Card className="border border-orange-200 shadow-lg mx-0 w-full relative z-20 mb-3">
+                <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 py-3 px-4">
+                  <div className="flex items-center gap-2 mb-2">
                     <Volume2 className="h-4 w-4 text-orange-600" />
-                    <span className="text-xs font-semibold text-orange-800">Edit your request:</span>
+                    <span className="text-sm font-semibold text-orange-800">Edit your request:</span>
                   </div>
                   
-                  {/* Compact Language Selection */}
-                  <div className="flex items-center gap-1.5">
+                  {/* Language Selection */}
+                  <div className="flex items-center gap-2">
                     <Languages className="h-3 w-3 text-orange-600" />
                     <span className="text-xs text-orange-700">Language:</span>
                     <div className="flex gap-1">
@@ -339,7 +340,7 @@ const VendorsPage = () => {
                         { value: 'en-IN', label: 'EN', flag: '🇮🇳' },
                         { value: 'te-IN', label: 'TE', flag: '🇮🇳' }
                       ].map((lang) => (
-                        <Button
+            <Button
                           key={lang.value}
                           variant={selectedLanguage === lang.value ? 'default' : 'outline'}
                           size="sm"
@@ -347,7 +348,7 @@ const VendorsPage = () => {
                           className={`text-xs h-5 px-1.5 ${selectedLanguage === lang.value ? 'bg-orange-500 text-white' : 'border-orange-300 text-orange-700 hover:bg-orange-50'}`}
                         >
                           {lang.flag} {lang.label}
-                        </Button>
+            </Button>
                       ))}
                     </div>
                   </div>
@@ -359,8 +360,8 @@ const VendorsPage = () => {
                     </div>
                   )}
                 </CardHeader>
-                <CardContent className="p-3">
-                  <div className="space-y-2">
+                  <CardContent className="p-4">
+                  <div className="space-y-3">
                     {/* Compact Text Input */}
                     <div className="relative">
                       <Textarea
@@ -379,12 +380,12 @@ const VendorsPage = () => {
                           }
                         }}
                         placeholder="Describe what you need for your event..."
-                        className="min-h-[60px] text-sm pr-16"
+                        className="min-h-[60px] text-sm pr-20"
                         disabled={loading}
                       />
                         
-                      {/* Compact Action Buttons */}
-                      <div className="absolute bottom-1.5 right-1.5 flex gap-1">
+                      {/* Action Buttons */}
+                      <div className="absolute bottom-2 right-2 flex gap-2">
                         {/* Clear Button */}
                           {(originalSmartRequest || searchQuery) && (
                             <Button
@@ -473,6 +474,7 @@ const VendorsPage = () => {
                   </div>
                   </CardContent>
                 </Card>
+              </div>
             </div>
           </div>
         </div>
@@ -480,23 +482,11 @@ const VendorsPage = () => {
         <div className="absolute bottom-0 left-0 right-0 h-2 bg-white rounded-t-2xl shadow-inner"></div>
       </div>
 
-      {/* Compact Filters Section */}
-      <div className="container mx-auto px-4 py-3 -mt-1">
-        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 p-4 mb-4">
-          {/* Clear Filters Button - Moved to top */}
-          <div className="text-right mb-4">
-            <Button
-              onClick={clearAllFilters}
-              variant="outline"
-              size="sm"
-              className="border-orange-200 text-orange-600 hover:bg-orange-50 text-sm"
-            >
-              Clear All Filters
-            </Button>
-          </div>
-          
+      {/* Filters Section */}
+      <div className="container mx-auto px-4 sm:px-6 py-4 mt-2">
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 p-3 mb-4">
           {/* Main Filter Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             {/* Service Type */}
             <div className="flex-1">
               <label htmlFor="service-type" className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
@@ -555,82 +545,86 @@ const VendorsPage = () => {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
           </div>
-          
-          {/* Search and Sort Row */}
-          <div className="flex flex-col md:flex-row gap-3 mb-3">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
+          </div>
+
+          {/* Clear Filters and More Filters Buttons - Moved below budget */}
+          <div className="flex justify-end gap-2 mb-3 flex-wrap">
+            {/* Additional Filters - Only shown when More Filters is clicked */}
+            {showAdvancedFilters && (
+              <>
+                {/* Price Filter */}
+                <Select value={priceFilter} onValueChange={setPriceFilter}>
+                  <SelectTrigger className="w-28 h-9 border border-gray-200 focus:border-orange-400 text-sm">
+                    <SelectValue placeholder="All Prices" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="budget">Under ₹35k</SelectItem>
+                    <SelectItem value="mid">₹35k-45k</SelectItem>
+                    <SelectItem value="premium">Above ₹45k</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Rating Filter */}
+                <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                  <SelectTrigger className="w-28 h-9 border border-gray-200 focus:border-orange-400 text-sm">
+                    <SelectValue placeholder="Ratings" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Ratings</SelectItem>
+                    <SelectItem value="4+">4+ Stars</SelectItem>
+                    <SelectItem value="3+">3+ Stars</SelectItem>
+                    <SelectItem value="2+">2+ Stars</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                {/* Sort Filter */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-32 h-9 border border-gray-200 focus:border-orange-400 text-sm">
+                    <SelectValue placeholder="Top Rated" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rating">Top Rated</SelectItem>
+                    <SelectItem value="price-low">Price ↑</SelectItem>
+                    <SelectItem value="price-high">Price ↓</SelectItem>
+                    <SelectItem value="experience">Experience</SelectItem>
+                    <SelectItem value="reviews">Most Reviews</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Search Bar - Reduced width, placed beside Top Rated */}
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
                 <Input
-                  placeholder="Search vendors by name, specialty, or location..."
+                  placeholder="Search vendors..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 h-9 border border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm"
+                    className="pl-8 h-9 w-48 border border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm"
                 />
               </div>
-              </div>
+              </>
+            )}
 
-            {/* Additional Filters Toggle Button */}
-            <div className="flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="h-9 border border-gray-200 hover:border-orange-400 text-gray-700 hover:text-orange-600 transition-all duration-200 text-sm"
-                >
-                <SlidersHorizontal className="w-3 h-3 mr-1" />
-                  {showAdvancedFilters ? 'Hide' : 'More'}
-                <ChevronDown className={`w-3 h-3 ml-1 transition-transform duration-200 ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+              className="h-9 border border-gray-200 hover:border-orange-400 text-gray-700 hover:text-orange-600 transition-all duration-200 text-sm"
+            >
+              <SlidersHorizontal className="w-3 h-3 mr-1" />
+              {showAdvancedFilters ? 'Hide Filters' : 'More Filters'}
+              <ChevronDown className={`w-3 h-3 ml-1 transition-transform duration-200 ${showAdvancedFilters ? 'rotate-180' : ''}`} />
                 </Button>
-              </div>
+                <Button
+                  onClick={clearAllFilters}
+                  variant="outline"
+              size="sm"
+              className="border-orange-200 text-orange-600 hover:bg-orange-50 text-sm"
+                >
+              Clear All Filters
+                </Button>
             </div>
             
-          {/* Advanced Filters - Only shown when showAdvancedFilters is true */}
-          {showAdvancedFilters && (
-            <div className="border-t border-gray-200 pt-3 mb-3">
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex gap-2 flex-wrap">
-              <Select value={priceFilter} onValueChange={setPriceFilter}>
-                    <SelectTrigger className="w-28 h-9 border border-gray-200 focus:border-orange-400 text-sm">
-                  <SelectValue placeholder="Price" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Prices</SelectItem>
-                  <SelectItem value="budget">Under ₹35k</SelectItem>
-                  <SelectItem value="mid">₹35k-45k</SelectItem>
-                  <SelectItem value="premium">Above ₹45k</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                    <SelectTrigger className="w-28 h-9 border border-gray-200 focus:border-orange-400 text-sm">
-                  <SelectValue placeholder="Rating" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Ratings</SelectItem>
-                  <SelectItem value="4+">4+ Stars</SelectItem>
-                  <SelectItem value="3+">3+ Stars</SelectItem>
-                  <SelectItem value="2+">2+ Stars</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-32 h-9 border border-gray-200 focus:border-orange-400 text-sm">
-                  <SelectValue placeholder="Sort By" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="rating">Top Rated</SelectItem>
-                  <SelectItem value="price-low">Price ↑</SelectItem>
-                  <SelectItem value="price-high">Price ↓</SelectItem>
-                  <SelectItem value="experience">Experience</SelectItem>
-                  <SelectItem value="reviews">Most Reviews</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          </div>
-          )}
         </div>
       </div>
 
@@ -638,15 +632,9 @@ const VendorsPage = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="text-2xl font-bold text-gray-900">
               {filteredAndSortedVendors.length} Vendors Found
             </h2>
-            <p className="text-gray-600">
-              Showing results for all events
-              {serviceType !== 'all' && ` • ${serviceTypes.find(s => s.value === serviceType)?.label}`}
-              {location !== 'all' && ` • ${cities.find(c => c.value === location)?.label}`}
-              {budget !== 'all' && ` • ${budgetRanges.find(b => b.value === budget)?.label}`}
-            </p>
           </div>
         </div>
 

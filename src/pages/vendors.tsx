@@ -13,6 +13,7 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 import { Vendor } from '@/lib/supabase';
 import { getAllVendors } from '@/services/supabaseService';
 import { parseRequest, validateParsedRequest, ParsedRequest } from '../services/requestParser';
+import { useVoiceProcessing } from '@/hooks/useVoiceProcessing';
 
 
 // Service types for dropdown
@@ -92,18 +93,27 @@ const VendorsPage = () => {
   const [location, setLocation] = useState(searchParams.get('location') || 'all');
   const [budget, setBudget] = useState(searchParams.get('budget') || 'all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('query') || '');
+  const [displayQuery, setDisplayQuery] = useState(searchParams.get('query') || 'wedding photographer in 1 lakhs budget in hyderabad');
   const [originalSmartRequest, setOriginalSmartRequest] = useState(searchParams.get('original') || '');
   const [priceFilter, setPriceFilter] = useState('all');
   const [ratingFilter, setRatingFilter] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
   
-  // Voice recording states
-  const [isRecording, setIsRecording] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  // Voice processing hook
+  const {
+    isListening,
+    transcript,
+    extractedData,
+    startListening,
+    stopListening,
+    processTranscript,
+    clearData,
+    error: voiceError
+  } = useVoiceProcessing();
+  
+  // Additional voice states
   const [parsedRequest, setParsedRequest] = useState<ParsedRequest | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-  const [transcript, setTranscript] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'en-IN' | 'te-IN' | 'auto'>('auto');
   
@@ -141,20 +151,147 @@ const VendorsPage = () => {
     setSearchParams(params, { replace: true });
   }, [serviceType, location, budget, setSearchParams]);
 
+  // Sync displayQuery with searchQuery when URL changes
+  useEffect(() => {
+    const urlQuery = searchParams.get('query') || '';
+    if (urlQuery !== searchQuery) {
+      setSearchQuery(urlQuery);
+      setDisplayQuery(urlQuery);
+    }
+  }, [searchParams]);
+
+  // Trigger vendor filtering when searchQuery changes
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      console.log('🔍 Search query changed, filtering vendors:', searchQuery);
+      console.log('🔍 Current serviceType state:', serviceType);
+      
+      // Parse the search query to extract meaningful data
+      const parseQuery = (query: string) => {
+        const lowerQuery = query.toLowerCase();
+        
+        // Extract service type
+        let extractedServiceType = 'all'; // default to show all
+        if (lowerQuery.includes('photograph') || lowerQuery.includes('camera') || lowerQuery.includes('video')) {
+          extractedServiceType = 'photography';
+        } else if (lowerQuery.includes('makeup') || lowerQuery.includes('beauty')) {
+          extractedServiceType = 'makeup';
+        } else if (lowerQuery.includes('decor') || lowerQuery.includes('decoration')) {
+          extractedServiceType = 'decor';
+        } else if (lowerQuery.includes('cater') || lowerQuery.includes('food')) {
+          extractedServiceType = 'catering';
+        } else if (lowerQuery.includes('venue') || lowerQuery.includes('hall')) {
+          extractedServiceType = 'venues';
+        } else if (lowerQuery.includes('music') || lowerQuery.includes('dj')) {
+          extractedServiceType = 'music';
+        } else if (lowerQuery.includes('dress') || lowerQuery.includes('attire')) {
+          extractedServiceType = 'attire';
+        } else if (lowerQuery.includes('plan') || lowerQuery.includes('coordinat') || lowerQuery.includes('event planner')) {
+          extractedServiceType = 'planning';
+        }
+        
+        // Extract location - look for common city names
+        let extractedLocation = 'all'; // default
+        const cityKeywords = ['hyderabad', 'bangalore', 'chennai', 'mumbai', 'delhi', 'kolkata', 'pune', 'ahmedabad', 'jaipur', 'lucknow', 'kanpur', 'nagpur', 'indore', 'bhopal', 'visakhapatnam', 'patna', 'vadodara', 'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'varanasi', 'srinagar', 'aurangabad', 'noida', 'solapur', 'ranchi', 'howrah', 'coimbatore', 'raipur', 'jabalpur', 'gwalior', 'madurai', 'mysore', 'tiruchirapalli', 'bhubaneswar', 'kochi', 'bhavnagar', 'salem', 'warangal', 'guntur'];
+        
+        for (const city of cityKeywords) {
+          if (lowerQuery.includes(city)) {
+            extractedLocation = city;
+            break;
+          }
+        }
+        
+        // Extract budget
+        let extractedBudget = 'all'; // default
+        if (lowerQuery.includes('1 lakh') || lowerQuery.includes('1l') || lowerQuery.includes('100000')) {
+          extractedBudget = '50k-1l';
+        } else if (lowerQuery.includes('50k') || lowerQuery.includes('50000')) {
+          extractedBudget = '10k-50k';
+        } else if (lowerQuery.includes('2 lakh') || lowerQuery.includes('2l') || lowerQuery.includes('200000')) {
+          extractedBudget = '1l-3l';
+        } else if (lowerQuery.includes('3 lakh') || lowerQuery.includes('3l') || lowerQuery.includes('300000')) {
+          extractedBudget = '1l-3l';
+        }
+        
+        return {
+          serviceType: extractedServiceType,
+          location: extractedLocation,
+          budget: extractedBudget
+        };
+      };
+      
+      const parsed = parseQuery(searchQuery);
+      
+      // Update the filter states based on parsed data
+      if (parsed.serviceType !== 'all') {
+        setServiceType(parsed.serviceType);
+      }
+      if (parsed.location !== 'all') {
+        setLocation(parsed.location);
+      }
+      if (parsed.budget !== 'all') {
+        setBudget(parsed.budget);
+      }
+      
+      // Show the "We understood your request" window
+      setParsedRequest({
+        serviceType: parsed.serviceType,
+        location: parsed.location,
+        budget: parsed.budget,
+        originalQuery: searchQuery
+      });
+      setIsEditing(false);
+    }
+  }, [searchQuery]);
+
+  // Handle voice data extraction
+  useEffect(() => {
+    if (extractedData && transcript) {
+      console.log('🎤 Voice data extracted:', extractedData);
+      
+      // Update the display query with the transcript
+      setDisplayQuery(transcript);
+      setOriginalSmartRequest(transcript);
+      
+      // Process the extracted data to update filters
+      if (extractedData.serviceType) {
+        setServiceType(extractedData.serviceType);
+      }
+      if (extractedData.location) {
+        setLocation(extractedData.location);
+      }
+      if (extractedData.budget) {
+        setBudget(extractedData.budget);
+      }
+      
+      // Auto-trigger search with voice data
+      setSearchQuery(transcript);
+      const params = new URLSearchParams(searchParams);
+      params.set('query', transcript);
+      if (extractedData.serviceType) params.set('service', extractedData.serviceType);
+      if (extractedData.location) params.set('location', extractedData.location);
+      if (extractedData.budget) params.set('budget', extractedData.budget);
+      setSearchParams(params);
+      
+      // Clear voice data after processing
+      clearData();
+    }
+  }, [extractedData, transcript, searchParams, setSearchParams, clearData]);
+
   // Enhanced filtering and sorting
   const filteredAndSortedVendors = vendors
     .filter(vendor => {
       
       // Service type filter (map service types to categories)
       const serviceCategoryMap: Record<string, string[]> = {
-        'photography': ['Photographers', 'Photography/Videography', '03'], // Include category code
-        'makeup': ['Makeup Artists', '06'], // Include category code
-        'decor': ['Decorators', '04'], // Include category code
-        'catering': ['Caterers', '05'], // Include category code
-        'venues': ['Venues', '02'], // Include category code
-        'music': ['DJs, Lighting, and Entertainment', '07'], // Include category code
-        'attire': ['Fashion/Costume Designers', '10'], // Include category code
-        'planning': ['Event Planners', '01'] // Include category code
+        'photography': ['Photography/Videography', '03'], // Category name and code
+        'makeup': ['Makeup Artists', '06'], // Category name and code
+        'decor': ['Decorators', '04'], // Category name and code
+        'catering': ['Caterers', '05'], // Category name and code
+        'venues': ['Venues', '02'], // Category name and code
+        'music': ['DJs, Lighting, and Entertainment', '07'], // Category name and code
+        'attire': ['Fashion/Costume Designers', '10'], // Category name and code
+        'planning': ['Event Planners', '01'] // Category name and code
       };
       
       const matchesServiceType = serviceType === 'all' || 
@@ -162,7 +299,7 @@ const VendorsPage = () => {
          serviceCategoryMap[serviceType].includes(vendor.category));
 
       // Debug logging for service type filtering
-      if (serviceType !== 'all' && serviceType === 'photography') {
+      if (serviceType !== 'all') {
         console.log(`🔍 Checking vendor ${vendor.brand_name} for service type "${serviceType}":`, {
           vendor_category: vendor.category,
           expected_categories: serviceCategoryMap[serviceType],
@@ -287,6 +424,8 @@ const VendorsPage = () => {
     setLocation('all');
     setBudget('all');
     setSearchQuery('');
+    setDisplayQuery('');
+    setOriginalSmartRequest('');
     setPriceFilter('all');
     setRatingFilter('all');
     setSortBy('rating');
@@ -305,55 +444,29 @@ const VendorsPage = () => {
       <div className="relative py-4 mt-0 overflow-visible min-h-[180px]">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-600 via-orange-500 to-orange-400"></div>
         
+        {/* Back Button - Far Left */}
+        <div className="absolute top-4 left-4 z-30">
+            <Button
+            variant="outline"
+            onClick={() => window.history.back()}
+            className="bg-white/90 hover:bg-white border-white/50 text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg shadow-sm"
+          >
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Back
+            </Button>
+        </div>
+        
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <div className="mb-3">
-            {/* Main Content Area with Back Button */}
-            <div className="flex items-start gap-4">
-              {/* Back Button */}
-              <div className="flex-shrink-0 mt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => window.history.back()}
-                  className="bg-white/90 hover:bg-white border-white/50 text-gray-700 hover:text-gray-900 px-4 py-2 rounded-lg shadow-sm"
-                >
-                  <ChevronLeft className="w-4 h-4 mr-2" />
-                  Back
-                </Button>
-              </div>
-              
-              {/* Smart Request Input Card */}
-              <div className="flex-1">
+            {/* Main Content Area */}
+            <div className="w-full">
               <Card className="border border-orange-200 shadow-lg mx-0 w-full relative z-20 mb-3">
                 <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 py-3 px-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Volume2 className="h-4 w-4 text-orange-600" />
-                    <span className="text-sm font-semibold text-orange-800">Edit your request:</span>
-                  </div>
-                  
-                  {/* Language Selection */}
-                  <div className="flex items-center gap-2">
-                    <Languages className="h-3 w-3 text-orange-600" />
-                    <span className="text-xs text-orange-700">Language:</span>
-                    <div className="flex gap-1">
-                      {[
-                        { value: 'auto', label: 'Auto', flag: '🌐' },
-                        { value: 'en-IN', label: 'EN', flag: '🇮🇳' },
-                        { value: 'te-IN', label: 'TE', flag: '🇮🇳' }
-                      ].map((lang) => (
-            <Button
-                          key={lang.value}
-                          variant={selectedLanguage === lang.value ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setSelectedLanguage(lang.value as any)}
-                          className={`text-xs h-5 px-1.5 ${selectedLanguage === lang.value ? 'bg-orange-500 text-white' : 'border-orange-300 text-orange-700 hover:bg-orange-50'}`}
-                        >
-                          {lang.flag} {lang.label}
-            </Button>
-                      ))}
-                    </div>
+                    <span className="text-2xl font-bold text-orange-800">Your Prompt</span>
                   </div>
 
-                  {isRecording && (
+                  {isListening && (
                     <div className="flex items-center gap-2 text-red-600 text-xs mt-1">
                       <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></div>
                       <span>Listening...</span>
@@ -365,18 +478,22 @@ const VendorsPage = () => {
                     {/* Compact Text Input */}
                     <div className="relative">
                       <Textarea
-                        value={originalSmartRequest || searchQuery || "wedding photographer in 1 lakhs budget in hyderabad"}
+                        value={originalSmartRequest || displayQuery || ""}
                         onChange={(e) => {
                           setOriginalSmartRequest(e.target.value);
-                          setSearchQuery(e.target.value);
+                          setDisplayQuery(e.target.value);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            // Re-search with updated query
+                            // Update search query and trigger search
+                            const queryToSearch = originalSmartRequest || displayQuery;
+                            if (queryToSearch.trim()) {
+                              setSearchQuery(queryToSearch);
                             const params = new URLSearchParams(searchParams);
-                            params.set('query', originalSmartRequest || searchQuery);
+                              params.set('query', queryToSearch);
                             setSearchParams(params);
+                            }
                           }
                         }}
                         placeholder="Describe what you need for your event..."
@@ -387,31 +504,33 @@ const VendorsPage = () => {
                       {/* Action Buttons */}
                       <div className="absolute bottom-2 right-2 flex gap-2">
                         {/* Clear Button */}
-                          {(originalSmartRequest || searchQuery) && (
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                               onClick={() => {
                                 setOriginalSmartRequest('');
+                            setDisplayQuery('');
                                 setSearchQuery('');
+                            // Clear URL params as well
+                            const params = new URLSearchParams(searchParams);
+                            params.delete('query');
+                            setSearchParams(params);
                               }}
-                              disabled={loading}
-                            className="h-5 w-5 p-0 bg-white hover:bg-red-50 border-red-300 hover:border-red-400 text-red-600 hover:text-red-700"
+                          disabled={loading || (!originalSmartRequest?.trim() && !displayQuery?.trim())}
+                          className="h-5 w-5 p-0 bg-white hover:bg-red-50 border-red-300 hover:border-red-400 text-red-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Clear input"
                             >
-                            <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-3 w-3" />
                             </Button>
-                          )}
                           
-                          {!isRecording ? (
+                          {!isListening ? (
                             <Button
                               type="button"
                               variant="outline"
                               size="sm"
                             onClick={() => {
-                              // Voice recording functionality would go here
-                              console.log('Start recording');
+                              startListening();
                             }}
                               disabled={loading}
                             className="h-5 w-5 p-0 bg-white hover:bg-gray-50 border-orange-300 hover:border-orange-400"
@@ -425,8 +544,7 @@ const VendorsPage = () => {
                               variant="destructive"
                               size="sm"
                             onClick={() => {
-                              setIsRecording(false);
-                              console.log('Stop recording');
+                              stopListening();
                             }}
                             className="h-5 w-5 p-0 animate-pulse bg-red-500 hover:bg-red-600"
                               title="Stop voice recording"
@@ -437,14 +555,20 @@ const VendorsPage = () => {
                           
                           <Button
                             type="button"
+                          size="sm"
                             onClick={() => {
-                            // Re-search with updated query
+                            // Update search query and trigger search
+                            const queryToSearch = originalSmartRequest || displayQuery;
+                            if (queryToSearch.trim()) {
+                              setSearchQuery(queryToSearch);
                               const params = new URLSearchParams(searchParams);
-                              params.set('query', originalSmartRequest || searchQuery);
+                              params.set('query', queryToSearch);
                               setSearchParams(params);
+                            }
                             }}
-                            disabled={!originalSmartRequest && !searchQuery}
+                          disabled={loading || (!originalSmartRequest?.trim() && !displayQuery?.trim())}
                           className="h-5 w-5 p-0 bg-orange-500 hover:bg-orange-600 text-white"
+                          title="Send search query"
                           >
                             {loading ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -464,6 +588,15 @@ const VendorsPage = () => {
                       </div>
                     )}
 
+                    {/* Voice Error */}
+                    {voiceError && (
+                      <div className="bg-red-50 border border-red-200 rounded p-2">
+                        <p className="text-xs text-red-700">
+                          <strong>Error:</strong> {voiceError}
+                        </p>
+                      </div>
+                    )}
+
                     {/* Compact Processing Indicator */}
                     {isProcessing && (
                       <div className="flex items-center gap-2 text-orange-600">
@@ -474,13 +607,107 @@ const VendorsPage = () => {
                   </div>
                   </CardContent>
                 </Card>
-              </div>
             </div>
           </div>
         </div>
         
         <div className="absolute bottom-0 left-0 right-0 h-2 bg-white rounded-t-2xl shadow-inner"></div>
       </div>
+
+      {/* We Understood Your Request Window */}
+      {parsedRequest && !isEditing && (
+        <div className="container mx-auto px-4 sm:px-6 py-4">
+          <Card className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 p-6 mb-4">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 py-3 px-4 rounded-t-lg">
+              <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                  <Check className="w-5 h-5 text-green-600" />
+                  <span className="text-lg font-bold text-green-800">We understood your request!</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="border-green-300 text-green-600 hover:bg-green-50"
+                >
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {/* Original Prompt Display */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Your Original Prompt:</label>
+                <p className="text-gray-800 font-medium">"{parsedRequest.originalQuery}"</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Services Needed:</label>
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-800 px-3 py-1">
+                    {serviceTypes.find(s => s.value === parsedRequest.serviceType)?.label || parsedRequest.serviceType}
+                  </Badge>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location:</label>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
+                    {parsedRequest.location === 'all' ? 'All Locations' : (cities.find(c => c.value === parsedRequest.location)?.label || parsedRequest.location)}
+                  </Badge>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Budget:</label>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-3 py-1">
+                    {parsedRequest.budget === 'all' ? 'All Budgets' : (budgetRanges.find(b => b.value === parsedRequest.budget)?.label || parsedRequest.budget)}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    // Trigger search with parsed request
+                    setSearchQuery(parsedRequest.originalQuery);
+                    const params = new URLSearchParams(searchParams);
+                    params.set('query', parsedRequest.originalQuery);
+                    params.set('service', parsedRequest.serviceType);
+                    params.set('location', parsedRequest.location);
+                    params.set('budget', parsedRequest.budget);
+                    setSearchParams(params);
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Find Vendors
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                  className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setParsedRequest(null);
+                    setSearchQuery('');
+                    setDisplayQuery('');
+                    setOriginalSmartRequest('');
+                    const params = new URLSearchParams(searchParams);
+                    params.delete('query');
+                    setSearchParams(params);
+                  }}
+                  className="border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters Section */}
       <div className="container mx-auto px-4 sm:px-6 py-4 mt-2">
@@ -629,8 +856,8 @@ const VendorsPage = () => {
       </div>
 
       {/* Results Section */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container mx-auto px-4 py-2">
+        <div className="flex items-center justify-between mb-3">
           <div>
                 <h2 className="text-2xl font-bold text-gray-900">
               {filteredAndSortedVendors.length} Vendors Found
@@ -640,7 +867,7 @@ const VendorsPage = () => {
 
         {/* Loading State */}
         {loading ? (
-          <div className="text-center py-16">
+          <div className="text-center py-8">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-orange-500 mx-auto mb-4"></div>
             <p className="text-lg text-gray-600">Loading vendors...</p>
           </div>
@@ -823,7 +1050,7 @@ const VendorsPage = () => {
 
             {/* No Results */}
             {filteredAndSortedVendors.length === 0 && (
-              <div className="text-center py-16">
+              <div className="text-center py-8">
                 <Camera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No vendors found</h3>
                 <p className="text-gray-500 mb-6">Try adjusting your search criteria or browse all vendors</p>

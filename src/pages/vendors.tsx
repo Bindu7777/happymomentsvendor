@@ -106,7 +106,6 @@ const VendorsPage = () => {
   const [originalSmartRequest, setOriginalSmartRequest] = useState(searchParams.get('original') || '');
   
   const [ratingFilter, setRatingFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('rating');
   
   // Voice processing hook
   const {
@@ -151,10 +150,10 @@ const VendorsPage = () => {
           console.log(`${index + 1}. ${vendor.brand_name} - Category: "${vendor.category}", Verified: ${vendor.verified}, Available: ${vendor.currently_available}, Address: "${vendor.address}"`);
         });
         
-        // Debug: Log all vendors with their verification status
-        console.log('All vendors verification status:');
+        // Debug: Log all vendors with their verification status and ratings
+        console.log('All vendors verification status and ratings:');
         vendorData.forEach((vendor, index) => {
-          console.log(`${index + 1}. ${vendor.brand_name} - Category: "${vendor.category}", Verified: ${vendor.verified}, Available: ${vendor.currently_available}`);
+          console.log(`${index + 1}. ${vendor.brand_name} - Category: "${vendor.category}", Verified: ${vendor.verified}, Available: ${vendor.currently_available}, Rating: ${vendor.rating} (${typeof vendor.rating})`);
         });
         
         setVendors(vendorData);
@@ -263,8 +262,8 @@ const VendorsPage = () => {
       }
       
       const parsed = {
-        serviceType: extractedServiceType,
-        location: extractedLocation,
+          serviceType: extractedServiceType,
+          location: extractedLocation,
         budget: extractedBudget,
         originalQuery: searchQuery
       };
@@ -462,15 +461,56 @@ const VendorsPage = () => {
       
       // Price filter - removed as per user request
       
-      // Rating filter
-      const matchesRating = ratingFilter === 'all' || (() => {
-        const rating = vendor.rating || 0;
-        switch (ratingFilter) {
-          case '4+': return rating >= 4;
-          case '3+': return rating >= 3;
-          case '2+': return rating >= 2;
-          default: return true;
+      // Rating filter - SIMPLIFIED FOR DEBUGGING
+      const matchesRating = (() => {
+        if (ratingFilter === 'all') {
+          console.log(`✅ Rating filter: ALL - showing ${vendor.brand_name}`);
+          return true;
         }
+        
+        const rating = vendor.rating || 0;
+        const numericRating = parseFloat(rating);
+        
+        console.log(`🔍 RATING FILTER CHECK:`, {
+          vendor: vendor.brand_name,
+          original_rating: vendor.rating,
+          numeric_rating: numericRating,
+          selected_filter: ratingFilter,
+          filter_type: typeof ratingFilter
+        });
+        
+        let result = false;
+        switch (ratingFilter) {
+          case '5':
+            result = numericRating >= 5;
+            console.log(`${vendor.brand_name}: 5+ filter - rating ${numericRating} >= 5? ${result}`);
+            break;
+          case '4.5':
+            result = numericRating >= 4.5 && numericRating < 5;
+            console.log(`${vendor.brand_name}: 4.5+ filter - rating ${numericRating} >= 4.5 and < 5? ${result}`);
+            break;
+          case '4':
+            result = numericRating >= 4 && numericRating < 4.5;
+            console.log(`${vendor.brand_name}: 4+ filter - rating ${numericRating} >= 4 and < 4.5? ${result}`);
+            break;
+          case '3.5':
+            result = numericRating >= 3.5 && numericRating < 4;
+            break;
+          case '3':
+            result = numericRating >= 3 && numericRating < 3.5;
+            break;
+          case '2':
+            result = numericRating >= 2 && numericRating < 3;
+            break;
+          case '1':
+            result = numericRating >= 1 && numericRating < 2;
+            break;
+          default:
+            result = true;
+        }
+        
+        console.log(`🎯 FINAL RESULT for ${vendor.brand_name}: ${result ? 'SHOW' : 'HIDE'}`);
+        return result;
       })();
       
       const finalMatch = matchesServiceType && matchesLocation && matchesBudget && 
@@ -479,6 +519,8 @@ const VendorsPage = () => {
       // Debug logging for overall filtering
       if (serviceType === 'photography' && location === 'telangana') {
         console.log(`🔍 Final filter result for vendor ${vendor.brand_name}:`, {
+          vendor_rating: vendor.rating,
+          ratingFilter,
           matchesServiceType,
           matchesLocation,
           matchesBudget,
@@ -487,33 +529,41 @@ const VendorsPage = () => {
           finalMatch
         });
       }
+      
+      // Debug rating filtering specifically
+      if (ratingFilter !== 'all') {
+        console.log(`🔍 Rating filter check for ${vendor.brand_name}:`, {
+          vendor_rating: vendor.rating,
+          ratingFilter,
+          matches: matchesRating
+        });
+      }
 
       return finalMatch;
     });
 
   // Debug: Log filtering results
-  console.log(`🔍 Filtering results for serviceType="${serviceType}", location="${location}", budget="${budget}":`);
-  console.log(`Total vendors: ${vendors.length}`);
-  console.log(`Filtered vendors: ${filteredAndSortedVendors.length}`);
+  console.log(`🔍 ===== FILTERING RESULTS =====`);
+  console.log(`Current filters: serviceType="${serviceType}", location="${location}", budget="${budget}", ratingFilter="${ratingFilter}"`);
+  console.log(`Total vendors in database: ${vendors.length}`);
+  console.log(`Vendors after filtering: ${filteredAndSortedVendors.length}`);
+  console.log(`Rating filter value: "${ratingFilter}" (type: ${typeof ratingFilter})`);
+  
+  // Debug: Show rating distribution
+  if (ratingFilter !== 'all') {
+    const ratingStats = vendors.reduce((acc, vendor) => {
+      const rating = parseFloat(vendor.rating) || 0;
+      const range = Math.floor(rating);
+      acc[range] = (acc[range] || 0) + 1;
+      return acc;
+    }, {} as Record<number, number>);
+    console.log('Rating distribution:', ratingStats);
+  }
 
   const sortedVendors = filteredAndSortedVendors
     .sort((a, b) => {
-      switch (sortBy) {
-        case 'rating':
+      // Default sorting by rating (highest first)
           return (b.rating || 0) - (a.rating || 0);
-        case 'price-low':
-          return (a.starting_price || 0) - (b.starting_price || 0);
-        case 'price-high':
-          return (b.starting_price || 0) - (a.starting_price || 0);
-        case 'experience':
-          const aExp = parseInt((a.experience || '0').replace(/[^\d]/g, ''));
-          const bExp = parseInt((b.experience || '0').replace(/[^\d]/g, ''));
-          return bExp - aExp;
-        case 'reviews':
-          return (b.review_count || 0) - (a.review_count || 0);
-        default:
-          return (b.rating || 0) - (a.rating || 0);
-      }
     });
 
   // Debug: Log final results
@@ -740,15 +790,15 @@ const VendorsPage = () => {
                       <ChevronUp className="w-4 h-4" />
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                    className="border-green-300 text-green-600 hover:bg-green-50"
-                  >
-                    <Edit3 className="w-4 h-4 mr-1" />
-                    Edit
-                  </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                  className="border-green-300 text-green-600 hover:bg-green-50"
+                >
+                  <Edit3 className="w-4 h-4 mr-1" />
+                  Edit
+                </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -770,76 +820,76 @@ const VendorsPage = () => {
               </div>
             </CardHeader>
             {!isCardMinimized && (
-              <CardContent className="p-4">
-                {/* Original Prompt Display */}
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Your Original Prompt:</label>
-                  <p className="text-gray-800 font-medium">"{parsedRequest.originalQuery}"</p>
+            <CardContent className="p-4">
+              {/* Original Prompt Display */}
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Your Original Prompt:</label>
+                <p className="text-gray-800 font-medium">"{parsedRequest.originalQuery}"</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Services Needed:</label>
+                  <Badge variant="secondary" className="bg-orange-100 text-orange-800 px-3 py-1">
+                    {serviceTypes.find(s => s.value === parsedRequest.serviceType)?.label || parsedRequest.serviceType}
+                  </Badge>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Services Needed:</label>
-                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 px-3 py-1">
-                      {serviceTypes.find(s => s.value === parsedRequest.serviceType)?.label || parsedRequest.serviceType}
-                    </Badge>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Location:</label>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
-                      {parsedRequest.location === 'all' ? 'All Locations' : (cities.find(c => c.value === parsedRequest.location)?.label || parsedRequest.location)}
-                    </Badge>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Budget:</label>
-                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-3 py-1">
-                      {parsedRequest.budget === 'all' ? 'All Budgets' : (budgetRanges.find(b => b.value === parsedRequest.budget)?.label || parsedRequest.budget)}
-                    </Badge>
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location:</label>
+                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
+                    {parsedRequest.location === 'all' ? 'All Locations' : (cities.find(c => c.value === parsedRequest.location)?.label || parsedRequest.location)}
+                  </Badge>
                 </div>
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => {
-                      // Trigger search with parsed request
-                      setSearchQuery(parsedRequest.originalQuery);
-                      const params = new URLSearchParams(searchParams);
-                      params.set('query', parsedRequest.originalQuery);
-                      params.set('service', parsedRequest.serviceType);
-                      params.set('location', parsedRequest.location);
-                      params.set('budget', parsedRequest.budget);
-                      setSearchParams(params);
-                    }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    Find Vendors
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                    className="border-orange-300 text-orange-600 hover:bg-orange-50"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setParsedRequest(null);
-                      setSearchQuery('');
-                      setDisplayQuery('');
-                      setOriginalSmartRequest('');
-                      const params = new URLSearchParams(searchParams);
-                      params.delete('query');
-                      setSearchParams(params);
-                    }}
-                    className="border-red-300 text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Clear
-                  </Button>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Budget:</label>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-3 py-1">
+                    {parsedRequest.budget === 'all' ? 'All Budgets' : (budgetRanges.find(b => b.value === parsedRequest.budget)?.label || parsedRequest.budget)}
+                  </Badge>
                 </div>
-              </CardContent>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    // Trigger search with parsed request
+                    setSearchQuery(parsedRequest.originalQuery);
+                    const params = new URLSearchParams(searchParams);
+                    params.set('query', parsedRequest.originalQuery);
+                    params.set('service', parsedRequest.serviceType);
+                    params.set('location', parsedRequest.location);
+                    params.set('budget', parsedRequest.budget);
+                    setSearchParams(params);
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Find Vendors
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                  className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setParsedRequest(null);
+                    setSearchQuery('');
+                    setDisplayQuery('');
+                    setOriginalSmartRequest('');
+                    const params = new URLSearchParams(searchParams);
+                    params.delete('query');
+                    setSearchParams(params);
+                  }}
+                  className="border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear
+                </Button>
+              </div>
+            </CardContent>
             )}
             
             {/* Minimized state - show only action buttons */}
@@ -966,30 +1016,21 @@ const VendorsPage = () => {
               <>
                 {/* Rating Filter */}
                 <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="w-28 h-9 border border-gray-200 focus:border-orange-400 text-sm">
+                  <SelectTrigger className="w-32 h-9 border border-gray-200 focus:border-orange-400 text-sm">
                     <SelectValue placeholder="Ratings" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Ratings</SelectItem>
-                    <SelectItem value="4+">4+ Stars</SelectItem>
-                    <SelectItem value="3+">3+ Stars</SelectItem>
-                    <SelectItem value="2+">2+ Stars</SelectItem>
+                    <SelectItem value="all">All Ratings</SelectItem>
+                    <SelectItem value="5">5+ Stars</SelectItem>
+                    <SelectItem value="4.5">4.5+ Stars</SelectItem>
+                    <SelectItem value="4">4+ Stars</SelectItem>
+                    <SelectItem value="3.5">3.5+ Stars</SelectItem>
+                    <SelectItem value="3">3+ Stars</SelectItem>
+                    <SelectItem value="2">2+ Stars</SelectItem>
+                    <SelectItem value="1">1+ Stars</SelectItem>
                   </SelectContent>
                 </Select>
                 
-                {/* Sort Filter */}
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-32 h-9 border border-gray-200 focus:border-orange-400 text-sm">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rating">Rating</SelectItem>
-                    <SelectItem value="price-low">Price ↑</SelectItem>
-                    <SelectItem value="price-high">Price ↓</SelectItem>
-                    <SelectItem value="experience">Experience</SelectItem>
-                    <SelectItem value="reviews">Most Reviews</SelectItem>
-                  </SelectContent>
-                </Select>
 
                 {/* Search Bar */}
                 <div className="relative">

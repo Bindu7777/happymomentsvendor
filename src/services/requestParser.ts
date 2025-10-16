@@ -15,6 +15,7 @@ export interface ParsedRequest {
   urgency?: 'immediate' | 'this_week' | 'this_month' | 'flexible';
   guestCount?: number;
   venueType?: 'indoor' | 'outdoor' | 'both';
+  originalText?: string;
 }
 
 export interface ServiceCategory {
@@ -260,12 +261,12 @@ const TELUGU_NUMBERS: { [key: string]: number } = {
 // Budget range patterns with Telugu and mixed language support
 const BUDGET_PATTERNS = [
   { pattern: /(\d+)\s*k\b/i, multiplier: 1000 },
-  { pattern: /(\d+)\s*lakh\b/i, multiplier: 100000 },
+  { pattern: /(\d+)\s*lakhs?\b/i, multiplier: 100000 },
   { pattern: /(\d+)\s*crore\b/i, multiplier: 10000000 },
   { pattern: /₹\s*(\d+)/i, multiplier: 1 },
   { pattern: /(\d+)\s*rupees?/i, multiplier: 1 },
   // Enhanced patterns for better number detection
-  { pattern: /(\d{1,3}(?:,\d{3})*)\b/g, multiplier: 1 }, // Matches numbers with commas like 20,000
+  { pattern: /(\d{1,3}(?:,\d{3})+)\b/g, multiplier: 1 }, // Matches numbers with commas like 20,000 (must have commas)
   { pattern: /(\d+)\s*(?:for|budget|around|upto|max|maximum)/i, multiplier: 1 }, // Matches "20,000 for" or "budget 20,000"
   { pattern: /(?:for|budget|around|upto|max|maximum)\s*(\d{1,3}(?:,\d{3})*)/i, multiplier: 1 }, // Matches "for 20,000" or "budget 20,000"
   { pattern: /(\d+)\s*(?:rs|rupees?|inr)/i, multiplier: 1 }, // Matches "20000 rs" or "20000 rupees"
@@ -328,9 +329,11 @@ const DATE_PATTERNS = [
 
 export class RequestParser {
   private text: string;
+  private originalText: string;
   private parsedRequest: Partial<ParsedRequest>;
 
   constructor(text: string) {
+    this.originalText = text;
     this.text = text.toLowerCase();
     this.parsedRequest = {};
   }
@@ -349,6 +352,9 @@ export class RequestParser {
     this.extractVenueType();
     this.extractUrgency();
     this.extractAdditionalRequirements();
+
+    // Store the original text for passing to the vendors page
+    this.parsedRequest.originalText = this.originalText;
 
     console.log('Parsed request:', this.parsedRequest);
     return this.parsedRequest as ParsedRequest;
@@ -573,7 +579,7 @@ export class RequestParser {
         
         // Clean up location - remove common words that might be captured
         const cleanLocation = location
-          .replace(/\b(budget|kavali|ki|lo|for|in|at|near|need|manchi|aravai|velu|within)\b/gi, '')
+          .replace(/\b(budget|kavali|ki|lo|for|in|at|near|need|manchi|aravai|velu|within|lakhs?|lakh|rupees?|rs|inr|₹|\d+)\b/gi, '')
           .replace(/\s+/g, ' ')
           .trim();
         

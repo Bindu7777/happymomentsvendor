@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, User, Shield, X, Mic, MicOff, Send, Loader2, Edit3, Check, Volume2, Languages, Trash2 } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, ChevronUp, User, Shield, X, Mic, MicOff, Send, Loader2, Edit3, Check, Volume2, Languages, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -14,6 +14,14 @@ import { Vendor } from '@/lib/supabase';
 import { getAllVendors } from '@/services/supabaseService';
 import { parseRequest, validateParsedRequest, ParsedRequest } from '../services/requestParser';
 import { useVoiceProcessing } from '@/hooks/useVoiceProcessing';
+
+// Local interface for parsed filter data
+interface ParsedFilterData {
+  serviceType: string;
+  location: string;
+  budget: string;
+  originalQuery: string;
+}
 
 
 // Service types for dropdown
@@ -88,14 +96,15 @@ const VendorsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   
+  
   // Filter states
   const [serviceType, setServiceType] = useState(searchParams.get('service') || 'all');
   const [location, setLocation] = useState(searchParams.get('location') || 'all');
   const [budget, setBudget] = useState(searchParams.get('budget') || 'all');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('query') || '');
-  const [displayQuery, setDisplayQuery] = useState(searchParams.get('query') || 'wedding photographer in 1 lakhs budget in hyderabad');
+  const [displayQuery, setDisplayQuery] = useState(searchParams.get('query') || '');
   const [originalSmartRequest, setOriginalSmartRequest] = useState(searchParams.get('original') || '');
-  const [priceFilter, setPriceFilter] = useState('all');
+  
   const [ratingFilter, setRatingFilter] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
   
@@ -112,10 +121,11 @@ const VendorsPage = () => {
   } = useVoiceProcessing();
   
   // Additional voice states
-  const [parsedRequest, setParsedRequest] = useState<ParsedRequest | null>(null);
+  const [parsedRequest, setParsedRequest] = useState<ParsedFilterData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'en-IN' | 'te-IN' | 'auto'>('auto');
+  const [isCardMinimized, setIsCardMinimized] = useState(false);
   
   // UI states
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -130,6 +140,23 @@ const VendorsPage = () => {
         console.log('Fetching all vendors...');
         const vendorData = await getAllVendors();
         console.log('Fetched vendors:', vendorData);
+        console.log('Total vendors fetched:', vendorData.length);
+        
+        // Debug: Log all photographer vendors
+        const photographers = vendorData.filter(v => 
+          v.category && v.category.toLowerCase().includes('photograph')
+        );
+        console.log('Photographers found in database:', photographers.length);
+        photographers.forEach((vendor, index) => {
+          console.log(`${index + 1}. ${vendor.brand_name} - Category: "${vendor.category}", Verified: ${vendor.verified}, Available: ${vendor.currently_available}, Address: "${vendor.address}"`);
+        });
+        
+        // Debug: Log all vendors with their verification status
+        console.log('All vendors verification status:');
+        vendorData.forEach((vendor, index) => {
+          console.log(`${index + 1}. ${vendor.brand_name} - Category: "${vendor.category}", Verified: ${vendor.verified}, Available: ${vendor.currently_available}`);
+        });
+        
         setVendors(vendorData);
       } catch (error) {
         console.error('Error fetching vendors:', error);
@@ -166,61 +193,83 @@ const VendorsPage = () => {
       console.log('🔍 Search query changed, filtering vendors:', searchQuery);
       console.log('🔍 Current serviceType state:', serviceType);
       
-      // Parse the search query to extract meaningful data
-      const parseQuery = (query: string) => {
-        const lowerQuery = query.toLowerCase();
-        
-        // Extract service type
-        let extractedServiceType = 'all'; // default to show all
-        if (lowerQuery.includes('photograph') || lowerQuery.includes('camera') || lowerQuery.includes('video')) {
+      // Use the proper request parser instead of simple inline parsing
+      const parsedRequest = parseRequest(searchQuery);
+      console.log('🔍 Parsed request from requestParser:', parsedRequest);
+      
+      // Map the parsed service types to filter values
+      let extractedServiceType = 'all';
+      if (parsedRequest.serviceTypes && parsedRequest.serviceTypes.length > 0) {
+        const firstService = parsedRequest.serviceTypes[0].toLowerCase();
+        if (firstService.includes('photographer')) {
           extractedServiceType = 'photography';
-        } else if (lowerQuery.includes('makeup') || lowerQuery.includes('beauty')) {
+        } else if (firstService.includes('makeup')) {
           extractedServiceType = 'makeup';
-        } else if (lowerQuery.includes('decor') || lowerQuery.includes('decoration')) {
+        } else if (firstService.includes('decorator')) {
           extractedServiceType = 'decor';
-        } else if (lowerQuery.includes('cater') || lowerQuery.includes('food')) {
+        } else if (firstService.includes('caterer')) {
           extractedServiceType = 'catering';
-        } else if (lowerQuery.includes('venue') || lowerQuery.includes('hall')) {
+        } else if (firstService.includes('venue')) {
           extractedServiceType = 'venues';
-        } else if (lowerQuery.includes('music') || lowerQuery.includes('dj')) {
+        } else if (firstService.includes('dj') || firstService.includes('music') || firstService.includes('entertainment')) {
           extractedServiceType = 'music';
-        } else if (lowerQuery.includes('dress') || lowerQuery.includes('attire')) {
+        } else if (firstService.includes('fashion') || firstService.includes('costume')) {
           extractedServiceType = 'attire';
-        } else if (lowerQuery.includes('plan') || lowerQuery.includes('coordinat') || lowerQuery.includes('event planner')) {
+        } else if (firstService.includes('planner')) {
           extractedServiceType = 'planning';
         }
-        
-        // Extract location - look for common city names
-        let extractedLocation = 'all'; // default
-        const cityKeywords = ['hyderabad', 'bangalore', 'chennai', 'mumbai', 'delhi', 'kolkata', 'pune', 'ahmedabad', 'jaipur', 'lucknow', 'kanpur', 'nagpur', 'indore', 'bhopal', 'visakhapatnam', 'patna', 'vadodara', 'ludhiana', 'agra', 'nashik', 'faridabad', 'meerut', 'rajkot', 'varanasi', 'srinagar', 'aurangabad', 'noida', 'solapur', 'ranchi', 'howrah', 'coimbatore', 'raipur', 'jabalpur', 'gwalior', 'madurai', 'mysore', 'tiruchirapalli', 'bhubaneswar', 'kochi', 'bhavnagar', 'salem', 'warangal', 'guntur'];
-        
-        for (const city of cityKeywords) {
-          if (lowerQuery.includes(city)) {
-            extractedLocation = city;
-            break;
-          }
+      }
+      
+      // Map location to filter value
+      let extractedLocation = 'all';
+      if (parsedRequest.location && parsedRequest.location !== 'Hyderabad') {
+        const locationLower = parsedRequest.location.toLowerCase();
+        // Map common locations to filter values
+        if (locationLower.includes('hyderabad')) {
+          extractedLocation = 'hyderabad';
+        } else if (locationLower.includes('bangalore')) {
+          extractedLocation = 'bangalore';
+        } else if (locationLower.includes('chennai')) {
+          extractedLocation = 'chennai';
+        } else if (locationLower.includes('mumbai')) {
+          extractedLocation = 'mumbai';
+        } else if (locationLower.includes('delhi')) {
+          extractedLocation = 'delhi';
         }
-        
-        // Extract budget
-        let extractedBudget = 'all'; // default
-        if (lowerQuery.includes('1 lakh') || lowerQuery.includes('1l') || lowerQuery.includes('100000')) {
-          extractedBudget = '50k-1l';
-        } else if (lowerQuery.includes('50k') || lowerQuery.includes('50000')) {
+        // Add more location mappings as needed
+      }
+      
+      // Map budget to filter value
+      let extractedBudget = 'all';
+      if (parsedRequest.budgetRange) {
+        const budgetAmount = parsedRequest.budgetRange.min || parsedRequest.budgetRange.max;
+        if (budgetAmount <= 50000) {
           extractedBudget = '10k-50k';
-        } else if (lowerQuery.includes('2 lakh') || lowerQuery.includes('2l') || lowerQuery.includes('200000')) {
+        } else if (budgetAmount <= 100000) {
+          extractedBudget = '50k-1l';
+        } else if (budgetAmount <= 300000) {
           extractedBudget = '1l-3l';
-        } else if (lowerQuery.includes('3 lakh') || lowerQuery.includes('3l') || lowerQuery.includes('300000')) {
-          extractedBudget = '1l-3l';
+        } else if (budgetAmount <= 1000000) {
+          extractedBudget = '3l-10l';
+        } else if (budgetAmount <= 1500000) {
+          extractedBudget = '10l-15l';
+        } else if (budgetAmount <= 2500000) {
+          extractedBudget = '15l-25l';
+        } else if (budgetAmount <= 5000000) {
+          extractedBudget = '25l-50l';
+        } else {
+          extractedBudget = '50l-1cr';
         }
-        
-        return {
-          serviceType: extractedServiceType,
-          location: extractedLocation,
-          budget: extractedBudget
-        };
+      }
+      
+      const parsed = {
+        serviceType: extractedServiceType,
+        location: extractedLocation,
+        budget: extractedBudget,
+        originalQuery: searchQuery
       };
       
-      const parsed = parseQuery(searchQuery);
+      console.log('🔍 Final parsed result for filters:', parsed);
       
       // Update the filter states based on parsed data
       if (parsed.serviceType !== 'all') {
@@ -281,29 +330,79 @@ const VendorsPage = () => {
   // Enhanced filtering and sorting
   const filteredAndSortedVendors = vendors
     .filter(vendor => {
+      // Debug: Log all vendors being filtered for photography
+      if (serviceType === 'photography') {
+        console.log(`🔍 Filtering vendor: ${vendor.brand_name}`, {
+          category: vendor.category,
+          serviceType,
+          location,
+          budget
+        });
+      }
       
-      // Service type filter (map service types to categories)
-      const serviceCategoryMap: Record<string, string[]> = {
-        'photography': ['Photography/Videography', '03'], // Category name and code
-        'makeup': ['Makeup Artists', '06'], // Category name and code
-        'decor': ['Decorators', '04'], // Category name and code
-        'catering': ['Caterers', '05'], // Category name and code
-        'venues': ['Venues', '02'], // Category name and code
-        'music': ['DJs, Lighting, and Entertainment', '07'], // Category name and code
-        'attire': ['Fashion/Costume Designers', '10'], // Category name and code
-        'planning': ['Event Planners', '01'] // Category name and code
-      };
-      
-      const matchesServiceType = serviceType === 'all' || 
-        (serviceCategoryMap[serviceType] && 
-         serviceCategoryMap[serviceType].includes(vendor.category));
+      // Service type filter - more flexible matching
+      const matchesServiceType = serviceType === 'all' || (() => {
+        if (!vendor.category) return false;
+        
+        const vendorCategory = vendor.category.toLowerCase();
+        
+        switch (serviceType) {
+          case 'photography':
+            return vendorCategory.includes('photograph') || 
+                   vendorCategory.includes('photo') || 
+                   vendorCategory.includes('video') ||
+                   vendorCategory.includes('camera') ||
+                   vendorCategory === 'photography/videography' ||
+                   vendorCategory === '03';
+          case 'makeup':
+            return vendorCategory.includes('makeup') || 
+                   vendorCategory.includes('beauty') ||
+                   vendorCategory === 'makeup artists' ||
+                   vendorCategory === '06';
+          case 'decor':
+            return vendorCategory.includes('decor') || 
+                   vendorCategory.includes('decoration') ||
+                   vendorCategory === 'decorators' ||
+                   vendorCategory === '04';
+          case 'catering':
+            return vendorCategory.includes('cater') || 
+                   vendorCategory.includes('food') ||
+                   vendorCategory === 'caterers' ||
+                   vendorCategory === '05';
+          case 'venues':
+            return vendorCategory.includes('venue') || 
+                   vendorCategory.includes('hall') ||
+                   vendorCategory === 'venues' ||
+                   vendorCategory === '02';
+          case 'music':
+            return vendorCategory.includes('music') || 
+                   vendorCategory.includes('dj') ||
+                   vendorCategory.includes('entertainment') ||
+                   vendorCategory === 'djs, lighting, and entertainment' ||
+                   vendorCategory === '07';
+          case 'attire':
+            return vendorCategory.includes('fashion') || 
+                   vendorCategory.includes('clothing') ||
+                   vendorCategory.includes('designer') ||
+                   vendorCategory === 'fashion/costume designers' ||
+                   vendorCategory === '10';
+          case 'planning':
+            return vendorCategory.includes('planning') || 
+                   vendorCategory.includes('planner') ||
+                   vendorCategory.includes('event management') ||
+                   vendorCategory === 'event planners' ||
+                   vendorCategory === '01';
+          default:
+            return false;
+        }
+      })();
 
       // Debug logging for service type filtering
       if (serviceType !== 'all') {
         console.log(`🔍 Checking vendor ${vendor.brand_name} for service type "${serviceType}":`, {
           vendor_category: vendor.category,
-          expected_categories: serviceCategoryMap[serviceType],
-          matches: serviceCategoryMap[serviceType]?.includes(vendor.category)
+          vendor_category_lower: vendor.category?.toLowerCase(),
+          matches_service_type: matchesServiceType
         });
       }
       
@@ -361,13 +460,7 @@ const VendorsPage = () => {
           specialty.toLowerCase().includes(searchQuery.toLowerCase())
          ));
       
-      // Price filter
-      const matchesPrice = priceFilter === 'all' || 
-        (vendor.starting_price && (
-          (priceFilter === 'budget' && vendor.starting_price < 35000) ||
-          (priceFilter === 'mid' && vendor.starting_price >= 35000 && vendor.starting_price <= 45000) ||
-          (priceFilter === 'premium' && vendor.starting_price > 45000)
-        ));
+      // Price filter - removed as per user request
       
       // Rating filter
       const matchesRating = ratingFilter === 'all' || (() => {
@@ -381,7 +474,7 @@ const VendorsPage = () => {
       })();
       
       const finalMatch = matchesServiceType && matchesLocation && matchesBudget && 
-             matchesSearch && matchesPrice && matchesRating;
+             matchesSearch && matchesRating;
 
       // Debug logging for overall filtering
       if (serviceType === 'photography' && location === 'telangana') {
@@ -390,14 +483,20 @@ const VendorsPage = () => {
           matchesLocation,
           matchesBudget,
           matchesSearch,
-          matchesPrice,
           matchesRating,
           finalMatch
         });
       }
 
       return finalMatch;
-    })
+    });
+
+  // Debug: Log filtering results
+  console.log(`🔍 Filtering results for serviceType="${serviceType}", location="${location}", budget="${budget}":`);
+  console.log(`Total vendors: ${vendors.length}`);
+  console.log(`Filtered vendors: ${filteredAndSortedVendors.length}`);
+
+  const sortedVendors = filteredAndSortedVendors
     .sort((a, b) => {
       switch (sortBy) {
         case 'rating':
@@ -417,6 +516,10 @@ const VendorsPage = () => {
       }
     });
 
+  // Debug: Log final results
+  if (serviceType === 'photography') {
+    console.log('Photography vendors after filtering and sorting:', sortedVendors.map(v => v.brand_name));
+  }
 
   // Clear all filters
   const clearAllFilters = () => {
@@ -426,7 +529,6 @@ const VendorsPage = () => {
     setSearchQuery('');
     setDisplayQuery('');
     setOriginalSmartRequest('');
-    setPriceFilter('all');
     setRatingFilter('all');
     setSortBy('rating');
   };
@@ -624,87 +726,169 @@ const VendorsPage = () => {
                   <Check className="w-5 h-5 text-green-600" />
                   <span className="text-lg font-bold text-green-800">We understood your request!</span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="border-green-300 text-green-600 hover:bg-green-50"
-                >
-                  <Edit3 className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCardMinimized(!isCardMinimized)}
+                    className="border-green-300 text-green-600 hover:bg-green-50"
+                    title={isCardMinimized ? "Expand details" : "Minimize details"}
+                  >
+                    {isCardMinimized ? (
+                      <ChevronDown className="w-4 h-4" />
+                    ) : (
+                      <ChevronUp className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="border-green-300 text-green-600 hover:bg-green-50"
+                  >
+                    <Edit3 className="w-4 h-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setParsedRequest(null);
+                      setSearchQuery('');
+                      setDisplayQuery('');
+                      setOriginalSmartRequest('');
+                      const params = new URLSearchParams(searchParams);
+                      params.delete('query');
+                      setSearchParams(params);
+                    }}
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                    title="Close this summary"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="p-4">
-              {/* Original Prompt Display */}
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Your Original Prompt:</label>
-                <p className="text-gray-800 font-medium">"{parsedRequest.originalQuery}"</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Services Needed:</label>
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-800 px-3 py-1">
-                    {serviceTypes.find(s => s.value === parsedRequest.serviceType)?.label || parsedRequest.serviceType}
-                  </Badge>
+            {!isCardMinimized && (
+              <CardContent className="p-4">
+                {/* Original Prompt Display */}
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Your Original Prompt:</label>
+                  <p className="text-gray-800 font-medium">"{parsedRequest.originalQuery}"</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location:</label>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
-                    {parsedRequest.location === 'all' ? 'All Locations' : (cities.find(c => c.value === parsedRequest.location)?.label || parsedRequest.location)}
-                  </Badge>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Services Needed:</label>
+                    <Badge variant="secondary" className="bg-orange-100 text-orange-800 px-3 py-1">
+                      {serviceTypes.find(s => s.value === parsedRequest.serviceType)?.label || parsedRequest.serviceType}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Location:</label>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
+                      {parsedRequest.location === 'all' ? 'All Locations' : (cities.find(c => c.value === parsedRequest.location)?.label || parsedRequest.location)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Budget:</label>
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-3 py-1">
+                      {parsedRequest.budget === 'all' ? 'All Budgets' : (budgetRanges.find(b => b.value === parsedRequest.budget)?.label || parsedRequest.budget)}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Budget:</label>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-3 py-1">
-                    {parsedRequest.budget === 'all' ? 'All Budgets' : (budgetRanges.find(b => b.value === parsedRequest.budget)?.label || parsedRequest.budget)}
-                  </Badge>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      // Trigger search with parsed request
+                      setSearchQuery(parsedRequest.originalQuery);
+                      const params = new URLSearchParams(searchParams);
+                      params.set('query', parsedRequest.originalQuery);
+                      params.set('service', parsedRequest.serviceType);
+                      params.set('location', parsedRequest.location);
+                      params.set('budget', parsedRequest.budget);
+                      setSearchParams(params);
+                    }}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Find Vendors
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                  >
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setParsedRequest(null);
+                      setSearchQuery('');
+                      setDisplayQuery('');
+                      setOriginalSmartRequest('');
+                      const params = new URLSearchParams(searchParams);
+                      params.delete('query');
+                      setSearchParams(params);
+                    }}
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear
+                  </Button>
                 </div>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => {
-                    // Trigger search with parsed request
-                    setSearchQuery(parsedRequest.originalQuery);
-                    const params = new URLSearchParams(searchParams);
-                    params.set('query', parsedRequest.originalQuery);
-                    params.set('service', parsedRequest.serviceType);
-                    params.set('location', parsedRequest.location);
-                    params.set('budget', parsedRequest.budget);
-                    setSearchParams(params);
-                  }}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Find Vendors
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                  className="border-orange-300 text-orange-600 hover:bg-orange-50"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setParsedRequest(null);
-                    setSearchQuery('');
-                    setDisplayQuery('');
-                    setOriginalSmartRequest('');
-                    const params = new URLSearchParams(searchParams);
-                    params.delete('query');
-                    setSearchParams(params);
-                  }}
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Clear
-                </Button>
-              </div>
-            </CardContent>
+              </CardContent>
+            )}
+            
+            {/* Minimized state - show only action buttons */}
+            {isCardMinimized && (
+              <CardContent className="p-4">
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={() => {
+                      // Trigger search with parsed request
+                      setSearchQuery(parsedRequest.originalQuery);
+                      const params = new URLSearchParams(searchParams);
+                      params.set('query', parsedRequest.originalQuery);
+                      params.set('service', parsedRequest.serviceType);
+                      params.set('location', parsedRequest.location);
+                      params.set('budget', parsedRequest.budget);
+                      setSearchParams(params);
+                    }}
+                    className="bg-orange-500 hover:bg-orange-600 text-white"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Find Vendors
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="border-orange-300 text-orange-600 hover:bg-orange-50"
+                  >
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setParsedRequest(null);
+                      setSearchQuery('');
+                      setDisplayQuery('');
+                      setOriginalSmartRequest('');
+                      const params = new URLSearchParams(searchParams);
+                      params.delete('query');
+                      setSearchParams(params);
+                    }}
+                    className="border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Clear
+                  </Button>
+                </div>
+              </CardContent>
+            )}
           </Card>
         </div>
       )}
@@ -780,19 +964,6 @@ const VendorsPage = () => {
             {/* Additional Filters - Only shown when More Filters is clicked */}
             {showAdvancedFilters && (
               <>
-                {/* Price Filter */}
-                <Select value={priceFilter} onValueChange={setPriceFilter}>
-                  <SelectTrigger className="w-28 h-9 border border-gray-200 focus:border-orange-400 text-sm">
-                    <SelectValue placeholder="All Prices" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Prices</SelectItem>
-                    <SelectItem value="budget">Under ₹35k</SelectItem>
-                    <SelectItem value="mid">₹35k-45k</SelectItem>
-                    <SelectItem value="premium">Above ₹45k</SelectItem>
-                  </SelectContent>
-                </Select>
-                
                 {/* Rating Filter */}
                 <Select value={ratingFilter} onValueChange={setRatingFilter}>
                   <SelectTrigger className="w-28 h-9 border border-gray-200 focus:border-orange-400 text-sm">
@@ -809,10 +980,10 @@ const VendorsPage = () => {
                 {/* Sort Filter */}
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-32 h-9 border border-gray-200 focus:border-orange-400 text-sm">
-                    <SelectValue placeholder="Top Rated" />
+                    <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="rating">Top Rated</SelectItem>
+                    <SelectItem value="rating">Rating</SelectItem>
                     <SelectItem value="price-low">Price ↑</SelectItem>
                     <SelectItem value="price-high">Price ↓</SelectItem>
                     <SelectItem value="experience">Experience</SelectItem>
@@ -820,7 +991,7 @@ const VendorsPage = () => {
                   </SelectContent>
                 </Select>
 
-                {/* Search Bar - Reduced width, placed beside Top Rated */}
+                {/* Search Bar */}
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
                 <Input
@@ -860,7 +1031,7 @@ const VendorsPage = () => {
         <div className="flex items-center justify-between mb-3">
           <div>
                 <h2 className="text-2xl font-bold text-gray-900">
-              {filteredAndSortedVendors.length} Vendors Found
+              {sortedVendors.length} Vendors Found
             </h2>
           </div>
         </div>
@@ -875,7 +1046,7 @@ const VendorsPage = () => {
           <>
             {/* Vendor Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredAndSortedVendors.map((vendor) => (
+              {sortedVendors.map((vendor) => (
                 <Card 
                   key={vendor.vendor_id}
                   className={`group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 bg-white overflow-hidden ${

@@ -212,8 +212,9 @@ export const getAllVendors = async (): Promise<Vendor[]> => {
     const { data, error } = await supabase
       .from('vendors')
       .select('*')
-      .eq('verified', true)
-      .eq('currently_available', true)
+      // Temporarily remove filters to see all vendors
+      // .eq('verified', true)
+      // .eq('currently_available', true)
       .order('created_at', { ascending: false });
 
     console.log('Supabase query result:', { data, error });

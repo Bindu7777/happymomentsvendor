@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2, Languages, Clock, Users, DollarSign, Trash2 } from 'lucide-react';
+import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2, Languages, Clock, Users, DollarSign, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -37,6 +37,7 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
   const [selectedLanguage, setSelectedLanguage] = useState<'en-IN' | 'te-IN' | 'auto'>('auto');
   const [enhancedEntities, setEnhancedEntities] = useState<ExtractedEntities | null>(null);
   const [audioProcessingResult, setAudioProcessingResult] = useState<any>(null);
+  const [isCardMinimized, setIsCardMinimized] = useState(false);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -300,21 +301,24 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       // Debounce the parsing - only parse, don't submit automatically
       const timeoutId = setTimeout(async () => {
         try {
-          // Use our improved voice processing service
-          const voiceResult = processVoiceInput(newText);
-          
           // Convert voice processing result to legacy format for compatibility
           const parsed = parseRequest(newText);
           
-          // Update parsed request with voice processing results
-          if (voiceResult.serviceType) {
-            parsed.serviceTypes = [voiceResult.serviceType];
-          }
-          if (voiceResult.state) {
-            parsed.location = voiceResult.state;
-          }
-          if (voiceResult.budgetRange) {
-            parsed.budgetRange = voiceResult.budgetRange;
+          // Only use voice processing for actual voice input, not manual typing
+          if (isRecording || transcript) {
+            // Use our improved voice processing service only for voice input
+            const voiceResult = processVoiceInput(newText);
+            
+            // Update parsed request with voice processing results
+            if (voiceResult.serviceType) {
+              parsed.serviceTypes = [voiceResult.serviceType];
+            }
+            if (voiceResult.state) {
+              parsed.location = voiceResult.state;
+            }
+            if (voiceResult.budgetRange) {
+              parsed.budgetRange = voiceResult.budgetRange;
+            }
           }
           
           const validation = validateParsedRequest(parsed);
@@ -631,153 +635,209 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       {parsedRequest && (
         <Card className="border-2 border-green-200 shadow-lg">
           <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-bold text-green-800 flex items-center gap-2">
-                <Check className="h-5 w-5" />
-                We understood your request!
-              </CardTitle>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEdit}
-                  className="text-green-700 border-green-300 hover:bg-green-50"
-                >
-                  <Edit3 className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            {isEditing ? (
-              <div className="space-y-4">
-                <Textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  className="min-h-[100px]"
-                />
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-bold text-green-800 flex items-center gap-2">
+                  <Check className="h-5 w-5" />
+                  We understood your request!
+                </CardTitle>
                 <div className="flex gap-2">
                   <Button
-                    onClick={handleSaveEdit}
-                    className="bg-green-500 hover:bg-green-600 text-white"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsCardMinimized(!isCardMinimized)}
+                    className="text-green-700 border-green-300 hover:bg-green-50"
+                    title={isCardMinimized ? "Expand details" : "Minimize details"}
                   >
-                    <Check className="h-4 w-4 mr-1" />
-                    Save
+                    {isCardMinimized ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronUp className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={handleCancelEdit}
+                    size="sm"
+                    onClick={handleEdit}
+                    className="text-green-700 border-green-300 hover:bg-green-50"
                   >
-                    <X className="h-4 w-4 mr-1" />
-                    Cancel
+                    <Edit3 className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleClearInput}
+                    className="text-red-700 border-red-300 hover:bg-red-50"
+                    title="Close this summary"
+                  >
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Service Types */}
-                <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">Services Needed:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {parsedRequest.serviceTypes.map((service, index) => (
-                      <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-800">
-                        {service}
-                      </Badge>
-                    ))}
+          </CardHeader>
+          {!isCardMinimized && (
+            <CardContent className="p-6">
+              {isEditing ? (
+                <div className="space-y-4">
+                  <Textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="min-h-[100px]"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSaveEdit}
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
                   </div>
                 </div>
-
-                {/* Event Type */}
-                <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">Event Type:</h4>
-                  <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                    {parsedRequest.eventType}
-                  </Badge>
-                </div>
-
-                {/* Location */}
-                <div>
-                  <h4 className="font-semibold text-gray-700 mb-2">Location:</h4>
-                  <Badge variant="outline" className="bg-green-100 text-green-800">
-                    {parsedRequest.location}
-                  </Badge>
-                </div>
-
-                {/* Budget */}
-                {parsedRequest.budgetRange && (
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Service Types */}
                   <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Budget:</h4>
-                    <Badge variant="outline" className="bg-purple-100 text-purple-800">
-                      {formatBudget(parsedRequest.budgetRange)}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Date */}
-                {parsedRequest.eventDate && (
-                  <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Event Date:</h4>
-                    <Badge variant="outline" className="bg-indigo-100 text-indigo-800">
-                      {new Date(parsedRequest.eventDate).toLocaleDateString()}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Gender Preference */}
-                {parsedRequest.genderPreference && (
-                  <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Gender Preference:</h4>
-                    <Badge variant="outline" className="bg-pink-100 text-pink-800">
-                      {parsedRequest.genderPreference}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Additional Requirements */}
-                {parsedRequest.additionalRequirements && parsedRequest.additionalRequirements.length > 0 && (
-                  <div className="md:col-span-2">
-                    <h4 className="font-semibold text-gray-700 mb-2">Additional Requirements:</h4>
+                    <h4 className="font-semibold text-gray-700 mb-2">Services Needed:</h4>
                     <div className="flex flex-wrap gap-2">
-                      {parsedRequest.additionalRequirements.map((req, index) => (
-                        <Badge key={index} variant="outline" className="bg-gray-100 text-gray-800">
-                          {req}
+                      {parsedRequest.serviceTypes.map((service, index) => (
+                        <Badge key={index} variant="secondary" className="bg-orange-100 text-orange-800">
+                          {service}
                         </Badge>
                       ))}
                     </div>
                   </div>
-                )}
-                
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4 border-t mt-4">
-                  <Button
-                    onClick={handleSubmit}
-                    className="bg-orange-500 hover:bg-orange-600 text-white flex-1"
-                    disabled={!parsedRequest || (!parsedRequest.serviceTypes || parsedRequest.serviceTypes.length === 0)}
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    Find Vendors
-                  </Button>
-                  <Button
-                    onClick={handleEdit}
-                    variant="outline"
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50"
-                  >
-                    <Edit3 className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    onClick={handleClearInput}
-                    variant="outline"
-                    className="border-red-300 text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clear
-                  </Button>
+
+                  {/* Event Type */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Event Type:</h4>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                      {parsedRequest.eventType}
+                    </Badge>
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Location:</h4>
+                    <Badge variant="outline" className="bg-green-100 text-green-800">
+                      {parsedRequest.location}
+                    </Badge>
+                  </div>
+
+                  {/* Budget */}
+                  {parsedRequest.budgetRange && (
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Budget:</h4>
+                      <Badge variant="outline" className="bg-purple-100 text-purple-800">
+                        {formatBudget(parsedRequest.budgetRange)}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Date */}
+                  {parsedRequest.eventDate && (
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Event Date:</h4>
+                      <Badge variant="outline" className="bg-indigo-100 text-indigo-800">
+                        {new Date(parsedRequest.eventDate).toLocaleDateString()}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Gender Preference */}
+                  {parsedRequest.genderPreference && (
+                    <div>
+                      <h4 className="font-semibold text-gray-700 mb-2">Gender Preference:</h4>
+                      <Badge variant="outline" className="bg-pink-100 text-pink-800">
+                        {parsedRequest.genderPreference}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Additional Requirements */}
+                  {parsedRequest.additionalRequirements && parsedRequest.additionalRequirements.length > 0 && (
+                    <div className="md:col-span-2">
+                      <h4 className="font-semibold text-gray-700 mb-2">Additional Requirements:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {parsedRequest.additionalRequirements.map((req, index) => (
+                          <Badge key={index} variant="outline" className="bg-gray-100 text-gray-800">
+                            {req}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t mt-4">
+                    <Button
+                      onClick={handleSubmit}
+                      className="bg-orange-500 hover:bg-orange-600 text-white flex-1"
+                      disabled={!parsedRequest || (!parsedRequest.serviceTypes || parsedRequest.serviceTypes.length === 0)}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      Find Vendors
+                    </Button>
+                    <Button
+                      onClick={handleEdit}
+                      variant="outline"
+                      className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                    >
+                      <Edit3 className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={handleClearInput}
+                      variant="outline"
+                      className="border-red-300 text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear
+                    </Button>
+                  </div>
                 </div>
+              )}
+            </CardContent>
+          )}
+          
+          {/* Minimized state - show only action buttons */}
+          {isCardMinimized && (
+            <CardContent className="p-4">
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={handleSubmit}
+                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                  disabled={!parsedRequest || (!parsedRequest.serviceTypes || parsedRequest.serviceTypes.length === 0)}
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  Find Vendors
+                </Button>
+                <Button
+                  onClick={handleEdit}
+                  variant="outline"
+                  className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                >
+                  <Edit3 className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button
+                  onClick={handleClearInput}
+                  variant="outline"
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear
+                </Button>
               </div>
-            )}
-          </CardContent>
+            </CardContent>
+          )}
         </Card>
       )}
 

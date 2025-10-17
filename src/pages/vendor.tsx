@@ -14,6 +14,7 @@ import { Textarea } from '../components/ui/textarea';
 import LikeButton from '@/components/LikeButton';
 import WhatsAppButton from '@/components/WhatsAppButton';
 import VendorStatusDropdown from '@/components/VendorStatusDropdown';
+import VendorActionButtons from '@/components/VendorActionButtons';
 import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 import { checkVendorContacted } from '@/services/contactedVendorsApiService';
 
@@ -343,41 +344,7 @@ const VendorProfile = () => {
               </div>
 
               {/* Action Buttons - Mobile Optimized */}
-              <div className="flex items-center gap-1">
-                {vendor && (
-                  <WhatsAppButton
-                    vendor={vendor}
-                    size="sm"
-                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
-                  >
-                    <span className="hidden xs:inline">WA</span>
-                  </WhatsAppButton>
-                )}
-                {vendor && (
-                  <WhatsAppButton
-                    vendor={vendor}
-                    size="sm"
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
-                  >
-                    <span className="hidden xs:inline">Chat</span>
-                  </WhatsAppButton>
-                )}
-                {vendor && (
-                  <WhatsAppButton
-                    vendor={vendor}
-                    size="sm"
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-sm flex-shrink-0"
-                  >
-                    <Phone className="w-3 h-3 mr-1" />
-                    <span className="hidden xs:inline">Call</span>
-                  </WhatsAppButton>
-                )}
-                <LikeButton
-                  vendorId={vendor?.vendor_id || ''}
-                  size="sm"
-                  className="w-7 h-7 hover:bg-red-50 border-2"
-                />
-              </div>
+              <VendorActionButtons vendor={vendor} className="gap-1" size="sm" />
             </div>
           </div>
         </div>
@@ -401,58 +368,7 @@ const VendorProfile = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {vendor && (
-                <WhatsAppButton
-                  vendor={vendor}
-                  className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-green-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
-                >
-                  <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
-                  <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
-                  <span className="relative z-10">WhatsApp</span>
-                </WhatsAppButton>
-              )}
-              {vendor && (
-                <WhatsAppButton
-                  vendor={vendor}
-                  className="bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-blue-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
-                >
-                  <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
-                  <MessageCircle className="w-4 h-4 mr-2 relative z-10" />
-                  <span className="relative z-10">Chat</span>
-                </WhatsAppButton>
-              )}
-              <Button 
-                onClick={(e) => { e.stopPropagation(); }}
-                className="bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-orange-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
-                <Phone className="w-4 h-4 mr-2 relative z-10" />
-                <span className="relative z-10">Call</span>
-              </Button>
-              <Button 
-                onClick={(e) => { e.stopPropagation(); }}
-                className="bg-purple-500 hover:bg-purple-600 active:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg hover:shadow-purple-500/25 hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-xl"></div>
-                <Calendar className="w-4 h-4 mr-2 relative z-10" />
-                <span className="relative z-10">Visit</span>
-              </Button>
-              <LikeButton
-                vendorId={vendor?.vendor_id || ''}
-                size="lg"
-                className="hover:bg-red-50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 relative overflow-hidden group"
-              />
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={(e) => e.stopPropagation()}
-                className="hover:bg-blue-50 hover:scale-105 active:scale-95 transition-all duration-200 border-2 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-blue-100 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg"></div>
-                <Share2 className="w-5 h-5 text-gray-600 relative z-10" />
-              </Button>
-            </div>
+            <VendorActionButtons vendor={vendor} />
           </div>
         </div>
       </div>

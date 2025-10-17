@@ -335,8 +335,26 @@ const VendorProfile = () => {
               </div>
             </div>
 
-            {/* Right side - Rating and actions */}
+            {/* Right side - Contact Status, Rating and actions */}
             <div className="flex items-center gap-2">
+              {/* Contact Status - Compact version in mobile header */}
+              {customer && isContacted && (
+                <div className="px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-md border border-blue-200">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-medium text-gray-700">Status:</span>
+                    <VendorStatusDropdown
+                      customerId={customer.id}
+                      vendorId={vendorId || ''}
+                      currentStatus={contactStatus}
+                      onStatusUpdate={handleStatusUpdate}
+                      className="min-w-[100px] text-xs"
+                      vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
+                      vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Compact Rating */}
               <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg border border-amber-200">
                 <Star className="w-3 h-3 text-amber-500 fill-current" />
@@ -368,7 +386,26 @@ const VendorProfile = () => {
                 </div>
               </div>
             </div>
-            <VendorActionButtons vendor={vendor} />
+            <div className="flex items-center gap-4">
+              {/* Contact Status - Compact version in header */}
+              {customer && isContacted && (
+                <div className="px-3 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-700">Status:</span>
+                    <VendorStatusDropdown
+                      customerId={customer.id}
+                      vendorId={vendorId || ''}
+                      currentStatus={contactStatus}
+                      onStatusUpdate={handleStatusUpdate}
+                      className="min-w-[120px]"
+                      vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
+                      vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
+                    />
+                  </div>
+                </div>
+              )}
+              <VendorActionButtons vendor={vendor} />
+            </div>
           </div>
         </div>
       </div>
@@ -387,23 +424,6 @@ const VendorProfile = () => {
                 <p className="text-amber-600 font-medium">{vendor.description || "Professional services for your special day"}</p>
               </div>
 
-              {/* Contact Status Management - Only show if customer is logged in and has contacted this vendor */}
-              {customer && isContacted && (
-                <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                  <div className="text-center">
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">Your Contact Status</h3>
-                          <VendorStatusDropdown
-                            customerId={customer.id}
-                            vendorId={vendorId || ''}
-                            currentStatus={contactStatus}
-                            onStatusUpdate={handleStatusUpdate}
-                            className="w-full max-w-xs mx-auto"
-                            vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
-                            vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
-                          />
-                  </div>
-                </div>
-              )}
 
               {/* Owner Info */}
               <div className="flex items-center justify-center gap-4 mb-4">
@@ -453,7 +473,6 @@ const VendorProfile = () => {
                   vendor={vendor}
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 text-lg font-bold rounded-xl shadow-lg"
                 >
-                  <MessageCircle className="w-5 h-5 mr-2" />
                   Chat to Book Now
                 </WhatsAppButton>
               )}
@@ -522,26 +541,6 @@ const VendorProfile = () => {
                       </div>
                     </div>
 
-                    {/* Contact Status Management - Only show if customer is logged in and has contacted this vendor */}
-                    {customer && isContacted && (
-                      <div className="mb-6 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 shadow-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-800 mb-1">Your Contact Status</h3>
-                            <p className="text-sm text-gray-600">Track your interaction with this vendor</p>
-                          </div>
-                          <VendorStatusDropdown
-                            customerId={customer.id}
-                            vendorId={vendorId || ''}
-                            currentStatus={contactStatus}
-                            onStatusUpdate={handleStatusUpdate}
-                            className="min-w-[180px]"
-                            vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
-                            vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
-                          />
-                        </div>
-                      </div>
-                    )}
 
                     {/* Category Badges Row */}
                     <div className="flex items-center gap-4 mb-10 -mt-10">
@@ -580,8 +579,13 @@ const VendorProfile = () => {
                           <MapPin className="w-10 h-10 text-amber-700" />
                         </div>
               <div>
-                          <span className="font-bold text-2xl text-gray-800">{vendor.address || "Location"}</span>
-                          <p className="text-lg text-gray-600">Serving South India</p>
+                          <span className="font-bold text-2xl text-gray-800">Location</span>
+                          <p className="text-lg text-gray-600">
+                            {vendor.additional_info?.service_areas && vendor.additional_info.service_areas.length > 0 
+                              ? `Serving ${vendor.additional_info.service_areas.join(', ')}`
+                              : vendor.address || "Service areas not specified"
+                            }
+                          </p>
                 </div>
               </div>
 
@@ -590,7 +594,7 @@ const VendorProfile = () => {
                           <Trophy className="w-10 h-10 text-red-700" />
                         </div>
               <div>
-                          <span className="font-bold text-2xl text-gray-800">{vendor.experience || "5+ Years"}</span>
+                          <span className="font-bold text-2xl text-gray-800">{vendor.experience || "Experience"}</span>
                           <p className="text-lg text-gray-600">Professional Experience</p>
                         </div>
               </div>
@@ -606,7 +610,6 @@ const VendorProfile = () => {
                           className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white px-12 py-10 text-3xl font-black shadow-2xl hover:scale-105 hover:shadow-green-500/50 active:scale-95 transition-all duration-300 rounded-3xl border-2 border-green-400/30 hover:border-green-300/50 relative overflow-hidden group"
                         >
                           <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-3xl"></div>
-                          <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
                           <span className="relative z-10">Chat to Book Now</span>
                         </WhatsAppButton>
                       )}
@@ -808,105 +811,65 @@ const VendorProfile = () => {
               </Card>
             )}
 
-            {/* Packages Section */}
-            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
-              <CardContent className="p-8">
-                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                  <Award className="w-8 h-8 text-red-600" />
-                  {vendor.category} Packages
-                </h2>
-                <p className="text-gray-600 mb-8 text-lg">Complete packages designed for your special events</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {(vendor.packages && vendor.packages.length > 0 ? vendor.packages : [
-                    { 
-                      name: "Essential", 
-                      popular: false,
-                      features: [
-                        "Basic service coverage",
-                        "Standard quality delivery",
-                        "Professional team",
-                        "On-time completion",
-                        "Basic consultation",
-                        "Email support"
-                      ]
-                    },
-                    { 
-                      name: "Premium", 
-                      popular: true,
-                      features: [
-                        "Extended service coverage",
-                        "High quality delivery",
-                        "Expert professional team",
-                        "Priority completion",
-                        "Detailed consultation",
-                        "Phone & email support",
-                        "Quality guarantee",
-                        "Same day preview"
-                      ]
-                    },
-                    { 
-                      name: "Luxury", 
-                      popular: false,
-                      features: [
-                        "Complete service coverage",
-                        "Premium quality delivery",
-                        "Senior expert team",
-                        "Rush delivery available",
-                        "Personal consultation",
-                        "24/7 support",
-                        "Premium guarantee",
-                        "Same day preview",
-                        "Additional bonuses"
-                      ]
-                    }
-                  ]).map((pkg, index) => (
-                    <div 
-                      key={index}
-                      className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
-                        pkg.popular 
-                          ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-lg' 
-                          : 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50'
-                      }`}
-                    >
-                      {pkg.popular && (
-                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                          <Badge className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-2 text-sm font-bold">⭐ Most Popular</Badge>
-                        </div>
-                      )}
-                      <div className="text-center mb-6">
-                        <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
-                        {pkg.price && (
-                          <div className="text-lg font-bold text-blue-600 mb-2">{pkg.price}</div>
+            {/* Packages Section - Only show if vendor has packages in database */}
+            {vendor.packages && vendor.packages.length > 0 && (
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <Award className="w-8 h-8 text-red-600" />
+                    {vendor.category} Packages
+                  </h2>
+                  <p className="text-gray-600 mb-8 text-lg">Complete packages designed for your special events</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {vendor.packages.map((pkg, index) => (
+                      <div 
+                        key={index}
+                        className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
+                          pkg.popular 
+                            ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-lg' 
+                            : 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50'
+                        }`}
+                      >
+                        {pkg.popular && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <Badge className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-2 text-sm font-bold">⭐ Most Popular</Badge>
+                          </div>
                         )}
-                        <div className="text-sm text-gray-500">
-                          {pkg.description || `Complete ${vendor.category.toLowerCase()} package`}
+                        <div className="text-center mb-6">
+                          <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
+                          {pkg.price && (
+                            <div className="text-lg font-bold text-blue-600 mb-2">{pkg.price}</div>
+                          )}
+                          <div className="text-sm text-gray-500">
+                            {pkg.description || `Complete ${vendor.category.toLowerCase()} package`}
+                          </div>
                         </div>
+                        <ul className="space-y-3 mb-8">
+                          {(pkg.features || []).map((feature, idx) => (
+                            <li key={idx} className="flex items-center gap-3 text-gray-700">
+                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              <span className="text-sm font-medium">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {vendor && (
+                          <WhatsAppButton
+                            vendor={vendor}
+                            className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
+                              pkg.popular 
+                                ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
+                                : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                            }`}
+                          >
+                            Select {pkg.name} Package
+                          </WhatsAppButton>
+                        )}
                       </div>
-                      <ul className="space-y-3 mb-8">
-                        {(pkg.features || []).map((feature, idx) => (
-                          <li key={idx} className="flex items-center gap-3 text-gray-700">
-                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                            <span className="text-sm font-medium">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      {vendor && (
-                        <WhatsAppButton
-                          vendor={vendor}
-                          className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
-                            pkg.popular 
-                              ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
-                              : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
-                          }`}
-                        >
-                          Select {pkg.name} Package
-                        </WhatsAppButton>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
 
             {/* Complete Catalog Gallery */}
@@ -1142,7 +1105,6 @@ const VendorProfile = () => {
                       className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 active:from-green-700 active:to-emerald-800 text-white py-8 text-2xl font-black rounded-2xl shadow-2xl hover:scale-105 active:scale-95 transition-all duration-300 relative overflow-hidden group animate-pulse"
                     >
                       <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-200 rounded-2xl"></div>
-                      <MessageCircle className="w-8 h-8 mr-4 relative z-10" />
                       <span className="relative z-10">💬 WhatsApp Quick Chat</span>
                       <div className="absolute top-0 right-0 text-3xl animate-bounce">🚀</div>
                     </WhatsAppButton>
@@ -1447,7 +1409,6 @@ const VendorProfile = () => {
             size="lg"
             className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-full shadow-2xl hover:scale-110 transition-all duration-300 animate-pulse"
           >
-            <MessageCircle className="w-6 h-6 mr-2" />
             Chat Now
           </WhatsAppButton>
         </div>

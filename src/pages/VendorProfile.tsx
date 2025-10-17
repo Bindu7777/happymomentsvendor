@@ -793,8 +793,13 @@ I'm really excited to connect and explore working with you soon! ✨`;
                           <MapPin className="w-10 h-10 text-amber-700" />
                         </div>
                         <div>
-                          <span className="font-bold text-2xl text-gray-800">{photographer.location}</span>
-                          <p className="text-lg text-gray-600">Serving South India</p>
+                          <span className="font-bold text-2xl text-gray-800">Location</span>
+                          <p className="text-lg text-gray-600">
+                            {photographer.vendor?.additional_info?.service_areas && photographer.vendor.additional_info.service_areas.length > 0 
+                              ? `Serving ${photographer.vendor.additional_info.service_areas.join(', ')}`
+                              : photographer.location || "Service areas not specified"
+                            }
+                          </p>
                         </div>
                       </div>
                       
@@ -804,7 +809,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                         </div>
                         <div>
                           <span className="font-bold text-2xl text-gray-800">{photographer.experience}</span>
-                          <p className="text-lg text-gray-600">500+ South Indian Weddings</p>
+                          <p className="text-lg text-gray-600">Professional Experience</p>
                         </div>
                       </div>
                       
@@ -962,61 +967,63 @@ I'm really excited to connect and explore working with you soon! ✨`;
               </CardContent>
             </Card>
 
-            {/* Packages Section */}
-            <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
-              <CardContent className="p-8">
-                <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                  <Award className="w-8 h-8 text-red-600" />
-                  South Indian Wedding Packages
-                </h2>
-                <p className="text-gray-600 mb-8 text-lg">Complete packages designed for South Indian wedding traditions</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {photographer.packages.map((pkg, index) => (
-                    <div 
-                      key={index}
-                      className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
-                        pkg.popular 
-                          ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-lg' 
-                          : 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50'
-                      }`}
-                    >
-                      {pkg.popular && (
-                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                          <Badge className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-2 text-sm font-bold">⭐ Most Popular</Badge>
-                        </div>
-                      )}
-                      <div className="text-center mb-6">
-                        <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
-                        {pkg.price && (
-                          <div className="text-lg font-bold text-blue-600 mb-2">{pkg.price}</div>
-                        )}
-                        <div className="text-sm text-gray-500">
-                          {pkg.description || "Complete package for South Indian weddings"}
-                        </div>
-                      </div>
-                      <ul className="space-y-3 mb-8">
-                        {(pkg.features || []).map((feature, idx) => (
-                          <li key={idx} className="flex items-center gap-3 text-gray-700">
-                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                            <span className="text-sm font-medium">{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <Button 
-                        className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
+            {/* Packages Section - Only show if vendor has packages in database */}
+            {photographer.packages && photographer.packages.length > 0 && (
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
+                <CardContent className="p-8">
+                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                    <Award className="w-8 h-8 text-red-600" />
+                    South Indian Wedding Packages
+                  </h2>
+                  <p className="text-gray-600 mb-8 text-lg">Complete packages designed for South Indian wedding traditions</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {photographer.packages.map((pkg, index) => (
+                      <div 
+                        key={index}
+                        className={`relative p-8 rounded-2xl border-2 transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
                           pkg.popular 
-                            ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
-                            : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                            ? 'border-red-500 bg-gradient-to-br from-red-50 to-pink-50 shadow-lg' 
+                            : 'border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50'
                         }`}
-                        onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
                       >
-                        Select {pkg.name} Package
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                        {pkg.popular && (
+                          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                            <Badge className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-6 py-2 text-sm font-bold">⭐ Most Popular</Badge>
+                          </div>
+                        )}
+                        <div className="text-center mb-6">
+                          <h3 className="text-2xl font-bold mb-3 text-gray-800">{pkg.name}</h3>
+                          {pkg.price && (
+                            <div className="text-lg font-bold text-blue-600 mb-2">{pkg.price}</div>
+                          )}
+                          <div className="text-sm text-gray-500">
+                            {pkg.description || "Complete package for South Indian weddings"}
+                          </div>
+                        </div>
+                        <ul className="space-y-3 mb-8">
+                          {(pkg.features || []).map((feature, idx) => (
+                            <li key={idx} className="flex items-center gap-3 text-gray-700">
+                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                              <span className="text-sm font-medium">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <Button 
+                          className={`w-full py-4 text-lg font-bold rounded-xl transition-all duration-300 ${
+                            pkg.popular 
+                              ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white shadow-lg' 
+                              : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white'
+                          }`}
+                          onClick={(e) => { e.stopPropagation(); openWhatsApp(); }}
+                        >
+                          Select {pkg.name} Package
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Portfolio Gallery */}
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300">

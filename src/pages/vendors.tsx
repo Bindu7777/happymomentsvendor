@@ -815,7 +815,7 @@ const VendorsPage = () => {
                     title="Close this summary"
                   >
                     <X className="w-4 h-4" />
-                  </Button>
+                </Button>
                 </div>
               </div>
             </CardHeader>
@@ -1175,10 +1175,7 @@ const VendorsPage = () => {
                       <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          <span>{vendor.experience_years || 1} year{vendor.experience_years !== 1 ? 's' : ''}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>Available: {vendor.currently_available ? 'Yes' : 'No'}</span>
+                          <span>Experience: {vendor.experience_years || 1} year{vendor.experience_years !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
 
@@ -1246,14 +1243,6 @@ const VendorsPage = () => {
                         </Button>
                       </div>
                       
-                      {/* Verified Professional Footer */}
-                      <div className="mt-3 pt-2 border-t border-gray-100">
-                        <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
-                          <span>0</span>
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Verified Professional</span>
-                        </div>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>

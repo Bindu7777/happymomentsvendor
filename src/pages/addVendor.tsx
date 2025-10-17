@@ -71,6 +71,7 @@ type VendorFormInputs = {
   
   // Business Details
   experience?: string;
+  total_events?: number;
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
@@ -191,6 +192,7 @@ export default function AddVendor() {
       
       // Business Details
       experience: "",
+      total_events: 0,
       quick_intro: "",
       caption: "",
       detailed_intro: "",
@@ -250,6 +252,7 @@ export default function AddVendor() {
       address: "123 MG Road, Hyderabad, Telangana 500001",
       description: "Professional wedding photography services with 10+ years of experience. Specializing in candid, traditional, and modern wedding photography.",
       experience: "10+ Years",
+      total_events: 150,
       quick_intro: "Creative wedding photography with artistic vision",
       caption: "Namaskaram! Capturing your precious moments with expertise and passion",
       detailed_intro: "Professional photography services with 10+ years of experience. We specialize in creating memorable visual stories for your special occasions with attention to detail and artistic excellence.",
@@ -530,6 +533,24 @@ export default function AddVendor() {
                 />
                 {errors.experience && (
                   <p className="text-red-500 text-sm mt-1">{errors.experience.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Number of Events Completed *</label>
+                <input
+                  {...register("total_events", { 
+                    required: "Number of events completed is required",
+                    min: { value: 0, message: "Number of events cannot be negative" },
+                    valueAsNumber: true
+                  })}
+                  type="number"
+                  min="0"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 50, 100, 200"
+                />
+                {errors.total_events && (
+                  <p className="text-red-500 text-sm mt-1">{errors.total_events.message}</p>
                 )}
               </div>
 

@@ -75,6 +75,7 @@ type VendorEditForm = {
   
   // Business Details
   experience?: string;
+  total_events?: number;
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
@@ -187,6 +188,7 @@ const VendorProfileEdit: React.FC = () => {
       instagram: '',
       address: '',
       experience: '',
+      total_events: 0,
       quick_intro: '',
       caption: '',
       detailed_intro: '',
@@ -405,6 +407,7 @@ const VendorProfileEdit: React.FC = () => {
       
       // Business Details
       experience: vendorData.experience || '',
+      total_events: vendorData.total_events || 0,
       quick_intro: vendorData.quick_intro || '',
       caption: vendorData.caption || '',
       detailed_intro: vendorData.detailed_intro || '',
@@ -487,6 +490,7 @@ const VendorProfileEdit: React.FC = () => {
         instagram: "@elegantmomentsphotography",
         address: "123 Wedding Street, Jubilee Hills, Hyderabad, Telangana 500033",
         experience: "8+ Years",
+        total_events: 125,
         quick_intro: "Capturing your special moments with artistic vision and love",
         caption: "Namaskaram! Creating timeless memories through photography",
         detailed_intro: "We are passionate wedding photographers specializing in candid moments and traditional ceremonies. With over 8 years of experience, we have captured hundreds of beautiful weddings across South India.",
@@ -901,6 +905,7 @@ const VendorProfileEdit: React.FC = () => {
         instagram: vendor.instagram || '',
         address: vendor.address || '',
         experience: vendor.experience || '',
+        total_events: vendor.total_events || 0,
         quick_intro: vendor.quick_intro || '',
         caption: vendor.caption || '',
         detailed_intro: vendor.detailed_intro || '',
@@ -933,6 +938,7 @@ const VendorProfileEdit: React.FC = () => {
         instagram: data.instagram || '',
         address: data.address || '',
         experience: data.experience || '',
+        total_events: data.total_events || 0,
         quick_intro: data.quick_intro || '',
         caption: data.caption || '',
         detailed_intro: data.detailed_intro || '',
@@ -1733,6 +1739,21 @@ const VendorProfileEdit: React.FC = () => {
                   <Input
                     {...register("experience")}
                     placeholder="e.g., 5+ Years"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Events Completed
+                  </label>
+                  <Input
+                    {...register("total_events", { 
+                      min: { value: 0, message: "Number of events cannot be negative" },
+                      valueAsNumber: true
+                    })}
+                    type="number"
+                    min="0"
+                    placeholder="e.g., 50, 100, 200"
                   />
                 </div>
 
@@ -2592,6 +2613,7 @@ const VendorProfileEdit: React.FC = () => {
                       'instagram': 'Instagram Handle',
                       'address': 'Address',
                       'experience': 'Experience',
+                      'total_events': 'Events Completed',
                       'quick_intro': 'Quick Intro',
                       'caption': 'Caption',
                       'detailed_intro': 'Detailed Intro',

@@ -43,6 +43,7 @@ export interface Vendor {
   detailed_intro?: string
   highlight_features?: string[]
   total_events?: number
+  events_completed?: number
   rating?: number
   review_count?: number
   verified?: boolean

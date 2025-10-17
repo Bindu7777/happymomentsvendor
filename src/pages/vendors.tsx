@@ -1145,37 +1145,113 @@ const VendorsPage = () => {
                     {/* Card Content */}
                     <div className="p-4">
                       {/* Vendor Info */}
-                      <div className="mb-3">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors">
+                      <div className="mb-4">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-amber-600 transition-colors">
                           {vendor.brand_name}
                         </h3>
-                        <p className="text-xs text-amber-600 font-medium mb-1">{vendor.category}</p>
-                        <p className="text-sm text-gray-600">by {vendor.spoc_name}</p>
+                        
+                        {/* Experience */}
+                        <div className="flex items-center gap-2 mb-2 text-sm text-gray-600">
+                          <Clock className="w-4 h-4" />
+                          <span className="font-medium">{vendor.experience || 'Not specified'} Experience</span>
+                        </div>
+
+                        {/* Events Completed */}
+                        <div className="flex items-center gap-2 mb-2 text-sm text-gray-600">
+                          <div className="w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-xs text-blue-600 font-bold">✓</span>
+                          </div>
+                          <span className="font-medium">Completed {vendor.events_completed || 0}+ Events</span>
+                        </div>
+
+                        {/* Starting Price */}
+                        <div className="mb-2">
+                          <div className="text-lg font-bold text-amber-600">
+                            {vendor.starting_price && vendor.starting_price > 0
+                              ? `Starting from ₹${vendor.starting_price.toLocaleString()}`
+                              : 'Contact for pricing'
+                            }
+                          </div>
+                        </div>
+
+                        {/* Service Areas */}
+                        <div className="flex items-center gap-2 mb-2 text-sm text-gray-600">
+                          <MapPin className="w-4 h-4" />
+                          <span className="font-medium">
+                            {(() => {
+                              // Check if service areas exist in additional_info
+                              if (vendor.additional_info?.service_areas && Array.isArray(vendor.additional_info.service_areas) && vendor.additional_info.service_areas.length > 0) {
+                                // Convert state values to readable labels
+                                const stateLabels = vendor.additional_info.service_areas.map(stateValue => {
+                                  const stateMap: { [key: string]: string } = {
+                                    'andhra-pradesh': 'Andhra Pradesh',
+                                    'telangana': 'Telangana',
+                                    'karnataka': 'Karnataka',
+                                    'tamil-nadu': 'Tamil Nadu',
+                                    'kerala': 'Kerala',
+                                    'maharashtra': 'Maharashtra',
+                                    'goa': 'Goa',
+                                    'delhi': 'Delhi',
+                                    'punjab': 'Punjab',
+                                    'rajasthan': 'Rajasthan',
+                                    'gujarat': 'Gujarat',
+                                    'madhya-pradesh': 'Madhya Pradesh',
+                                    'uttar-pradesh': 'Uttar Pradesh',
+                                    'west-bengal': 'West Bengal',
+                                    'bihar': 'Bihar',
+                                    'jharkhand': 'Jharkhand',
+                                    'odisha': 'Odisha',
+                                    'chhattisgarh': 'Chhattisgarh',
+                                    'haryana': 'Haryana',
+                                    'himachal-pradesh': 'Himachal Pradesh',
+                                    'jammu-kashmir': 'Jammu & Kashmir',
+                                    'ladakh': 'Ladakh',
+                                    'uttarakhand': 'Uttarakhand',
+                                    'assam': 'Assam',
+                                    'arunachal-pradesh': 'Arunachal Pradesh',
+                                    'manipur': 'Manipur',
+                                    'meghalaya': 'Meghalaya',
+                                    'mizoram': 'Mizoram',
+                                    'nagaland': 'Nagaland',
+                                    'tripura': 'Tripura',
+                                    'sikkim': 'Sikkim',
+                                    'andaman-nicobar': 'Andaman & Nicobar',
+                                    'chandigarh': 'Chandigarh',
+                                    'dadra-nagar-haveli': 'Dadra & Nagar Haveli',
+                                    'daman-diu': 'Daman & Diu',
+                                    'lakshadweep': 'Lakshadweep',
+                                    'puducherry': 'Puducherry'
+                                  };
+                                  return stateMap[stateValue] || stateValue;
+                                });
+                                
+                                const displayText = stateLabels.length > 2 
+                                  ? `${stateLabels.slice(0, 2).join(', ')} +${stateLabels.length - 2} more`
+                                  : stateLabels.join(', ');
+                                return `Servicing ${displayText}`;
+                              }
+                              // Fallback to address if no service areas
+                              return vendor.address ? `Servicing ${vendor.address}` : 'Service area not specified';
+                            })()}
+                          </span>
                       </div>
 
                       {/* Rating */}
-                      <div className="flex items-center gap-2 mb-3">
+                        <div className="flex items-center gap-2">
                         <div className="flex items-center gap-1">
                           {[...Array(5)].map((_, i) => (
                             <Star 
                               key={i} 
-                              className={`w-4 h-4 ${i < Math.floor(vendor.rating || 4.5) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                                className={`w-4 h-4 ${i < Math.floor(vendor.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
                             />
                           ))}
                         </div>
-                        <span className="text-sm font-bold text-gray-700">{vendor.rating || 4.5}</span>
+                          <span className="text-sm font-bold text-gray-700">{vendor.rating || 0}★</span>
                         {vendor.review_count && vendor.review_count > 0 ? (
-                          <span className="text-xs text-gray-500">({vendor.review_count})</span>
+                            <span className="text-xs text-gray-500">({vendor.review_count} reviews)</span>
                         ) : (
                           <span className="text-xs text-gray-400">No reviews yet</span>
                         )}
-                      </div>
-
-                      {/* Experience and Availability */}
-                      <div className="flex items-center gap-4 mb-3 text-sm text-gray-600">
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
-                          <span>Experience: {vendor.experience_years || 1} year{vendor.experience_years !== 1 ? 's' : ''}</span>
                         </div>
                       </div>
 
@@ -1199,23 +1275,6 @@ const VendorsPage = () => {
                         })}
                       </div>
 
-                      {/* Location */}
-                      {vendor.address && (
-                        <div className="flex items-center gap-2 mb-3 text-gray-600">
-                          <MapPin className="w-4 h-4" />
-                          <span className="text-sm">{vendor.address}</span>
-                        </div>
-                      )}
-
-                      {/* Price */}
-                      <div className="mb-4">
-                        <div className="text-lg font-bold text-amber-600">
-                          {vendor.starting_price && vendor.starting_price > 0
-                            ? `Starting ₹${vendor.starting_price.toLocaleString()}`
-                            : 'Contact for pricing'
-                          }
-                        </div>
-                      </div>
 
                       {/* Action Buttons */}
                       <div className="space-y-2">

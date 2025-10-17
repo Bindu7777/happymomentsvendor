@@ -41,21 +41,17 @@ export interface Vendor {
   quick_intro?: string
   caption?: string
   detailed_intro?: string
-  highlight_features?: string[]
+  // highlight_features column was deleted from database
   total_events?: number
   events_completed?: number
-  rating?: number
-  review_count?: number
+  // rating and review_count columns were deleted from database
   verified?: boolean
   currently_available?: boolean
   starting_price?: number
   languages_spoken?: string[]
   
-  // Media URLs
-  avatar_url?: string
-  cover_image_url?: string
-  brand_logo_url?: string
-  contact_person_image_url?: string
+  // Media URLs - Removed deleted columns
+  // avatar_url, cover_image_url, brand_logo_url, contact_person_image_url columns were deleted from database
   
   // JSON Data Fields
   services?: any
@@ -63,7 +59,7 @@ export interface Vendor {
   deliverables?: string[]  // New deliverables field
   catalog_images?: string[]  // Catalog images field for edit form compatibility
   catalog_images_metadata?: any[]  // Catalog images metadata including highlight status
-  customer_reviews?: any
+  // customer_reviews column was deleted from database
   booking_policies?: any
   additional_info?: {
     working_hours?: string;

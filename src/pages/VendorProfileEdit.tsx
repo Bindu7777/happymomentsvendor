@@ -62,8 +62,6 @@ type VendorEditForm = {
   spoc_name: string;
   category: string;
   subcategory?: string;
-  brand_logo_url?: string;
-  contact_person_image_url?: string;
   
   // Contact Information
   phone_number: string;
@@ -179,8 +177,6 @@ const VendorProfileEdit: React.FC = () => {
       spoc_name: '',
       category: '',
       subcategory: '',
-      brand_logo_url: '',
-      contact_person_image_url: '',
       phone_number: '',
       alternate_number: '',
       whatsapp_number: '',
@@ -885,6 +881,28 @@ const VendorProfileEdit: React.FC = () => {
 
   const onSubmit = async (data: VendorEditForm) => {
     if (!vendor) return;
+
+    // Validate address - required field
+    if (!data.address || data.address.trim().length < 10) {
+      setSubmitMessage('Please provide a complete address (at least 10 characters).');
+      return;
+    }
+
+    // Validate services - at least one service required
+    if (!data.services || data.services.length === 0) {
+      setSubmitMessage('Please add at least one service.');
+      return;
+    }
+
+    // Validate that all services have required fields
+    const invalidServices = data.services.filter(service => 
+      !service.name || !service.description || service.name.trim() === '' || service.description.trim() === ''
+    );
+    
+    if (invalidServices.length > 0) {
+      setSubmitMessage('Please fill in all required fields for all services (name and description).');
+      return;
+    }
 
     setSubmitting(true);
     setSubmitMessage('');
@@ -1714,10 +1732,13 @@ const VendorProfileEdit: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address
+                  Address <span className="text-red-500">*</span>
                 </label>
                 <Textarea
-                  {...register("address")}
+                  {...register("address", { 
+                    required: "Address is required",
+                    minLength: { value: 10, message: "Address must be at least 10 characters" }
+                  })}
                   placeholder="Enter full address"
                   rows={3}
                 />
@@ -1860,7 +1881,7 @@ const VendorProfileEdit: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex justify-between items-center">
-                <span>Services</span>
+                <span>Services <span className="text-red-500">*</span></span>
                 <Button
                   type="button"
                   onClick={() => appendService({ name: "", description: "", price: "" })}

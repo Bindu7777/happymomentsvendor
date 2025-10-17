@@ -58,8 +58,6 @@ type VendorFormInputs = {
   spoc_name?: string;
   category?: string;
   subcategory?: string;
-  brand_logo_url?: string;
-  contact_person_image_url?: string;
   
   // Contact Information
   phone_number?: string;
@@ -75,7 +73,7 @@ type VendorFormInputs = {
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
-  highlight_features?: string[];
+  // highlight_features column was deleted from database
   service_areas?: string[];
   starting_price?: number;
   
@@ -92,12 +90,7 @@ type VendorFormInputs = {
     features: string[];
   }>;
   deliverables?: string[];  // New deliverables field
-  customer_reviews?: Array<{
-    customer_name: string;
-  rating: number;
-    review: string;
-    date: string;
-  }>;
+  // customer_reviews column was deleted from database
   booking_policies?: {
     cancellation_policy?: string;
     payment_terms?: string;
@@ -179,8 +172,6 @@ export default function AddVendor() {
       spoc_name: "",
       category: "",
       subcategory: "",
-      brand_logo_url: "",
-      contact_person_image_url: "",
       
       // Contact Information
       phone_number: "",
@@ -196,7 +187,7 @@ export default function AddVendor() {
       quick_intro: "",
       caption: "",
       detailed_intro: "",
-      highlight_features: [],
+      // highlight_features column was deleted from database
       service_areas: [],
       starting_price: 0,
       
@@ -204,7 +195,7 @@ export default function AddVendor() {
       services: [],
       packages: [],
       deliverables: [],
-      customer_reviews: [],
+      // customer_reviews column was deleted from database
       booking_policies: {
         cancellation_policy: "",
         payment_terms: "",
@@ -224,6 +215,19 @@ export default function AddVendor() {
     }
   });
 
+  // Field arrays for dynamic form fields
+  const { fields: services, append: appendService, remove: removeService } = useFieldArray({
+    control,
+    name: "services"
+  });
+
+  // Initialize with one empty service
+  useEffect(() => {
+    if (services.length === 0) {
+      appendService({ name: "", description: "", price: "" });
+    }
+  }, [services.length, appendService]);
+
 
   const checkPhoneUniqueness = async (phone: string) => {
     try {
@@ -242,8 +246,6 @@ export default function AddVendor() {
       spoc_name: "Rajesh Kumar",
       category: "Photographers",
       subcategory: "Wedding Photography",
-      brand_logo_url: "https://images.unsplash.com/photo-1572021335469-31706a17aaef?w=400&h=400&fit=crop",
-      contact_person_image_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
       phone_number: "+91 98765 43210",
       alternate_number: "+91 87654 32109",
       whatsapp_number: "+91 98765 43210",
@@ -256,9 +258,7 @@ export default function AddVendor() {
       quick_intro: "Creative wedding photography with artistic vision",
       caption: "Namaskaram! Capturing your precious moments with expertise and passion",
       detailed_intro: "Professional photography services with 10+ years of experience. We specialize in creating memorable visual stories for your special occasions with attention to detail and artistic excellence.",
-      highlight_features: ["Award-winning photographer", "Same-day delivery", "Professional equipment", "Candid & traditional styles"],
-      avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-      cover_image_url: "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&h=400&fit=crop",
+      // highlight_features column was deleted from database
       services: [
         { name: "Wedding Photography", description: "Full day coverage with professional editing", price: "₹50,000" },
         { name: "Pre-wedding Shoots", description: "Romantic couple session with multiple locations", price: "₹25,000" },
@@ -287,7 +287,7 @@ export default function AddVendor() {
           features: ["8 hours coverage", "1 photographer", "300+ edited photos", "Online gallery"]
         }
       ],
-      customer_reviews: [],
+      // customer_reviews column was deleted from database
       booking_policies: {
         cancellation_policy: "50% refund if cancelled 30 days before event. No refund if cancelled within 15 days.",
         payment_terms: "50% advance payment required. Balance to be paid 7 days before the event.",
@@ -324,6 +324,32 @@ export default function AddVendor() {
         severity: "error",
         summary: "Error",
         detail: "Please select at least one state for service areas.",
+        life: 3000,
+      });
+      return;
+    }
+
+    // Validate services - at least one service required
+    if (!data.services || data.services.length === 0) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Please add at least one service.",
+        life: 3000,
+      });
+      return;
+    }
+
+    // Validate that all services have required fields
+    const invalidServices = data.services.filter(service => 
+      !service.name || !service.description || service.name.trim() === '' || service.description.trim() === ''
+    );
+    
+    if (invalidServices.length > 0) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Please fill in all required fields for all services (name and description).",
         life: 3000,
       });
       return;
@@ -380,12 +406,7 @@ export default function AddVendor() {
           }));
         }
         
-        // Process customer reviews array
-        if (processedData.customer_reviews && Array.isArray(processedData.customer_reviews)) {
-          processedData.customer_reviews = processedData.customer_reviews.filter(r => 
-            r.customer_name && r.customer_name.trim() !== '' && r.review && r.review.trim() !== ''
-          );
-        }
+        // customer_reviews column was deleted from database - no processing needed
         
         // Process additional_info languages, awards, certifications
         if (processedData.additional_info) {
@@ -424,10 +445,13 @@ export default function AddVendor() {
         verified: processedData.verified || false,
         currently_available: processedData.currently_available !== false,
         total_events: 0,
-        rating: 0,
-        review_count: 0,
-        customer_reviews: [], // Ensure no hardcoded reviews
+        // rating and review_count columns were deleted from database
+        // customer_reviews column was deleted from database
       };
+
+      // Debug: Log the address field specifically
+      console.log("Address field in vendorData:", vendorData.address);
+      console.log("Full vendorData being sent:", JSON.stringify(vendorData, null, 2));
 
       const result = await addVendor(vendorData);
 
@@ -643,6 +667,22 @@ export default function AddVendor() {
                   <p className="text-red-500 text-sm mt-1">{errors.whatsapp_number.message}</p>
                 )}
               </div>
+
+              <div className="md:col-span-2">
+                <label className="block font-medium mb-2 text-gray-700">Address *</label>
+                <textarea
+                  {...register("address", { 
+                    required: "Address is required",
+                    minLength: { value: 10, message: "Address must be at least 10 characters" }
+                  })}
+                  rows={3}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter complete address with city, state, and pincode"
+                />
+                {errors.address && (
+                  <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
+                )}
+              </div>
             </div>
           </section>
 
@@ -728,9 +768,92 @@ export default function AddVendor() {
             </div>
           </section>
 
+          {/* Services - MANDATORY FIELD */}
+          <section className="space-y-4">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Services (Required)</h3>
+            
+            <div>
+              <label className="block font-medium mb-2 text-gray-700">Services *</label>
+              <p className="text-sm text-gray-500 mb-3">Add at least one service that you provide</p>
+              
+              <div className="space-y-3">
+                {services.map((service, index) => (
+                  <div key={service.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">Service Name *</label>
+                        <input
+                          {...register(`services.${index}.name`, { 
+                            required: "Service name is required"
+                          })}
+                          className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., Wedding Photography"
+                        />
+                        {errors.services?.[index]?.name && (
+                          <p className="text-red-500 text-xs mt-1">{errors.services[index]?.name?.message}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">Description *</label>
+                        <input
+                          {...register(`services.${index}.description`, { 
+                            required: "Service description is required"
+                          })}
+                          className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., Full day coverage with professional editing"
+                        />
+                        {errors.services?.[index]?.description && (
+                          <p className="text-red-500 text-xs mt-1">{errors.services[index]?.description?.message}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-1 text-gray-700">Price (Optional)</label>
+                        <input
+                          {...register(`services.${index}.price`)}
+                          className="w-full border border-gray-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="e.g., ₹50,000"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end mt-3">
+                      <button
+                        type="button"
+                        onClick={() => removeService(index)}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        Remove Service
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => appendService({ name: "", description: "", price: "" })}
+                  className="w-full border-2 border-dashed border-gray-300 rounded-lg p-4 text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
+                >
+                  + Add Another Service
+                </button>
+              </div>
+              
+              {services.length === 0 && (
+                <p className="text-red-500 text-sm mt-1">Please add at least one service</p>
+              )}
+            </div>
+          </section>
 
-          {/* Submit Button */}
-          <div className="flex justify-center pt-6">
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-4 pt-6">
+            <button
+              type="button"
+              onClick={fillSampleData}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              Fill Sample Data
+            </button>
             <button
               type="submit"
               disabled={isSubmitting || phoneUnique === false}

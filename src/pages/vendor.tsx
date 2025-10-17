@@ -374,7 +374,7 @@ const VendorProfile = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src={vendor.brand_logo_url || vendor.avatar_url || "/images/vendor.jpeg"} 
+                src="/images/vendor.jpeg" 
                 alt={vendor.brand_name}
                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
               />
@@ -429,7 +429,7 @@ const VendorProfile = () => {
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
                   <img 
-                    src={vendor.contact_person_image_url || vendor.avatar_url || "/images/vendor.jpeg"} 
+                    src="/images/vendor.jpeg" 
                     alt={vendor.spoc_name}
                     className="w-full h-full object-cover"
                   />
@@ -526,7 +526,7 @@ const VendorProfile = () => {
                       <div className="flex flex-col items-center flex-shrink-0">
                         <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 shadow-lg">
                           <img 
-                            src={vendor.contact_person_image_url || vendor.avatar_url || "/images/vendor.jpeg"} 
+                            src="/images/vendor.jpeg" 
                             alt={vendor.spoc_name}
                             className="w-full h-full object-cover"
                           />

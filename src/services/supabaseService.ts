@@ -29,13 +29,7 @@ const parseVendorJsonFields = (vendorData: any): Vendor => {
     }
   }
   
-  if (vendorData.customer_reviews && typeof vendorData.customer_reviews === 'string') {
-    try {
-      vendorData.customer_reviews = JSON.parse(vendorData.customer_reviews);
-    } catch (e) {
-      console.warn('Failed to parse customer_reviews JSON:', e);
-    }
-  }
+  // customer_reviews column was deleted from database - no processing needed
   
   if (vendorData.booking_policies && typeof vendorData.booking_policies === 'string') {
     try {
@@ -119,6 +113,7 @@ const generateSlug = (brandName: string): string => {
 export const addVendor = async (vendorData: Omit<Vendor, 'created_at' | 'updated_at'>) => {
   try {
     console.log("Attempting to add vendor with data:", vendorData);
+    console.log("Address field specifically:", vendorData.address);
     
     // Generate slug if not provided
     const slug = vendorData.slug || generateSlug(vendorData.brand_name);
@@ -150,6 +145,7 @@ export const addVendor = async (vendorData: Omit<Vendor, 'created_at' | 'updated
     }
 
     console.log("Vendor added successfully with ID:", data.vendor_id);
+    console.log("Address field in stored data:", data.address);
     
     // Create vendor credentials
     const password = generatePassword();
@@ -672,10 +668,9 @@ export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>
     const allowedFields = [
       'brand_name', 'spoc_name', 'category', 'subcategory',
       'phone_number', 'alternate_number', 'whatsapp_number', 'email', 'instagram', 'address',
-      'experience', 'quick_intro', 'caption', 'detailed_intro', 'highlight_features',
+      'experience', 'quick_intro', 'caption', 'detailed_intro',
       'starting_price', 'languages_spoken', 'verified', 'currently_available',
-      'avatar_url', 'cover_image_url', 'brand_logo_url', 'contact_person_image_url',
-      'services', 'packages', 'deliverables', 'customer_reviews', 'booking_policies', 'additional_info'
+      'services', 'packages', 'deliverables', 'booking_policies', 'additional_info'
     ];
     
     // Filter data to only include allowed fields and non-empty values

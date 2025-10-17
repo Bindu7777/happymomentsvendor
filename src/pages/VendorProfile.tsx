@@ -224,8 +224,8 @@ const VendorProfile = () => {
     name: vendor.brand_name || "Vendor",
     tagline: vendor.quick_intro || "Professional Services",
     bio: vendor.detailed_intro || "Professional vendor services",
-    avatar: vendor.brand_logo_url || vendor.avatar_url || "/images/vendor.jpeg",
-    coverImage: vendor.cover_image_url || "/images/wedding.webp",
+    avatar: "/images/vendor.jpeg",
+    coverImage: "/images/wedding.webp",
     rating: vendor.rating || 4.8,
     reviewCount: vendor.review_count || 128,
     location: vendor.address || "Location not specified",
@@ -655,7 +655,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
               <div className="flex items-center justify-center gap-4 mb-4">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
                   <img 
-                    src={vendor?.contact_person_image_url || photographer.avatar} 
+                    src="/images/vendor.jpeg" 
                     alt={vendor?.spoc_name || "Contact Person"}
                     className="w-full h-full object-cover"
                   />
@@ -741,7 +741,7 @@ I'm really excited to connect and explore working with you soon! ✨`;
                       <div className="flex flex-col items-center -ml-6">
                         <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-blue-500 flex-shrink-0 shadow-lg">
                           <img 
-                            src={vendor?.contact_person_image_url || photographer.avatar} 
+                            src="/images/vendor.jpeg" 
                             alt={vendor?.spoc_name || "Contact Person"}
                             className="w-full h-full object-cover rounded-full"
                           />

@@ -69,7 +69,7 @@ type VendorFormInputs = {
   
   // Business Details
   experience?: string;
-  total_events?: number;
+  events_completed?: number;
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
@@ -183,7 +183,7 @@ export default function AddVendor() {
       
       // Business Details
       experience: "",
-      total_events: 0,
+      events_completed: 0,
       quick_intro: "",
       caption: "",
       detailed_intro: "",
@@ -203,9 +203,9 @@ export default function AddVendor() {
       },
       additional_info: {
         working_hours: "9 AM - 6 PM, Monday-Saturday",
-        languages: "",
-        awards: "",
-        certifications: "",
+        languages: [],
+        awards: [],
+        certifications: [],
         custom_fields: []
       },
       
@@ -239,83 +239,6 @@ export default function AddVendor() {
     }
   };
 
-  // Function to fill sample data for testing
-  const fillSampleData = () => {
-    const sampleData: VendorFormInputs = {
-      brand_name: "Royal Photography Studio",
-      spoc_name: "Rajesh Kumar",
-      category: "Photographers",
-      subcategory: "Wedding Photography",
-      phone_number: "+91 98765 43210",
-      alternate_number: "+91 87654 32109",
-      whatsapp_number: "+91 98765 43210",
-      email: "rajesh@royalphotography.com",
-      instagram: "@royalphotography",
-      address: "123 MG Road, Hyderabad, Telangana 500001",
-      description: "Professional wedding photography services with 10+ years of experience. Specializing in candid, traditional, and modern wedding photography.",
-      experience: "10+ Years",
-      total_events: 150,
-      quick_intro: "Creative wedding photography with artistic vision",
-      caption: "Namaskaram! Capturing your precious moments with expertise and passion",
-      detailed_intro: "Professional photography services with 10+ years of experience. We specialize in creating memorable visual stories for your special occasions with attention to detail and artistic excellence.",
-      // highlight_features column was deleted from database
-      services: [
-        { name: "Wedding Photography", description: "Full day coverage with professional editing", price: "₹50,000" },
-        { name: "Pre-wedding Shoots", description: "Romantic couple session with multiple locations", price: "₹25,000" },
-        { name: "Candid Photography", description: "Natural moments captured beautifully", price: "₹40,000" },
-        { name: "Traditional Photography", description: "Classic posed photography for ceremonies", price: "₹35,000" }
-      ],
-      deliverables: [
-        "High-resolution edited photos (500+ images)",
-        "Online gallery for easy sharing and downloads", 
-        "Professional wedding album (50 pages)",
-        "USB drive with all photos and videos",
-        "Same-day highlight reel (2-3 minutes)",
-        "Pre-wedding consultation and planning session"
-      ],
-      packages: [
-        {
-          name: "Premium Wedding Package",
-          price: "₹75,000",
-          description: "Complete wedding photography with 2 photographers",
-          features: ["Full day coverage", "2 photographers", "500+ edited photos", "Online gallery", "USB drive"]
-        },
-        {
-          name: "Basic Wedding Package",
-          price: "₹40,000",
-          description: "Essential wedding photography services",
-          features: ["8 hours coverage", "1 photographer", "300+ edited photos", "Online gallery"]
-        }
-      ],
-      // customer_reviews column was deleted from database
-      booking_policies: {
-        cancellation_policy: "50% refund if cancelled 30 days before event. No refund if cancelled within 15 days.",
-        payment_terms: "50% advance payment required. Balance to be paid 7 days before the event.",
-        booking_requirements: "Signed contract and advance payment required to confirm booking."
-      },
-      additional_info: {
-        working_hours: "9 AM - 7 PM, Monday-Saturday",
-        languages: "English, Hindi, Telugu, Tamil",
-        awards: "Best Wedding Photographer 2023, Excellence in Photography Award 2022",
-        certifications: "Professional Photography Certificate, Adobe Certified Expert",
-        custom_fields: [
-          { field_name: "Delivery Time", field_value: "7-10 business days" },
-          { field_name: "Service Area", field_value: "Hyderabad, Secunderabad, Cyberabad" },
-          { field_name: "Equipment", field_value: "Canon 5D Mark IV, Professional Lighting Setup" }
-        ]
-      },
-      verified: true,
-      currently_available: true,
-    };
-
-    reset(sampleData);
-    toast.current?.show({
-      severity: "success",
-      summary: "Sample Data Loaded",
-      detail: "Form has been filled with sample data for testing",
-      life: 3000,
-    });
-  };
 
   const onSubmit = async (data: VendorFormInputs) => {
     // Validate service areas
@@ -444,7 +367,6 @@ export default function AddVendor() {
         additional_info,
         verified: processedData.verified || false,
         currently_available: processedData.currently_available !== false,
-        total_events: 0,
         // rating and review_count columns were deleted from database
         // customer_reviews column was deleted from database
       };
@@ -563,7 +485,7 @@ export default function AddVendor() {
               <div>
                 <label className="block font-medium mb-2 text-gray-700">Number of Events Completed *</label>
                 <input
-                  {...register("total_events", { 
+                  {...register("events_completed", { 
                     required: "Number of events completed is required",
                     min: { value: 0, message: "Number of events cannot be negative" },
                     valueAsNumber: true
@@ -573,8 +495,8 @@ export default function AddVendor() {
                   className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., 50, 100, 200"
                 />
-                {errors.total_events && (
-                  <p className="text-red-500 text-sm mt-1">{errors.total_events.message}</p>
+                {errors.events_completed && (
+                  <p className="text-red-500 text-sm mt-1">{errors.events_completed.message}</p>
                 )}
               </div>
 
@@ -622,6 +544,33 @@ export default function AddVendor() {
                 <p className="text-red-500 text-sm mt-1">{errors.quick_intro.message}</p>
               )}
             </div>
+
+            {/* Caption Field - Only show if user enters data */}
+            {watch("quick_intro") && watch("quick_intro").trim() !== "" && (
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Caption</label>
+                <input
+                  {...register("caption")}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter a catchy tagline or greeting for your services"
+                />
+                <p className="text-sm text-gray-500 mt-1">A catchy tagline or greeting for your services</p>
+              </div>
+            )}
+
+            {/* Paragraph about You Field - Only show if user enters data */}
+            {watch("quick_intro") && watch("quick_intro").trim() !== "" && (
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Paragraph about You</label>
+                <textarea
+                  {...register("detailed_intro")}
+                  rows={4}
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter a detailed description about your services and expertise"
+                />
+                <p className="text-sm text-gray-500 mt-1">Detailed description about your services and expertise</p>
+              </div>
+            )}
           </section>
 
           {/* Contact Information - MANDATORY FIELDS ONLY */}
@@ -847,13 +796,6 @@ export default function AddVendor() {
 
           {/* Action Buttons */}
           <div className="flex justify-center gap-4 pt-6">
-            <button
-              type="button"
-              onClick={fillSampleData}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            >
-              Fill Sample Data
-            </button>
             <button
               type="submit"
               disabled={isSubmitting || phoneUnique === false}

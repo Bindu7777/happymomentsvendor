@@ -18,6 +18,7 @@ import { AdminRoute } from "./pages/adminRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CustomerAuthProvider } from "./contexts/CustomerAuthContext";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { VendorProtectedRoute } from "./components/auth/VendorProtectedRoute";
 import AuthRequired from "./components/AuthRequired";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Mandapas from "./pages/mandapas";
@@ -129,17 +130,17 @@ const App = () => {
                 <Route 
                   path="/vendor-dashboard" 
                   element={
-                    <ProtectedRoute>
+                    <VendorProtectedRoute>
                       <VendorDashboard />
-                    </ProtectedRoute>
+                    </VendorProtectedRoute>
                   } 
                 />
                 <Route 
                   path="/vendor-profile-edit" 
                   element={
-                    <ProtectedRoute>
+                    <VendorProtectedRoute>
                       <VendorProfileEdit />
-                    </ProtectedRoute>
+                    </VendorProtectedRoute>
                   } 
                 />
                 

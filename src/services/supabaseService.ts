@@ -668,7 +668,7 @@ export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>
     const allowedFields = [
       'brand_name', 'spoc_name', 'category', 'subcategory',
       'phone_number', 'alternate_number', 'whatsapp_number', 'email', 'instagram', 'address',
-      'experience', 'quick_intro', 'caption', 'detailed_intro',
+      'experience', 'events_completed', 'quick_intro', 'caption', 'detailed_intro',
       'starting_price', 'languages_spoken', 'verified', 'currently_available',
       'services', 'packages', 'deliverables', 'booking_policies', 'additional_info'
     ];

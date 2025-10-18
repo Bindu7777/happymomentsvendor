@@ -42,7 +42,6 @@ export interface Vendor {
   caption?: string
   detailed_intro?: string
   // highlight_features column was deleted from database
-  total_events?: number
   events_completed?: number
   // rating and review_count columns were deleted from database
   verified?: boolean

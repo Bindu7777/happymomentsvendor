@@ -1,5 +1,6 @@
 // services/supabaseService.ts
 import { supabase, Vendor, VendorMedia } from "../lib/supabase";
+import { CATEGORY_NAMES, CATEGORY_CODES } from "../constants/categories";
 import { PostgrestError } from "@supabase/supabase-js";
 
 // Helper function to parse JSON fields in vendor data
@@ -254,23 +255,94 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
     console.log('=== GET VENDORS BY CATEGORY DEBUG ===');
     console.log('Looking for category:', category);
     
-    const { data, error } = await supabase
+    // Fetch all vendors first to avoid URL encoding issues with special characters
+    const { data: allVendors, error: fetchError } = await supabase
       .from('vendors')
       .select('*')
-      .eq('category', category)
-      .eq('verified', true)
-      .eq('currently_available', true)
-      .order('rating', { ascending: false });
+      .order('created_at', { ascending: false });
 
-    console.log('Supabase query result:', { data, error });
-
-    if (error) {
-      console.error('Error fetching vendors by category:', error);
+    if (fetchError) {
+      console.error('Error fetching vendors:', fetchError);
       return [];
     }
 
-    console.log('Returning vendors:', data);
-    return data as Vendor[];
+    if (allVendors) {
+      // Log unique categories to help debug
+      const uniqueCategories = [...new Set(allVendors.map(v => v.category))];
+      console.log('Unique categories found in database:', uniqueCategories);
+      
+      // Filter vendors by category (case-insensitive partial match to handle variations)
+      const filteredVendors = allVendors.filter(vendor => {
+        if (!vendor.category) return false;
+        
+        const vendorCategory = vendor.category.toLowerCase().trim();
+        const searchCategory = category.toLowerCase().trim();
+        
+        // Exact match (case-insensitive)
+        if (vendorCategory === searchCategory) {
+          return true;
+        }
+        
+        // Handle slash variations: "Photography/Videography" vs "PhotographyVideography" vs "Photography Videography"
+        const normalizedVendor = vendorCategory.replace(/[\/\s]/g, '');
+        const normalizedSearch = searchCategory.replace(/[\/\s]/g, '');
+        
+        if (normalizedVendor === normalizedSearch) {
+          return true;
+        }
+        
+        // Keyword matching for common variations
+        if (searchCategory.includes('photograph')) {
+          if (vendorCategory.includes('photograph') || vendorCategory.includes('photo') || vendorCategory.includes('video')) {
+            return true;
+          }
+        }
+        
+        if (searchCategory.includes('planner')) {
+          if (vendorCategory.includes('planner') || vendorCategory.includes('event')) {
+            return true;
+          }
+        }
+        
+        if (searchCategory.includes('cater')) {
+          if (vendorCategory.includes('cater')) {
+            return true;
+          }
+        }
+        
+        if (searchCategory.includes('decor')) {
+          if (vendorCategory.includes('decor')) {
+            return true;
+          }
+        }
+        
+        if (searchCategory.includes('makeup')) {
+          if (vendorCategory.includes('makeup')) {
+            return true;
+          }
+        }
+        
+        // General partial match (as last resort)
+        if (vendorCategory.includes(searchCategory) || searchCategory.includes(vendorCategory)) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+      console.log(`Filtered ${filteredVendors.length} vendors for category "${category}"`);
+      
+      if (filteredVendors.length > 0) {
+        console.log('Sample vendors found:', filteredVendors.slice(0, 3).map(v => ({
+          name: v.brand_name,
+          category: v.category
+        })));
+      }
+      
+      return filteredVendors as Vendor[];
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error fetching vendors by category:', error);
     return [];
@@ -280,24 +352,99 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
 // Get vendor counts by category for homepage
 export const getVendorCounts = async (): Promise<Record<string, number>> => {
   try {
+    // Remove strict filters to count all vendors
     const { data, error } = await supabase
       .from('vendors')
-      .select('category')
-      .eq('verified', true)
-      .eq('currently_available', true);
+      .select('category');
+      // Temporarily remove verified and currently_available filters
+      // .eq('verified', true)
+      // .eq('currently_available', true)
 
     if (error) {
       console.error('Error fetching vendor counts:', error);
       return {};
     }
 
-    // Count vendors by category
+    // Helper to normalize raw DB category to our canonical CATEGORY_NAMES
+    const normalizeCategory = (raw: string): string => {
+      if (!raw) return '';
+      const c = raw.toLowerCase().trim();
+
+      // Photography/Videography
+      if (
+        c.includes('photograph') ||
+        c.includes('photo') ||
+        c.includes('videograph') ||
+        c.includes('video')
+      ) {
+        return CATEGORY_NAMES[CATEGORY_CODES.PHOTOGRAPHERS]; // 'Photography/Videography'
+      }
+
+      // Event Planners
+      if (c.includes('planner') || c.includes('event planner')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.EVENT_PLANNERS];
+      }
+
+      // Venues
+      if (c.includes('venue') || c.includes('banquet') || c.includes('hall')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.VENUES];
+      }
+
+      // Decorators
+      if (c.includes('decor')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.DECORATORS];
+      }
+
+      // Caterers
+      if (c.includes('cater')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.CATERERS];
+      }
+
+      // Makeup Artists
+      if (c.includes('makeup') || c.includes('mua')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.MAKEUP_ARTISTS];
+      }
+
+      // DJs, Lighting, and Entertainment
+      if (c.includes('dj') || c.includes('music') || c.includes('lighting') || c.includes('entertain')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.DJS_LIGHTING_ENTERTAINMENT];
+      }
+
+      // Anchors
+      if (c.includes('anchor') || c.includes('emcee') || c.includes('mc ')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.ANCHORS];
+      }
+
+      // Transportation Services
+      if (c.includes('transport') || c.includes('car') || c.includes('cab')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.TRANSPORTATION_SERVICES];
+      }
+
+      // Fashion/Costume Designers
+      if (c.includes('fashion') || c.includes('costume') || c.includes('designer')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.FASHION_COSTUME_DESIGNERS];
+      }
+
+      // Tent & Equipment Rentals
+      if (c.includes('tent') || c.includes('rental') || c.includes('equipment')) {
+        return CATEGORY_NAMES[CATEGORY_CODES.TENT_EQUIPMENT_RENTALS];
+      }
+
+      // Fallback to original if nothing matched
+      return raw;
+    };
+
+    // Count vendors by normalized category
     const counts: Record<string, number> = {};
     data.forEach(vendor => {
-      if (vendor.category) {
-        counts[vendor.category] = (counts[vendor.category] || 0) + 1;
+      const canonical = normalizeCategory(vendor.category);
+      if (canonical) {
+        counts[canonical] = (counts[canonical] || 0) + 1;
       }
     });
+
+    console.log('Normalized vendor counts:', counts);
+    console.log('Raw vendor categories:', data.map(v => ({ category: v.category, normalized: normalizeCategory(v.category) })));
 
     return counts;
   } catch (error) {
@@ -307,7 +454,7 @@ export const getVendorCounts = async (): Promise<Record<string, number>> => {
 };
 
 // Get vendor media
-export const getVendorMedia = async (vendorId: string, category?: string): Promise<VendorMedia[]> => {
+export const getVendorMedia = async (vendorId: number, category?: string): Promise<VendorMedia[]> => {
   try {
     let query = supabase
       .from('vendor_media')
@@ -335,7 +482,7 @@ export const getVendorMedia = async (vendorId: string, category?: string): Promi
 };
 
 // Get highlighted catalog images by combining storage bucket images with metadata
-export const getHighlightedCatalogImages = async (vendorId: string): Promise<any[]> => {
+export const getHighlightedCatalogImages = async (vendorId: number): Promise<any[]> => {
   try {
     console.log(`Getting highlighted catalog images for vendor ${vendorId}`);
     
@@ -432,7 +579,7 @@ export const getHighlightedCatalogImages = async (vendorId: string): Promise<any
 };
 
 // Get ALL catalog images from storage buckets (not just highlighted ones)
-export const getAllCatalogImages = async (vendorId: string): Promise<any[]> => {
+export const getAllCatalogImages = async (vendorId: number): Promise<any[]> => {
   try {
     console.log(`Getting ALL catalog images for vendor ${vendorId}`);
     

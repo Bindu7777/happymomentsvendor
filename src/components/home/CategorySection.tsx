@@ -9,7 +9,7 @@ import { getVendorCounts } from '@/services/supabaseService';
 const categoryIcons = {
   'Event Planners': Users,
   'Venues': Building2,
-  'Photographers': Camera,
+  'Photography/Videography': Camera,
   'Decorators': Flower2,
   'Caterers': Utensils,
   'Makeup Artists': Sparkles,

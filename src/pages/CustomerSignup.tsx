@@ -30,6 +30,17 @@ const CustomerSignup: React.FC = () => {
   // Email verification status
   const [emailVerificationStatus, setEmailVerificationStatus] = useState<'unverified' | 'sending' | 'sent' | 'verified'>('unverified');
   const [emailVerificationMessage, setEmailVerificationMessage] = useState('');
+  
+  // Current step (1 or 2)
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  
+  // Password requirements state
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    minLength: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+  });
 
   // Check if user is coming back from email verification
   useEffect(() => {
@@ -39,18 +50,42 @@ const CustomerSignup: React.FC = () => {
     const token = urlParams.get('token');
     
     if (verified === 'true' && email && token) {
-      // Set the email in the form if it's not already set
-      setFormData(prev => {
-        if (!prev.email) {
-          return { ...prev, email };
-        }
-        return prev;
-      });
+      // Set the email from URL
+      setFormData(prev => ({
+        ...prev,
+        email: email
+      }));
       
-      // Verify the token with the backend
+      // Verify the token with the backend (which will return the name)
       verifyPreSignupToken(email, token);
     }
-  }, []); // Keep empty dependency array since we only want this to run once on mount
+  }, []);
+
+  // Move to step 2 when email is verified
+  useEffect(() => {
+    if (emailVerificationStatus === 'verified') {
+      setCurrentStep(2);
+    }
+  }, [emailVerificationStatus]);
+  
+  // Validate password requirements dynamically
+  useEffect(() => {
+    if (formData.password) {
+      setPasswordRequirements({
+        minLength: formData.password.length >= 8,
+        hasUpperCase: /[A-Z]/.test(formData.password),
+        hasLowerCase: /[a-z]/.test(formData.password),
+        hasNumber: /[0-9]/.test(formData.password),
+      });
+    } else {
+      setPasswordRequirements({
+        minLength: false,
+        hasUpperCase: false,
+        hasLowerCase: false,
+        hasNumber: false,
+      });
+    }
+  }, [formData.password]);
 
   const verifyPreSignupToken = async (email: string, token: string) => {
     try {
@@ -68,8 +103,18 @@ const CustomerSignup: React.FC = () => {
       const result = await response.json();
 
       if (response.ok && result.success) {
+        // Populate the form with the name returned from backend (the name that was sent in the email)
+        if (result.name) {
+          setFormData(prev => ({
+            ...prev,
+            fullName: result.name,
+            email: email
+          }));
+        }
+        
         setEmailVerificationStatus('verified');
         setEmailVerificationMessage('Email verified successfully! You can now create your account.');
+        setCurrentStep(2);
         
         // Clear URL parameters after successful verification
         const url = new URL(window.location.href);
@@ -107,23 +152,37 @@ const CustomerSignup: React.FC = () => {
       newErrors.email = 'Please verify your email address before creating account';
     }
 
-    // Password validation - No restrictions, just required
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    }
+    // Step 2 validations only if we're on step 2 or submitting
+    if (currentStep === 2 || emailVerificationStatus === 'verified') {
+      // Password validation
+      if (!formData.password) {
+        newErrors.password = 'Password is required';
+      } else {
+        // Check password requirements
+        if (formData.password.length < 8) {
+          newErrors.password = 'Password must be at least 8 characters';
+        } else if (!/[A-Z]/.test(formData.password)) {
+          newErrors.password = 'Password must contain at least one uppercase letter';
+        } else if (!/[a-z]/.test(formData.password)) {
+          newErrors.password = 'Password must contain at least one lowercase letter';
+        } else if (!/[0-9]/.test(formData.password)) {
+          newErrors.password = 'Password must contain at least one number';
+        }
+      }
 
-    // Confirm Password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
+      // Confirm Password validation
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = 'Please confirm your password';
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
 
-    // Mobile Number validation
-    if (!formData.mobileNumber.trim()) {
-      newErrors.mobileNumber = 'Mobile number is required';
-    } else if (!/^[0-9]{10}$/.test(formData.mobileNumber)) {
-      newErrors.mobileNumber = 'Mobile number must be exactly 10 digits';
+      // Mobile Number validation
+      if (!formData.mobileNumber.trim()) {
+        newErrors.mobileNumber = 'Mobile number is required';
+      } else if (!/^[0-9]{10}$/.test(formData.mobileNumber)) {
+        newErrors.mobileNumber = 'Mobile number must be exactly 10 digits';
+      }
     }
 
     setErrors(newErrors);
@@ -137,16 +196,64 @@ const CustomerSignup: React.FC = () => {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
     
+    // Clear confirm password error when password changes
+    if (field === 'password' && errors.confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: '' }));
+    }
+    
     // Reset email verification status when email changes
     if (field === 'email' && emailVerificationStatus !== 'unverified') {
       setEmailVerificationStatus('unverified');
       setEmailVerificationMessage('');
+      setCurrentStep(1);
     }
+  };
+  
+  // Check if form is valid for button enablement
+  const isFormValid = () => {
+    if (currentStep !== 2) return false;
+    if (emailVerificationStatus !== 'verified') return false;
+    
+    // Check full name (should be filled in step 1)
+    if (!formData.fullName.trim() || formData.fullName.trim().length < 2) return false;
+    
+    // Check email
+    if (!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) return false;
+    
+    // Check mobile number
+    if (!formData.mobileNumber.trim() || !/^[0-9]{10}$/.test(formData.mobileNumber)) return false;
+    
+    // Check password requirements
+    if (!formData.password || 
+        formData.password.length < 8 || 
+        !/[A-Z]/.test(formData.password) || 
+        !/[a-z]/.test(formData.password) || 
+        !/[0-9]/.test(formData.password)) return false;
+    
+    // Check confirm password
+    if (!formData.confirmPassword || formData.password !== formData.confirmPassword) return false;
+    
+    return true;
   };
 
   const handleVerifyEmail = async () => {
-    if (!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
-      setErrors({ email: 'Please enter a valid email address first' });
+    // Validate full name and email before sending verification
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+    } else if (formData.fullName.trim().length < 2) {
+      newErrors.fullName = 'Full name must be at least 2 characters';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -215,12 +322,8 @@ const CustomerSignup: React.FC = () => {
       } else {
         if (customer) {
           // Account created and verified successfully - redirect to homepage
-          setErrors({ 
-            general: 'Account created and verified successfully! Redirecting to homepage...' 
-          });
-          
           setTimeout(() => {
-            navigate('/');
+            navigate('/?accountCreated=true');
           }, 2000);
         } else {
           // Account created but needs email verification
@@ -241,6 +344,7 @@ const CustomerSignup: React.FC = () => {
           // Reset email verification status
           setEmailVerificationStatus('unverified');
           setEmailVerificationMessage('');
+          setCurrentStep(1);
           
           // Redirect to email verification page
           setTimeout(() => {
@@ -260,11 +364,26 @@ const CustomerSignup: React.FC = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center text-gray-900">Create Customer Account</CardTitle>
-          <CardDescription className="text-center text-gray-600">
-            Sign up to save your preferences and get personalized recommendations.
-          </CardDescription>
-          <div className="text-center">
-            <span className="text-sm text-red-600 font-medium">Email verification required before login.</span>
+          
+          {/* Step Indicator */}
+          <div className="flex items-center justify-center mt-4 space-x-4">
+            <div className={`flex items-center ${currentStep >= 1 ? 'text-orange-500' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                currentStep >= 1 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'
+              }`}>
+                1
+              </div>
+              <span className="ml-2 text-sm font-medium">Basic Details</span>
+            </div>
+            <div className="w-12 h-0.5 bg-gray-300"></div>
+            <div className={`flex items-center ${currentStep >= 2 ? 'text-orange-500' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                currentStep >= 2 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'
+              }`}>
+                2
+              </div>
+              <span className="ml-2 text-sm font-medium">Contact & Security</span>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -275,175 +394,206 @@ const CustomerSignup: React.FC = () => {
               </Alert>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name *</Label>
-              <Input
-                id="fullName"
-                type="text"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                placeholder="Enter your full name"
-                className={errors.fullName ? 'border-red-500' : ''}
-              />
-              {errors.fullName && (
-                <p className="text-sm text-red-500">{errors.fullName}</p>
-              )}
-            </div>
+            {/* Step 1: Basic Details */}
+            <div className={`space-y-4 ${currentStep === 2 ? 'opacity-60' : ''}`}>
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name *</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  value={formData.fullName}
+                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  placeholder="Enter your full name"
+                  className={errors.fullName ? 'border-red-500' : ''}
+                />
+                {errors.fullName && (
+                  <p className="text-sm text-red-500">{errors.fullName}</p>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="Enter your email address"
-                className={errors.email ? 'border-red-500' : ''}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email}</p>
-              )}
-              
-              {/* Email Verification Button and Status */}
-              <div className="mt-2">
-                {emailVerificationStatus === 'verified' ? (
-                  <div className="flex items-center text-green-600 text-sm">
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    ✔ Verified
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    onClick={handleVerifyEmail}
-                    disabled={!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email) || emailVerificationStatus === 'sending' || emailVerificationStatus === 'sent'}
-                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    {emailVerificationStatus === 'sending' ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : emailVerificationStatus === 'sent' ? (
-                      <>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Verification Email Sent
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="mr-2 h-4 w-4" />
-                        Verify Email
-                      </>
-                    )}
-                  </Button>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  placeholder="Enter your email address"
+                  className={errors.email ? 'border-red-500' : ''}
+                  readOnly={currentStep === 2}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email}</p>
                 )}
                 
-                {/* Verification Message */}
-                {emailVerificationMessage && (
-                  <p className={`text-sm mt-2 ${
-                    emailVerificationStatus === 'sent' || emailVerificationStatus === 'verified' ? 'text-green-600' : 'text-red-500'
-                  }`}>
-                    {emailVerificationMessage}
-                  </p>
-                )}
+                {/* Email Verification Button and Status */}
+                <div className="mt-2">
+                  {emailVerificationStatus === 'verified' ? (
+                    <div className="flex items-center text-green-600 text-sm">
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      ✔ Verified
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleVerifyEmail}
+                      disabled={!formData.fullName.trim() || formData.fullName.trim().length < 2 || !formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email) || emailVerificationStatus === 'sending' || emailVerificationStatus === 'sent' || currentStep === 2}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      {emailVerificationStatus === 'sending' ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : emailVerificationStatus === 'sent' ? (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Verification Email Sent
+                        </>
+                      ) : (
+                        <>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Verify Email
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
+                  {/* Verification Message */}
+                  {emailVerificationMessage && (
+                    <p className={`text-sm mt-2 ${
+                      emailVerificationStatus === 'sent' || emailVerificationStatus === 'verified' ? 'text-green-600' : 'text-red-500'
+                    }`}>
+                      {emailVerificationMessage}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="mobileNumber">Mobile Number *</Label>
-              <Input
-                id="mobileNumber"
-                type="tel"
-                value={formData.mobileNumber}
-                onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
-                placeholder="Enter your 10-digit mobile number"
-                maxLength={10}
-                className={errors.mobileNumber ? 'border-red-500' : ''}
-              />
-              {errors.mobileNumber && (
-                <p className="text-sm text-red-500">{errors.mobileNumber}</p>
-              )}
-            </div>
+            {/* Step 2: Contact & Security - Only shown after email verification */}
+            {currentStep === 2 && (
+              <div className="space-y-4 mt-6 pt-6 border-t border-gray-200">
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Mobile Number *</Label>
+                  <Input
+                    id="mobileNumber"
+                    type="tel"
+                    value={formData.mobileNumber}
+                    onChange={(e) => handleInputChange('mobileNumber', e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter 10-digit mobile number"
+                    maxLength={10}
+                    className={errors.mobileNumber ? 'border-red-500' : ''}
+                  />
+                  <p className="text-xs text-gray-500">Enter your 10-digit mobile number</p>
+                  {errors.mobileNumber && (
+                    <p className="text-sm text-red-500">{errors.mobileNumber}</p>
+                  )}
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="gender">Gender (Optional)</Label>
-              <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your gender" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender (Optional)</Label>
+                  <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password *</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  placeholder="Enter your password"
-                  className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      placeholder="Enter your password"
+                      className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {errors.password && (
+                    <p className="text-sm text-red-500">{errors.password}</p>
+                  )}
+                  {/* Password Requirements */}
+                  {formData.password && (
+                    <div className="text-xs space-y-1 mt-2">
+                      <div className={`flex items-center ${passwordRequirements.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                        <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.minLength ? '' : 'opacity-30'}`} />
+                        <span>At least 8 characters</span>
+                      </div>
+                      <div className={`flex items-center ${passwordRequirements.hasUpperCase ? 'text-green-600' : 'text-gray-500'}`}>
+                        <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.hasUpperCase ? '' : 'opacity-30'}`} />
+                        <span>One uppercase letter</span>
+                      </div>
+                      <div className={`flex items-center ${passwordRequirements.hasLowerCase ? 'text-green-600' : 'text-gray-500'}`}>
+                        <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.hasLowerCase ? '' : 'opacity-30'}`} />
+                        <span>One lowercase letter</span>
+                      </div>
+                      <div className={`flex items-center ${passwordRequirements.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                        <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.hasNumber ? '' : 'opacity-30'}`} />
+                        <span>One number</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      placeholder="Confirm your password"
+                      className={errors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="text-sm text-red-500">{errors.confirmPassword}</p>
+                  )}
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed" 
+                  disabled={loading || !isFormValid()}
                 >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    'Create Account'
+                  )}
                 </Button>
               </div>
-              {errors.password && (
-                <p className="text-sm text-red-500">{errors.password}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password *</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                  placeholder="Confirm your password"
-                  className={errors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="text-sm text-red-500">{errors.confirmPassword}</p>
-              )}
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white" 
-              disabled={loading || emailVerificationStatus !== 'verified' || !formData.fullName.trim() || !formData.email.trim() || !formData.password || !formData.confirmPassword || !formData.mobileNumber.trim() || formData.password !== formData.confirmPassword}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Account...
-                </>
-              ) : (
-                'Create Account'
-              )}
-            </Button>
+            )}
           </form>
 
           <div className="mt-6 text-center">

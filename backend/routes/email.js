@@ -131,9 +131,10 @@ router.post('/pre-signup-verification', async (req, res) => {
     // Generate a temporary verification token for pre-signup verification
     const tempToken = 'temp_verification_' + Date.now() + '_' + Math.random().toString(36).substring(2);
     
-    // Store the temporary verification token (expires in 24 hours)
+    // Store the temporary verification token with name (expires in 24 hours)
     tempVerificationStore.set(email, {
       token: tempToken,
+      name: name || 'User',
       timestamp: Date.now(),
       expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
     });
@@ -224,6 +225,7 @@ router.post('/verify-pre-signup', async (req, res) => {
       success: true,
       message: 'Email verified successfully',
       email: email,
+      name: storedData.name || 'User',
       verified: true
     });
 

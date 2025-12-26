@@ -2,33 +2,48 @@ const nodemailer = require('nodemailer');
 
 let transporter = null;
 
-// Email configuration
-const emailConfig = {
-  host: process.env.SMTP_HOST || 'mail.bindu.tconnecthub.com',
-  port: parseInt(process.env.SMTP_PORT) || 465,
-  secure: false, // false for 587, true for 465
-  requireTLS: true, // enable TLS for port 587
-  auth: {
-    user: process.env.SMTP_USER || 'test@bindu.tconnecthub.com',
-    pass: process.env.SMTP_PASSWORD || 'your_email_password_here'
-  }
+// Email configuration - lazy initialization to avoid startup timeouts
+const getEmailConfig = () => {
+  const smtpPort = parseInt(process.env.SMTP_PORT) || 587; // Default to 587 (STARTTLS) instead of 465
+  const isSecurePort = smtpPort === 465; // Port 465 uses SSL, port 587 uses STARTTLS
+
+  return {
+    host: process.env.SMTP_HOST || 'mail.bindu.tconnecthub.com',
+    port: smtpPort,
+    secure: isSecurePort, // true for 465 (SSL), false for 587 (STARTTLS)
+    requireTLS: !isSecurePort, // enable TLS for port 587, not needed for 465
+    auth: {
+      user: process.env.SMTP_USER || 'test@bindu.tconnecthub.com',
+      pass: process.env.SMTP_PASSWORD || 'your_email_password_here'
+    },
+    // Additional options for better connection handling
+    connectionTimeout: 30000, // 30 seconds (increased from 10)
+    greetingTimeout: 30000, // 30 seconds (increased from 10)
+    socketTimeout: 30000, // 30 seconds (increased from 10)
+    // Ignore TLS certificate errors (useful for self-signed certs)
+    tls: {
+      rejectUnauthorized: false
+    }
+  };
 };
 
-// Initialize email service
+// Get or create transporter (lazy initialization)
+const getTransporter = () => {
+  if (!transporter) {
+    const emailConfig = getEmailConfig();
+    transporter = nodemailer.createTransport(emailConfig);
+    console.log(`📧 Email service configured for ${emailConfig.host}:${emailConfig.port}`);
+    console.log(`👤 SMTP User: ${emailConfig.auth.user}`);
+  }
+  return transporter;
+};
+
+// Initialize email service (non-blocking)
 const initializeEmailService = () => {
   try {
-    transporter = nodemailer.createTransport(emailConfig);
-    
-    // Verify connection configuration
-    transporter.verify((error, success) => {
-      if (error) {
-        console.error('❌ Email service verification failed:', error);
-      } else {
-        console.log('✅ Email service is ready to send emails');
-        console.log(`📧 SMTP Host: ${emailConfig.host}:${emailConfig.port}`);
-        console.log(`👤 SMTP User: ${emailConfig.auth.user}`);
-      }
-    });
+    // Create transporter but don't verify on startup (to avoid blocking)
+    getTransporter();
+    console.log('📧 Email service initialized (lazy connection)');
   } catch (error) {
     console.error('❌ Failed to initialize email service:', error);
   }
@@ -547,38 +562,70 @@ const emailTemplates = {
 // Send email function
 const sendEmail = async (options) => {
   try {
-    if (!transporter) {
-      throw new Error('Email service not initialized');
+    const emailConfig = getEmailConfig();
+    
+    // Create a fresh transporter for each email to ensure connection works
+    const currentTransporter = nodemailer.createTransport(emailConfig);
+    
+    // Verify connection before sending
+    try {
+      await currentTransporter.verify();
+      console.log('✅ SMTP connection verified');
+    } catch (verifyError) {
+      console.error('❌ SMTP connection verification failed:', verifyError);
+      // Close the transporter
+      currentTransporter.close();
+      throw new Error(`SMTP connection failed: ${verifyError.message}`);
     }
 
+    // Use the authenticated email address directly as the "From" address
+    // Some SMTP servers require the From address to match the authenticated user
     const mailOptions = {
-      from: `HappyMoments <${emailConfig.auth.user}>`,
+      from: emailConfig.auth.user, // Use email directly, not formatted
       to: options.to,
       subject: options.subject,
       html: options.html,
       text: options.text
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    console.log(`📤 Attempting to send email to: ${options.to}`);
+    console.log(`📧 Using SMTP: ${emailConfig.host}:${emailConfig.port}`);
     
-    console.log('✅ Email sent successfully:', {
+    const result = await currentTransporter.sendMail(mailOptions);
+    
+    // Close the transporter after sending
+    currentTransporter.close();
+    
+    console.log('✅ Email accepted by SMTP server:', {
       messageId: result.messageId,
       to: options.to,
-      subject: options.subject
+      subject: options.subject,
+      response: result.response
     });
 
     return {
       success: true,
       messageId: result.messageId,
-      message: 'Email sent successfully'
+      message: 'Email sent successfully',
+      response: result.response
     };
 
   } catch (error) {
     console.error('❌ Error sending email:', error);
+    console.error('Error details:', {
+      code: error.code,
+      command: error.command,
+      message: error.message,
+      response: error.response,
+      responseCode: error.responseCode
+    });
+    
     return {
       success: false,
       error: error.message,
-      message: 'Failed to send email'
+      message: `Failed to send email: ${error.message}`,
+      code: error.code,
+      responseCode: error.responseCode
     };
   }
 };

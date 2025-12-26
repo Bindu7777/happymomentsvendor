@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Camera, Building2, MapPin, Users, LogIn, Shield, Mic, MessageCircle, Sparkles } from 'lucide-react';
 import VendorLogin from '../VendorLogin';
 import SmartRequestInput from '../SmartRequestInput';
 import { ParsedRequest } from '../services/requestParser';
 import { ExtractedEntities } from '../services/enhancedAudioEngine';
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
+import { CheckCircle, X } from 'lucide-react';
 import {
   Carousel,
   CarouselContent,
@@ -122,6 +124,28 @@ const Hero = () => {
   const [showVendorLogin, setShowVendorLogin] = useState(false);
   const [showSmartRequest, setShowSmartRequest] = useState(false);
   const [parsedRequest, setParsedRequest] = useState<ParsedRequest | null>(null);
+  const { customer } = useCustomerAuth();
+  const [searchParams] = useSearchParams();
+  
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  
+  // Show success banner if account was just created
+  useEffect(() => {
+    if (searchParams.get('accountCreated') === 'true') {
+      setShowSuccessBanner(true);
+      // Remove the query parameter from URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('accountCreated');
+      window.history.replaceState({}, '', window.location.pathname + (newSearchParams.toString() ? '?' + newSearchParams.toString() : ''));
+      
+      // Auto dismiss after 5 seconds
+      const timer = setTimeout(() => {
+        setShowSuccessBanner(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -264,10 +288,57 @@ const Hero = () => {
       {/* Overlay to make text more readable */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent -z-10"></div>
       
+      {/* Success Banner */}
+      {showSuccessBanner && (
+        <div 
+          className="fixed left-1/2 z-[60]"
+          style={{ 
+            top: '80px',
+            transform: 'translateX(-50%)'
+          }}
+        >
+          <div 
+            className="max-w-[420px] w-[calc(100vw-2rem)] mx-auto bg-white rounded-[14px] border-l-[5px] border-[#F7941D] p-4 shadow-lg"
+            style={{
+              animation: 'slideDownFadeIn 0.3s ease-out'
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <CheckCircle className="w-5 h-5 text-[#F7941D] animate-scale-in" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[#001B5E] font-semibold text-base mb-1">
+                  Account Created Successfully!
+                </h3>
+                <p className="text-[#001B5E] text-sm opacity-90">
+                  Your account has been verified. Welcome to Happy Moments 🎉
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSuccessBanner(false)}
+                className="flex-shrink-0 text-[#001B5E] opacity-60 hover:opacity-100 transition-opacity ml-2"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="container-custom relative z-10 flex flex-col items-center h-full w-full">
         {/* Main content positioned higher up on the hero */}
         <div className="flex flex-col items-center justify-start pt-[8vh] md:pt-[10vh] lg:pt-[12vh] pb-4 w-full px-4">
           <div className="max-w-4xl mx-auto text-center mb-4 md:mb-6">
+            {/* Welcome message for logged-in customers */}
+            {customer && customer.full_name && (
+              <div className="mb-4 animate-fade-up">
+                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                  Welcome {customer.full_name.split(' ')[0]}!
+                </h2>
+              </div>
+            )}
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold space text-white mb-3 md:mb-4 leading-[1.1] animate-fade-up tracking-normal drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] whitespace-normal">
             Find the Best Event Vendors, Perfect for Your Budget and Vision
             </h1>
@@ -512,7 +583,7 @@ const Hero = () => {
           </div>
         </div>
       )}
-    </section>
+      </section>
   );
 };
 

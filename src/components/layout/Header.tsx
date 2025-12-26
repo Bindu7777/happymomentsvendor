@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bell, LogOut, Headphones, Utensils } from "lucide-react";
+import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bell, LogOut, Headphones, Utensils, Eye, EyeOff, Loader2, CheckCircle, Mail } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
@@ -27,6 +30,8 @@ const Header = () => {
   const [loggedInVendor, setLoggedInVendor] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginType, setLoginType] = useState<'customer' | 'vendor'>('customer');
+  const [showCustomerSignupModal, setShowCustomerSignupModal] = useState(false);
+  const [showCustomerLoginModal, setShowCustomerLoginModal] = useState(false);
   const [likedVendorsCount, setLikedVendorsCount] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
@@ -35,7 +40,7 @@ const Header = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const user = useUserStore((state) => state.user);
-  const { customer, signOut: customerSignOut } = useCustomerAuth();
+  const { customer, signOut: customerSignOut, signIn, signUp } = useCustomerAuth();
   
   // Debug: Log user state
   console.log('Header - User state:', user);
@@ -457,45 +462,48 @@ const Header = () => {
               </DropdownMenu>
             </div>
           ) : (
-            <div className="hidden md:flex items-center space-x-3">
-              {/* Helpline Button for non-logged in users */}
-              <Link 
-                to="/contact"
-                className="flex items-center gap-2 text-white hover:text-orange-400 transition-colors font-medium text-sm px-3 py-2 rounded-lg hover:bg-white/10 border border-white/20 hover:border-orange-400/50"
-                title="Contact Support"
-              >
-                <Headphones className="h-4 w-4" />
-                <span className="hidden lg:inline">Helpline</span>
-              </Link>
-              <button
-                onClick={() => {
-                  console.log('Customer Sign Up clicked');
-                  navigate('/customer-signup');
-                }}
-                className="border-2 border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
-              >
-                Sign Up
-              </button>
-              <button
-                onClick={() => {
-                  console.log('Customer Login clicked');
-                  navigate('/customer-login');
-                }}
-                className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => {
-                  console.log('Vendor Login clicked');
-                  setLoginType('vendor');
-                  setShowLoginModal(true);
-                }}
-                className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
-              >
-                Vendor
-              </button>
-            </div>
+            <>
+              {/* Desktop buttons */}
+              <div className="hidden md:flex items-center space-x-3">
+                {/* Helpline Button for non-logged in users */}
+                <Link 
+                  to="/contact"
+                  className="flex items-center gap-2 text-white hover:text-orange-400 transition-colors font-medium text-sm px-3 py-2 rounded-lg hover:bg-white/10 border border-white/20 hover:border-orange-400/50"
+                  title="Contact Support"
+                >
+                  <Headphones className="h-4 w-4" />
+                  <span className="hidden lg:inline">Helpline</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    console.log('Customer Sign Up clicked');
+                    setShowCustomerSignupModal(true);
+                  }}
+                  className="border-2 border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
+                >
+                  Sign Up
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Customer Login clicked');
+                    setShowCustomerLoginModal(true);
+                  }}
+                  className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Vendor Login clicked');
+                    setLoginType('vendor');
+                    setShowLoginModal(true);
+                  }}
+                  className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-3 py-2 rounded-lg font-medium shadow-lg transition-all duration-200 text-sm"
+                >
+                  Vendor
+                </button>
+              </div>
+            </>
           )}
         </div>
         {/* Mobile menu button */}
@@ -511,8 +519,48 @@ const Header = () => {
         </button>
       </div>
 
-      {/* Mobile menu - matching desktop transparency effect */}
-      {mobileMenuOpen && (
+      {/* Mobile menu - shows only Sign Up, Login, Vendor for non-logged in users */}
+      {mobileMenuOpen && !customer && (
+        <div
+          className={`lg:hidden absolute top-full left-0 right-0 ${
+            scrolled ? "bg-wedding-navy/95" : "bg-wedding-navy/80"
+          } backdrop-blur-md shadow-lg border-t border-white/10 animate-fade-in`}
+        >
+          <div className="container-custom py-4 flex flex-col" style={{ gap: '14px' }}>
+            <button
+              onClick={() => {
+                navigate('/customer-signup');
+                setMobileMenuOpen(false);
+              }}
+              className="border-2 border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-4 py-3 rounded-lg font-medium shadow-lg transition-all duration-200 text-center w-full"
+            >
+              Sign Up
+            </button>
+            <button
+              onClick={() => {
+                navigate('/customer-login');
+                setMobileMenuOpen(false);
+              }}
+              className="border-2 border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-3 rounded-lg font-medium shadow-lg transition-all duration-200 text-center w-full"
+            >
+              Login
+            </button>
+            <button
+              onClick={() => {
+                setLoginType('vendor');
+                setShowLoginModal(true);
+                setMobileMenuOpen(false);
+              }}
+              className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-3 rounded-lg font-medium shadow-lg transition-all duration-200 text-center w-full"
+            >
+              Vendor
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile menu - full menu for logged in users */}
+      {mobileMenuOpen && customer && (
         <div
           className={`lg:hidden absolute top-full left-0 right-0 ${
             scrolled ? "bg-wedding-navy/95" : "bg-wedding-navy/80"
@@ -520,161 +568,59 @@ const Header = () => {
         >
           <div className="container-custom py-4 flex flex-col space-y-4">
             <div className="flex flex-col space-y-2">
-              <div className="py-2">
-                <div className="font-medium mb-2 text-white">Categories</div>
-                <div className="ml-4 flex flex-col space-y-2">
-                  <Link
-                    to="/category/photography"
-                    className="text-white hover:text-wedding-orange transition-custom py-1"
-                  >
-                    Photography
-                  </Link>
-                  <Link
-                    to="/category/venues"
-                    className="text-white hover:text-wedding-orange transition-custom py-1"
-                  >
-                    Venues
-                  </Link>
-                  <Link
-                    to="/category/catering"
-                    className="text-white hover:text-wedding-orange transition-custom py-1"
-                  >
-                    Catering
-                  </Link>
-                  <Link
-                    to="/category/decor-design"
-                    className="text-white hover:text-wedding-orange transition-custom py-1"
-                  >
-                    Decor & Design
-                  </Link>
-                  <Link
-                    to="/category/attire-accessories"
-                    className="text-white hover:text-wedding-orange transition-custom py-1"
-                  >
-                    Attire & Accessories
-                  </Link>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
-              {/* Donate Food Button for Mobile */}
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  const element = document.getElementById('meals-of-kindness');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                }}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+              {/* Liked Vendors */}
+              <Link
+                to="/liked-vendors"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 text-white hover:text-red-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-red-400/50"
               >
                 <Heart className="h-5 w-5" />
-                Donate Food
-              </button>
+                Liked Vendors {likedVendorsCount > 0 && `(${likedVendorsCount})`}
+              </Link>
 
-              {/* Helpline Button for Mobile */}
+              {/* My Vendors */}
               <Link
-                to="/contact"
+                to="/my-vendors"
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
               >
-                <Headphones className="h-5 w-5" />
-                Helpline
+                <Users className="h-5 w-5" />
+                My Vendors
               </Link>
 
-              {/* Mobile menu content based on login status */}
-              {customer ? (
-                // Logged in user mobile menu
-                <div className="flex flex-col space-y-2">
-                  {/* Liked Vendors */}
-                  <Link
-                    to="/liked-vendors"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 text-white hover:text-red-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-red-400/50"
-                  >
-                    <Heart className="h-5 w-5" />
-                    Liked Vendors {likedVendorsCount > 0 && `(${likedVendorsCount})`}
-                  </Link>
+              {/* Notifications */}
+              <button
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setMobileMenuOpen(false);
+                }}
+                className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
+              >
+                <Bell className="h-5 w-5" />
+                Notifications {unreadNotificationsCount > 0 && `(${unreadNotificationsCount})`}
+              </button>
 
-                  {/* My Vendors */}
-                  <Link
-                    to="/my-vendors"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
-                  >
-                    <Users className="h-5 w-5" />
-                    My Vendors
-                  </Link>
+              {/* Customer Dashboard */}
+              <Link
+                to="/customer-dashboard"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
+              >
+                <User className="h-5 w-5" />
+                Dashboard
+              </Link>
 
-                  {/* Notifications */}
-                  <button
-                    onClick={() => {
-                      setShowNotifications(!showNotifications);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
-                  >
-                    <Bell className="h-5 w-5" />
-                    Notifications {unreadNotificationsCount > 0 && `(${unreadNotificationsCount})`}
-                  </button>
-
-                  {/* Customer Dashboard */}
-                  <Link
-                    to="/customer-dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 text-white hover:text-orange-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-orange-400/50"
-                  >
-                    <User className="h-5 w-5" />
-                    Dashboard
-                  </Link>
-
-                  {/* Logout Button */}
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      setShowLogoutConfirm(true);
-                    }}
-                    className="flex items-center justify-center gap-2 text-red-400 hover:text-red-300 transition-colors font-medium px-4 py-3 rounded-lg bg-red-500/10 border border-red-400/20 hover:border-red-400/50"
-                  >
-                    <LogOut className="h-5 w-5" />
-                    Logout
-                  </button>
-                </div>
-              ) : (
-                // Not logged in user mobile menu
-                <div className="flex flex-col space-y-2">
-                  <Button
-                    onClick={() => {
-                      navigate('/customer-signup');
-                      setMobileMenuOpen(false);
-                    }}
-                    variant="outline"
-                    className="border-wedding-orange text-wedding-orange hover:bg-wedding-orange hover:text-white px-4 py-3 rounded-lg font-medium text-center"
-                  >
-                    Sign Up
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      navigate('/customer-login');
-                      setMobileMenuOpen(false);
-                    }}
-                    variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-wedding-navy px-4 py-3 rounded-lg font-medium text-center"
-                  >
-                    Customer Login
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setLoginType('vendor');
-                      setShowLoginModal(true);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="bg-wedding-orange hover:bg-wedding-orange-hover text-white px-4 py-3 rounded-lg font-medium text-center"
-                  >
-                    Vendor Login
-                  </Button>
-                </div>
-              )}
+              {/* Logout Button */}
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setShowLogoutConfirm(true);
+                }}
+                className="flex items-center justify-center gap-2 text-red-400 hover:text-red-300 transition-colors font-medium px-4 py-3 rounded-lg bg-red-500/10 border border-red-400/20 hover:border-red-400/50"
+              >
+                <LogOut className="h-5 w-5" />
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -765,6 +711,42 @@ const Header = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Customer Login Modal */}
+      <Dialog open={showCustomerLoginModal} onOpenChange={setShowCustomerLoginModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-gray-800">
+              Customer Login
+            </DialogTitle>
+          </DialogHeader>
+          <CustomerLoginModalContent 
+            onClose={() => setShowCustomerLoginModal(false)}
+            onSwitchToSignup={() => {
+              setShowCustomerLoginModal(false);
+              setShowCustomerSignupModal(true);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Customer Signup Modal */}
+      <Dialog open={showCustomerSignupModal} onOpenChange={setShowCustomerSignupModal}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-gray-800">
+              Create Customer Account
+            </DialogTitle>
+          </DialogHeader>
+          <CustomerSignupModalContent 
+            onClose={() => setShowCustomerSignupModal(false)}
+            onSwitchToLogin={() => {
+              setShowCustomerSignupModal(false);
+              setShowCustomerLoginModal(true);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
       {/* Logout Confirmation Dialog */}
       <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
         <DialogContent className="sm:max-w-md">
@@ -801,6 +783,519 @@ const Header = () => {
         </DialogContent>
       </Dialog>
     </header>
+  );
+};
+
+// Customer Login Modal Content Component
+const CustomerLoginModalContent: React.FC<{ onClose: () => void; onSwitchToSignup: () => void }> = ({ onClose, onSwitchToSignup }) => {
+  const { signIn } = useCustomerAuth();
+  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { customer, error } = await signIn(formData.email.trim(), formData.password);
+      if (error) {
+        setErrors({ general: 'Invalid email or password' });
+      } else if (customer) {
+        onClose();
+        navigate('/');
+      }
+    } catch (error) {
+      setErrors({ general: 'An unexpected error occurred' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 py-4">
+      <div className="text-center">
+        <p className="text-sm text-gray-600">Access your account to manage bookings and view your event history</p>
+      </div>
+
+      {errors.general && (
+        <div className="flex items-center gap-2 p-2 text-red-700 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm">{errors.general}</span>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="modal-email" className="text-sm font-medium text-gray-700">
+            Email Address
+          </label>
+          <Input
+            id="modal-email"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+            placeholder="Enter your email address"
+            className={errors.email ? 'border-red-500' : ''}
+          />
+          {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="modal-password" className="text-sm font-medium text-gray-700">
+            Password
+          </label>
+          <div className="relative">
+            <Input
+              id="modal-password"
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              placeholder="Enter your password"
+              className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+        </div>
+
+        <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white" disabled={loading}>
+          {loading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing In...
+            </>
+          ) : (
+            'Sign In'
+          )}
+        </Button>
+      </form>
+
+      <div className="text-center">
+        <p className="text-sm text-gray-600">
+          Don't have an account?{' '}
+          <button
+            type="button"
+            onClick={onSwitchToSignup}
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
+            Create one here
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// Customer Signup Modal Content Component
+const CustomerSignupModalContent: React.FC<{ onClose: () => void; onSwitchToLogin: () => void }> = ({ onClose, onSwitchToLogin }) => {
+  const { signUp } = useCustomerAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    gender: '',
+    mobileNumber: ''
+  });
+
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [emailVerificationStatus, setEmailVerificationStatus] = useState<'unverified' | 'sending' | 'sent' | 'verified'>('unverified');
+  const [emailVerificationMessage, setEmailVerificationMessage] = useState('');
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    minLength: false,
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasNumber: false,
+  });
+
+  useEffect(() => {
+    const verified = searchParams.get('verified');
+    const email = searchParams.get('email');
+    const token = searchParams.get('token');
+    const name = searchParams.get('name');
+
+    if (verified === 'true' && email && token) {
+      setFormData(prev => ({ ...prev, email: email, fullName: name || prev.fullName }));
+      verifyPreSignupToken(email, token);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (emailVerificationStatus === 'verified') {
+      setCurrentStep(2);
+    }
+  }, [emailVerificationStatus]);
+
+  useEffect(() => {
+    if (formData.password) {
+      setPasswordRequirements({
+        minLength: formData.password.length >= 8,
+        hasUpperCase: /[A-Z]/.test(formData.password),
+        hasLowerCase: /[a-z]/.test(formData.password),
+        hasNumber: /[0-9]/.test(formData.password),
+      });
+    } else {
+      setPasswordRequirements({ minLength: false, hasUpperCase: false, hasLowerCase: false, hasNumber: false });
+    }
+  }, [formData.password]);
+
+  const verifyPreSignupToken = async (email: string, token: string) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/email/verify-pre-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, token })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setEmailVerificationStatus('verified');
+        setEmailVerificationMessage('Email verified successfully!');
+        setCurrentStep(2);
+        setFormData(prev => ({ ...prev, fullName: result.name || prev.fullName }));
+      }
+    } catch (error) {
+      setEmailVerificationStatus('unverified');
+      setEmailVerificationMessage('Email verification failed.');
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+    if (field === 'email' && emailVerificationStatus !== 'unverified') {
+      setEmailVerificationStatus('unverified');
+      setEmailVerificationMessage('');
+      setCurrentStep(1);
+    }
+  };
+
+  const handleVerifyEmail = async () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setEmailVerificationStatus('sending');
+    try {
+      const response = await fetch('http://localhost:3001/api/email/pre-signup-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email.trim(), name: formData.fullName.trim() })
+      });
+      const result = await response.json();
+      if (response.ok && result.success) {
+        setEmailVerificationStatus('sent');
+        setEmailVerificationMessage('Verification email sent! Please check your inbox.');
+      } else {
+        setEmailVerificationStatus('unverified');
+        setEmailVerificationMessage(result.message || 'Failed to send verification email');
+      }
+    } catch (error) {
+      setEmailVerificationStatus('unverified');
+      setEmailVerificationMessage('Network error. Please try again.');
+    }
+  };
+
+  const isFormValid = () => {
+    if (currentStep !== 2) return false;
+    if (emailVerificationStatus !== 'verified') return false;
+    if (!formData.fullName.trim() || formData.fullName.trim().length < 2) return false;
+    if (!formData.email.trim() || !/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(formData.email)) return false;
+    if (!formData.mobileNumber.trim() || !/^[0-9]{10}$/.test(formData.mobileNumber)) return false;
+    if (!formData.password || formData.password.length < 8 || !/[A-Z]/.test(formData.password) || !/[a-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) return false;
+    if (!formData.confirmPassword || formData.password !== formData.confirmPassword) return false;
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const { customer, error } = await signUp(
+        formData.fullName.trim(),
+        formData.email.trim(),
+        formData.password,
+        formData.gender || undefined,
+        formData.mobileNumber.trim(),
+        emailVerificationStatus === 'verified'
+      );
+      if (error) {
+        setErrors({ general: error.message || 'An error occurred during signup' });
+      } else if (customer) {
+        onClose();
+        navigate('/?accountCreated=true');
+      }
+    } catch (error) {
+      setErrors({ general: 'An unexpected error occurred' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 py-4">
+      {/* Step Indicator */}
+      <div className="flex items-center justify-center space-x-4 mb-4">
+        <div className={`flex items-center ${currentStep >= 1 ? 'text-orange-500' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${currentStep >= 1 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+            1
+          </div>
+          <span className="ml-2 text-sm font-medium">Basic Details</span>
+        </div>
+        <div className="w-12 h-0.5 bg-gray-300"></div>
+        <div className={`flex items-center ${currentStep >= 2 ? 'text-orange-500' : 'text-gray-400'}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${currentStep >= 2 ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+            2
+          </div>
+          <span className="ml-2 text-sm font-medium">Contact & Security</span>
+        </div>
+      </div>
+
+      {errors.general && (
+        <Alert variant={errors.general.includes('successfully') ? 'default' : 'destructive'}>
+          <AlertDescription>{errors.general}</AlertDescription>
+        </Alert>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Step 1 */}
+        <div className={`space-y-4 ${currentStep === 2 ? 'opacity-60' : ''}`}>
+          <div className="space-y-2">
+            <Label htmlFor="modal-fullName">Full Name *</Label>
+            <Input
+              id="modal-fullName"
+              type="text"
+              value={formData.fullName}
+              onChange={(e) => handleInputChange('fullName', e.target.value)}
+              placeholder="Enter your full name"
+              className={errors.fullName ? 'border-red-500' : ''}
+            />
+            {errors.fullName && <p className="text-sm text-red-500">{errors.fullName}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="modal-email-signup">Email Address *</Label>
+            <Input
+              id="modal-email-signup"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange('email', e.target.value)}
+              placeholder="Enter your email address"
+              className={errors.email ? 'border-red-500' : ''}
+              readOnly={currentStep === 2 && emailVerificationStatus === 'verified'}
+            />
+            {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
+
+            <div className="mt-2">
+              {emailVerificationStatus === 'verified' ? (
+                <div className="flex items-center text-green-600 text-sm">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  ✔ Verified
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleVerifyEmail}
+                  disabled={!formData.fullName.trim() || !formData.email.trim() || emailVerificationStatus === 'sending' || emailVerificationStatus === 'sent'}
+                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                  {emailVerificationStatus === 'sending' ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : emailVerificationStatus === 'sent' ? (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Verification Email Sent
+                    </>
+                  ) : (
+                    <>
+                      <Mail className="mr-2 h-4 w-4" />
+                      Verify Email
+                    </>
+                  )}
+                </Button>
+              )}
+              {emailVerificationMessage && (
+                <p className={`text-sm mt-2 ${emailVerificationStatus === 'sent' || emailVerificationStatus === 'verified' ? 'text-green-600' : 'text-red-500'}`}>
+                  {emailVerificationMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Step 2 */}
+        {currentStep === 2 && (
+          <div className="space-y-4 mt-6 pt-6 border-t border-gray-200">
+            <div className="space-y-2">
+              <Label htmlFor="modal-mobile">Mobile Number *</Label>
+              <Input
+                id="modal-mobile"
+                type="tel"
+                value={formData.mobileNumber}
+                onChange={(e) => handleInputChange('mobileNumber', e.target.value.replace(/\D/g, ''))}
+                placeholder="Enter 10-digit mobile number"
+                maxLength={10}
+                className={errors.mobileNumber ? 'border-red-500' : ''}
+              />
+              {errors.mobileNumber && <p className="text-sm text-red-500">{errors.mobileNumber}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modal-gender">Gender (Optional)</Label>
+              <Select value={formData.gender} onValueChange={(value) => handleInputChange('gender', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modal-password-signup">Password *</Label>
+              <div className="relative">
+                <Input
+                  id="modal-password-signup"
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  placeholder="Enter your password"
+                  className={errors.password ? 'border-red-500 pr-10' : 'pr-10'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
+              {formData.password && (
+                <div className="text-xs space-y-1 mt-2">
+                  <div className={`flex items-center ${passwordRequirements.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                    <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.minLength ? '' : 'opacity-30'}`} />
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center ${passwordRequirements.hasUpperCase ? 'text-green-600' : 'text-gray-500'}`}>
+                    <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.hasUpperCase ? '' : 'opacity-30'}`} />
+                    <span>One uppercase letter</span>
+                  </div>
+                  <div className={`flex items-center ${passwordRequirements.hasLowerCase ? 'text-green-600' : 'text-gray-500'}`}>
+                    <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.hasLowerCase ? '' : 'opacity-30'}`} />
+                    <span>One lowercase letter</span>
+                  </div>
+                  <div className={`flex items-center ${passwordRequirements.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                    <CheckCircle className={`h-3 w-3 mr-1 ${passwordRequirements.hasNumber ? '' : 'opacity-30'}`} />
+                    <span>One number</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modal-confirm-password">Confirm Password *</Label>
+              <div className="relative">
+                <Input
+                  id="modal-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={formData.confirmPassword}
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  placeholder="Confirm your password"
+                  className={errors.confirmPassword ? 'border-red-500 pr-10' : 'pr-10'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword}</p>}
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50" 
+              disabled={loading || !isFormValid()}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                'Create Account'
+              )}
+            </Button>
+          </div>
+        )}
+      </form>
+
+      <div className="text-center mt-6">
+        <p className="text-sm text-gray-600">
+          Already have an account?{' '}
+          <button
+            type="button"
+            onClick={onSwitchToLogin}
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
+            Sign in here
+          </button>
+        </p>
+      </div>
+    </div>
   );
 };
 

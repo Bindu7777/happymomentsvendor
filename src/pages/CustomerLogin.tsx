@@ -70,8 +70,8 @@ const CustomerLogin: React.FC = () => {
           setErrors({ general: error.message || 'An error occurred during login' });
         }
       } else if (customer) {
-        // Redirect to customer dashboard or home page
-        navigate('/customer-dashboard');
+        // Redirect to home page after successful login
+        navigate('/');
       }
     } catch (error) {
       setErrors({ general: 'An unexpected error occurred' });

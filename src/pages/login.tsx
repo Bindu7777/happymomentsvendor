@@ -87,9 +87,9 @@ function Login() {
         {/* Right Login Form */}
         <div className="flex-1 p-6 md:p-12 flex flex-col justify-center items-center bg-white">
           <img
-            src="favicon.ico"
+            src="/images/logo.jpg"
             alt="Happy Moments"
-            className="w-20 h-20 sm:w-32 sm:h-32 md:w-48 md:h-48 mb-4"
+            className="w-20 h-20 sm:w-32 sm:h-32 md:w-48 md:h-48 mb-4 object-contain"
           />
 
           <Card className="w-full max-w-md">

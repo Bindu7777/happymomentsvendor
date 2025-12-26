@@ -90,27 +90,27 @@ const cities = [
   { value: 'puducherry', label: 'Puducherry' },
 ];
 
-// High-quality wedding background images from Downloads
+// High-quality wedding background images
 const heroBackgrounds = [
   {
     id: 1,
-    url: "images/qbg1.jpg",
-    alt: "High-quality celebration moment"
+    url: "images/decor1.jpg",
+    alt: "Beautiful decoration setting"
   },
   {
     id: 2,
-    url: "images/qbg2.jpg",
-    alt: "Beautiful event celebration"
+    url: "images/decor2.png",
+    alt: "Elegant decoration scene"
   },
   {
     id: 3,
-    url: "images/qbg3.png",
-    alt: "Elegant celebration scene"
+    url: "images/decor3.jpg",
+    alt: "Stunning decoration moment"
   },
   {
     id: 4,
-    url: "images/qbg4.jpg",
-    alt: "Romantic celebration moment"
+    url: "images/wedding1.jpg",
+    alt: "Romantic wedding celebration"
   },
 ];
 
@@ -279,7 +279,7 @@ const Hero = () => {
           {!showSmartRequest && (
             <div className="w-full max-w-5xl animate-fade-up px-4" style={{ animationDelay: '200ms' }}>
               {/* Smart Search Panel */}
-              <div className="bg-gradient-to-br from-white/95 to-orange-50/95 backdrop-blur-xl p-4 sm:p-6 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl shadow-2xl border-2 border-orange-200/50 relative overflow-hidden">
+              <div className="bg-gradient-to-br from-white/60 to-orange-50/60 backdrop-blur-md p-4 sm:p-6 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl shadow-2xl border-2 border-orange-200/50 relative overflow-hidden">
                 {/* Decorative Elements */}
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-200/20 to-amber-200/20 rounded-full -translate-y-16 translate-x-16 animate-pulse"></div>
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-amber-200/20 to-orange-200/20 rounded-full translate-y-12 -translate-x-12 animate-pulse" style={{ animationDelay: '1s' }}></div>

@@ -234,15 +234,13 @@ const Header = () => {
   >
       <div className="container-custom flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center space-x-2 md:space-x-8">
-          {/* Logo with image - updated with white background */}
+          {/* Logo with image */}
           <Link to="/" className="flex items-center">
-            <div className="bg-white rounded-full mx-1 h-6 w-6 md:h-8 md:w-8 flex items-center justify-center shadow-md">
-              <img
-                src="/favicon.ico"
-                alt="HappyMoments Logo"
-                className="w-4 h-4 md:w-6 md:h-6"
-              />
-            </div>
+            <img
+              src="/images/logo.jpg"
+              alt="HappyMoments Logo"
+              className="w-8 h-8 md:w-12 md:h-12 object-contain mr-2"
+            />
             <span className="text-lg md:text-2xl font-bold text-white font-playfair">
               Happy<span className="text-wedding-orange">Moments</span>
             </span>

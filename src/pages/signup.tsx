@@ -146,7 +146,7 @@ function Signup() {
         {/* Right Signup Form */}
         <div className="flex-1 p-6 md:p-12 flex flex-col justify-center items-center bg-white overflow-y-auto">
           <img
-            src="favicon.ico"
+            src="/images/logo.jpg"
             alt="Happy Moments"
             className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 mb-4"
           />

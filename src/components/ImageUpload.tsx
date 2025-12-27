@@ -372,11 +372,37 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         </div>
       )}
 
-      {/* Upload Summary */}
+      {/* Existing Images Display */}
       {existingImages.length > 0 && (
-        <div className="text-sm text-gray-600">
-          <ImageIcon className="w-4 h-4 inline mr-1" />
-          {existingImages.length} existing images • {remainingSlots} slots remaining
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-gray-700">Existing Images</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {existingImages.map((imageUrl, index) => (
+              <div key={index} className="relative group">
+                <div className="w-full aspect-square rounded-lg overflow-hidden bg-gray-200 border-2 border-gray-300">
+                  <img
+                    src={imageUrl}
+                    alt={`Existing ${category} image ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Failed to load existing image:', imageUrl);
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                    onLoad={() => {
+                      console.log('Successfully loaded existing image:', imageUrl);
+                    }}
+                  />
+                </div>
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center">
+                  <Check className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-sm text-gray-600">
+            <ImageIcon className="w-4 h-4 inline mr-1" />
+            {existingImages.length} existing images • {remainingSlots} slots remaining
+          </div>
         </div>
       )}
     </div>

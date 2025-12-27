@@ -454,29 +454,95 @@ export const getVendorCounts = async (): Promise<Record<string, number>> => {
 };
 
 // Get vendor media
-export const getVendorMedia = async (vendorId: number, category?: string): Promise<VendorMedia[]> => {
+export const getVendorMedia = async (vendorId: number | string, category?: string): Promise<VendorMedia[]> => {
   try {
+    // Convert vendorId to string to match database column type
+    const vendorIdStr = typeof vendorId === 'number' ? vendorId.toString() : vendorId;
+    const vendorIdNum = typeof vendorId === 'string' ? parseInt(vendorId) : vendorId;
+    
+    console.log(`=== FETCHING VENDOR MEDIA ===`);
+    console.log(`Vendor ID (string): ${vendorIdStr}`);
+    console.log(`Vendor ID (number): ${vendorIdNum}`);
+    console.log(`Category: ${category || 'all'}`);
+    
+    // Try querying with string first
     let query = supabase
       .from('vendor_media')
       .select('*')
-      .eq('vendor_id', vendorId)
-      .eq('public', true)
+      .or(`vendor_id.eq.${vendorIdStr},vendor_id.eq."${vendorIdStr}"`)
       .order('order_index', { ascending: true });
 
     if (category) {
       query = query.eq('category', category);
     }
 
-    const { data, error } = await query;
+    let { data, error } = await query;
+
+    // If no results and we have a numeric ID, try with number
+    if ((!data || data.length === 0) && !isNaN(vendorIdNum)) {
+      console.log('Trying with numeric vendor_id...');
+      let numQuery = supabase
+        .from('vendor_media')
+        .select('*')
+        .eq('vendor_id', vendorIdNum)
+        .order('order_index', { ascending: true });
+
+      if (category) {
+        numQuery = numQuery.eq('category', category);
+      }
+
+      const numResult = await numQuery;
+      if (numResult.data && numResult.data.length > 0) {
+        data = numResult.data;
+        error = numResult.error;
+        console.log('✅ Found records with numeric query');
+      }
+    }
 
     if (error) {
-      console.error('Error fetching vendor media:', error);
+      console.error('❌ Error fetching vendor media:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('Query details - vendor_id:', vendorIdStr, 'category:', category);
+      
+      // Try a raw query to see what's in the table
+      const { data: allData, error: allError } = await supabase
+        .from('vendor_media')
+        .select('vendor_id, category, media_url')
+        .limit(10);
+      
+      if (!allError && allData) {
+        console.log('Sample vendor_media records:', allData);
+        console.log('Sample vendor_id types:', allData.map(d => ({ vendor_id: d.vendor_id, type: typeof d.vendor_id })));
+      }
+      
       return [];
     }
 
-    return data as VendorMedia[];
+    console.log(`✅ Found ${data?.length || 0} media records for vendor ${vendorIdStr}`);
+    if (data && data.length > 0) {
+      console.log('Media records details:');
+      data.forEach((d, idx) => {
+        console.log(`  [${idx + 1}] vendor_id: ${d.vendor_id} (${typeof d.vendor_id}), Category: ${d.category}, URL: ${d.media_url?.substring(0, 80)}..., Public: ${d.public}`);
+      });
+    } else {
+      console.log('⚠️ No media records found. Checking if vendor_id format matches...');
+      // Try to find any records with similar vendor_id
+      const { data: similarData } = await supabase
+        .from('vendor_media')
+        .select('vendor_id, category')
+        .ilike('vendor_id', `%${vendorIdStr}%`)
+        .limit(5);
+      if (similarData && similarData.length > 0) {
+        console.log('Found similar vendor_ids:', similarData.map(d => ({ vendor_id: d.vendor_id, type: typeof d.vendor_id })));
+      }
+    }
+
+    // Filter by public if needed (but return all for now to debug)
+    const filteredData = data?.filter(d => d.public !== false) || data || [];
+
+    return filteredData as VendorMedia[];
   } catch (error) {
-    console.error('Error fetching vendor media:', error);
+    console.error('❌ Exception fetching vendor media:', error);
     return [];
   }
 };
@@ -814,9 +880,9 @@ export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>
     // Define allowed fields for update (based on actual database schema)
     const allowedFields = [
       'brand_name', 'spoc_name', 'category', 'subcategory',
-      'phone_number', 'alternate_number', 'whatsapp_number', 'email', 'instagram', 'address',
+      'phone_number', 'alternate_number', 'whatsapp_number', 'email', 'instagram', 'address', 'google_maps_link',
       'experience', 'events_completed', 'quick_intro', 'caption', 'detailed_intro',
-      'starting_price', 'languages_spoken', 'verified', 'currently_available',
+      'starting_price', 'languages', 'languages_spoken', 'verified', 'currently_available',
       'services', 'packages', 'deliverables', 'booking_policies', 'additional_info'
     ];
     
@@ -1617,6 +1683,13 @@ export const reviewVendorProfileChange = async (
       const highlightStatusChanges = cleanedChanges.highlight_status_changes;
       delete cleanedChanges.highlight_status_changes;
       
+      // Handle brand_logo_url and contact_person_image_url separately - these are stored in vendor_media table
+      const brandLogoUrl = cleanedChanges.brand_logo_url;
+      delete cleanedChanges.brand_logo_url;
+      
+      const contactPersonImageUrl = cleanedChanges.contact_person_image_url;
+      delete cleanedChanges.contact_person_image_url;
+      
       // Convert arrays to proper format if needed
       if (cleanedChanges.deliverables && Array.isArray(cleanedChanges.deliverables)) {
         cleanedChanges.deliverables = cleanedChanges.deliverables.filter(item => item && item.trim() !== '');
@@ -1704,6 +1777,196 @@ export const reviewVendorProfileChange = async (
         }
       } else {
         console.log('No catalog images to update');
+      }
+
+      // Handle brand logo update through vendor_media table
+      if (brandLogoUrl !== undefined) {
+        console.log('=== UPDATING BRAND LOGO IN VENDOR_MEDIA ===');
+        console.log('Vendor ID:', changeRecord.vendor_id);
+        console.log('Brand logo URL:', brandLogoUrl);
+        
+        try {
+          // Get ALL existing brand logos (to delete old files from storage)
+          const { data: existingLogos, error: fetchError } = await supabase
+            .from('vendor_media')
+            .select('id, media_url, gdrive_file_id')
+            .eq('vendor_id', changeRecord.vendor_id.toString())
+            .eq('category', 'brand_logo');
+            
+          if (fetchError && fetchError.code !== 'PGRST116') {
+            console.error('Error fetching existing brand logos:', fetchError);
+          }
+          
+          // Delete old brand logo files from storage
+          if (existingLogos && existingLogos.length > 0) {
+            console.log(`Found ${existingLogos.length} existing brand logo(s), deleting old files from storage...`);
+            
+            for (const logo of existingLogos) {
+              // Extract file path from media_url
+              // URL format: https://...supabase.co/storage/v1/object/public/vendor-images/14/brand_logo/brand_logo_123.jpg
+              // Extract: 14/brand_logo/brand_logo_123.jpg
+              let filePath: string | null = null;
+              
+              if (logo.media_url) {
+                const urlMatch = logo.media_url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/);
+                if (urlMatch) {
+                  filePath = urlMatch[1];
+                } else if (logo.gdrive_file_id) {
+                  // Fallback to gdrive_file_id if it contains the path
+                  filePath = logo.gdrive_file_id;
+                }
+              }
+              
+              if (filePath) {
+                console.log(`Deleting old brand logo file from storage: ${filePath}`);
+                const { error: storageDeleteError } = await supabase.storage
+                  .from('vendor-images')
+                  .remove([filePath]);
+                  
+                if (storageDeleteError) {
+                  console.warn(`Could not delete file ${filePath} from storage:`, storageDeleteError);
+                  // Continue anyway - file might not exist or already deleted
+                } else {
+                  console.log(`✅ Deleted old brand logo file: ${filePath}`);
+                }
+              }
+              
+              // Delete from vendor_media table
+              const { error: dbDeleteError } = await supabase
+                .from('vendor_media')
+                .delete()
+                .eq('id', logo.id);
+                
+              if (dbDeleteError) {
+                console.error('Error deleting brand logo from database:', dbDeleteError);
+              } else {
+                console.log(`✅ Deleted brand logo record from database: ${logo.id}`);
+              }
+            }
+          }
+          
+          // Insert new brand logo if provided
+          if (brandLogoUrl && brandLogoUrl.trim() !== '') {
+            console.log('Inserting new brand logo');
+            const { error: insertError } = await supabase
+              .from('vendor_media')
+              .insert({
+                vendor_id: changeRecord.vendor_id.toString(),
+                media_url: brandLogoUrl,
+                media_type: 'image',
+                category: 'brand_logo',
+                public: true,
+                uploaded_at: new Date().toISOString()
+              });
+              
+            if (insertError) {
+              console.error('❌ Error inserting brand logo:', insertError);
+              console.warn('Vendor profile updated but brand logo update failed');
+            } else {
+              console.log('✅ Brand logo inserted successfully in vendor_media table');
+            }
+          } else {
+            console.log('Brand logo was removed (empty URL)');
+          }
+        } catch (brandLogoError) {
+          console.error('❌ Error updating brand logo:', brandLogoError);
+          console.warn('Vendor profile updated but brand logo update failed:', brandLogoError);
+        }
+      }
+
+      // Handle contact person image update through vendor_media table
+      if (contactPersonImageUrl !== undefined) {
+        console.log('=== UPDATING CONTACT PERSON IMAGE IN VENDOR_MEDIA ===');
+        console.log('Vendor ID:', changeRecord.vendor_id);
+        console.log('Contact person image URL:', contactPersonImageUrl);
+        
+        try {
+          // Get ALL existing contact person images (to delete old files from storage)
+          const { data: existingImages, error: fetchError } = await supabase
+            .from('vendor_media')
+            .select('id, media_url, gdrive_file_id')
+            .eq('vendor_id', changeRecord.vendor_id.toString())
+            .eq('category', 'contact_person');
+            
+          if (fetchError && fetchError.code !== 'PGRST116') {
+            console.error('Error fetching existing contact person images:', fetchError);
+          }
+          
+          // Delete old contact person image files from storage
+          if (existingImages && existingImages.length > 0) {
+            console.log(`Found ${existingImages.length} existing contact person image(s), deleting old files from storage...`);
+            
+            for (const image of existingImages) {
+              // Extract file path from media_url
+              // URL format: https://...supabase.co/storage/v1/object/public/vendor-images/14/contact_person/contact_person_123.jpg
+              // Extract: 14/contact_person/contact_person_123.jpg
+              let filePath: string | null = null;
+              
+              if (image.media_url) {
+                const urlMatch = image.media_url.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)$/);
+                if (urlMatch) {
+                  filePath = urlMatch[1];
+                } else if (image.gdrive_file_id) {
+                  // Fallback to gdrive_file_id if it contains the path
+                  filePath = image.gdrive_file_id;
+                }
+              }
+              
+              if (filePath) {
+                console.log(`Deleting old contact person image file from storage: ${filePath}`);
+                const { error: storageDeleteError } = await supabase.storage
+                  .from('vendor-images')
+                  .remove([filePath]);
+                  
+                if (storageDeleteError) {
+                  console.warn(`Could not delete file ${filePath} from storage:`, storageDeleteError);
+                  // Continue anyway - file might not exist or already deleted
+                } else {
+                  console.log(`✅ Deleted old contact person image file: ${filePath}`);
+                }
+              }
+              
+              // Delete from vendor_media table
+              const { error: dbDeleteError } = await supabase
+                .from('vendor_media')
+                .delete()
+                .eq('id', image.id);
+                
+              if (dbDeleteError) {
+                console.error('Error deleting contact person image from database:', dbDeleteError);
+              } else {
+                console.log(`✅ Deleted contact person image record from database: ${image.id}`);
+              }
+            }
+          }
+          
+          // Insert new contact person image if provided
+          if (contactPersonImageUrl && contactPersonImageUrl.trim() !== '') {
+            console.log('Inserting new contact person image');
+            const { error: insertError } = await supabase
+              .from('vendor_media')
+              .insert({
+                vendor_id: changeRecord.vendor_id.toString(),
+                media_url: contactPersonImageUrl,
+                media_type: 'image',
+                category: 'contact_person',
+                public: true,
+                uploaded_at: new Date().toISOString()
+              });
+              
+            if (insertError) {
+              console.error('❌ Error inserting contact person image:', insertError);
+              console.warn('Vendor profile updated but contact person image update failed');
+            } else {
+              console.log('✅ Contact person image inserted successfully in vendor_media table');
+            }
+          } else {
+            console.log('Contact person image was removed (empty URL)');
+          }
+        } catch (contactPersonError) {
+          console.error('❌ Error updating contact person image:', contactPersonError);
+          console.warn('Vendor profile updated but contact person image update failed:', contactPersonError);
+        }
       }
 
       // Handle highlight status changes

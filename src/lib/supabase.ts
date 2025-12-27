@@ -35,6 +35,7 @@ export interface Vendor {
   email?: string
   instagram?: string
   address?: string
+  google_maps_link?: string
   
   // Business Details
   experience?: string
@@ -47,7 +48,8 @@ export interface Vendor {
   verified?: boolean
   currently_available?: boolean
   starting_price?: number
-  languages_spoken?: string[]
+  languages_spoken?: string[]  // Legacy field, kept for backward compatibility
+  languages?: string[]  // New dedicated languages field
   
   // Media URLs - Removed deleted columns
   // avatar_url, cover_image_url, brand_logo_url, contact_person_image_url columns were deleted from database

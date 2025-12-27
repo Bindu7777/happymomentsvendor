@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Vendor } from '@/lib/supabase';
 import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
+import { getVendorBrandLogoFromStorage, getVendorContactPersonImageFromStorage } from '../services/supabaseStorageService';
 import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2, Info, Globe, Scroll, FileText, Menu, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -42,6 +43,8 @@ const VendorProfile = () => {
   const [recentClaims, setRecentClaims] = useState(Math.floor(Math.random() * 100) + 1);
   const [showRatingTooltip, setShowRatingTooltip] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
+  const [contactPersonImageUrl, setContactPersonImageUrl] = useState<string | null>(null);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -130,9 +133,18 @@ const VendorProfile = () => {
         console.log('All catalog images from vendor_media:', allCatalogImages);
         console.log('All catalog images count:', allCatalogImages.length);
         
+        // Load brand logo and contact person image from storage (same as catalog images)
+        const brandLogo = await getVendorBrandLogoFromStorage(vendorIdNum.toString());
+        const contactPersonImage = await getVendorContactPersonImageFromStorage(vendorIdNum.toString());
+        
+        console.log('Brand logo loaded from storage:', brandLogo);
+        console.log('Contact person image loaded from storage:', contactPersonImage);
+        
         setHighlightImages(highlights);
         setHighlightedCatalogImages(highlightedCatalog);
         setCatalogImages(allCatalogImages);
+        setBrandLogoUrl(brandLogo);
+        setContactPersonImageUrl(contactPersonImage);
         
         // Reset slide index when images change
         setCurrentSlide(0);
@@ -371,8 +383,8 @@ const VendorProfile = () => {
                   <Menu className="w-5 h-5 text-gray-700" />
                 )}
               </Button>
+              </div>
             </div>
-          </div>
 
           {/* Mobile Menu Dropdown */}
           {mobileMenuOpen && (
@@ -380,7 +392,7 @@ const VendorProfile = () => {
               <div className="space-y-2">
                 {/* Rating */}
                 <div className="flex items-center justify-between px-4 py-3 bg-amber-50 rounded-lg border border-amber-100">
-                  <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
                     <Star className="w-4 h-4 text-amber-500 fill-current" />
                     <span className="text-sm font-medium text-gray-700">Rating</span>
                   </div>
@@ -388,7 +400,7 @@ const VendorProfile = () => {
                 </div>
 
                 {/* Contact Status */}
-                {customer && isContacted && (
+              {customer && isContacted && (
                   <div className="px-4 py-3 bg-blue-50 rounded-lg border border-blue-100">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-gray-700">Contact Status</span>
@@ -402,8 +414,8 @@ const VendorProfile = () => {
                       vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
                       vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
                     />
-                  </div>
-                )}
+                </div>
+              )}
 
                 {/* Call Button */}
                 <Button
@@ -456,8 +468,8 @@ const VendorProfile = () => {
                   <Share2 className="w-4 h-4 mr-2" />
                   Share Profile
                 </Button>
-              </div>
             </div>
+          </div>
           )}
         </div>
       </div>
@@ -468,16 +480,15 @@ const VendorProfile = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <img 
-                src="/images/vendor.jpeg" 
+                src={brandLogoUrl || "/images/vendor.jpeg"} 
                 alt={vendor.brand_name}
                 className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/images/vendor.jpeg";
+                }}
               />
               <div className="flex flex-col gap-2">
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">{vendor.brand_name}</h1>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="secondary" className="text-xs whitespace-nowrap">{vendor.category}</Badge>
-                  <Badge variant="outline" className="text-xs whitespace-nowrap">All Events</Badge>
-                </div>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -510,11 +521,34 @@ const VendorProfile = () => {
         <div className="block lg:hidden">
           <div className="container mx-auto px-4 py-2">
             {/* Mobile Hero Card - Clean and Simple */}
-            <div className="bg-white rounded-2xl p-4 shadow-xl border border-orange-200 mb-4">
+            <div className="bg-white rounded-2xl p-4 shadow-xl border border-orange-200 mb-2">
               {/* Company Name and Category Badges */}
               <div className="text-center mb-4">
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">{vendor.brand_name}</h1>
-                <p className="text-gray-600 text-xs mb-3 px-2">{vendor.description || vendor.quick_intro || "Professional services for your special day"}</p>
+                {/* Languages Display - Mobile */}
+                {((vendor.languages && vendor.languages.length > 0) || 
+                  (vendor.languages_spoken && vendor.languages_spoken.length > 0) || 
+                  (vendor.additional_info?.languages && Array.isArray(vendor.additional_info.languages) && vendor.additional_info.languages.length > 0)) && (
+                  <div className="mt-1 mb-1 flex flex-col items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-600">Communicates in:</span>
+                    <div className="flex flex-wrap gap-1.5 justify-center">
+                      {(vendor.languages && vendor.languages.length > 0
+                        ? vendor.languages
+                        : (vendor.languages_spoken && vendor.languages_spoken.length > 0
+                          ? vendor.languages_spoken
+                          : (vendor.additional_info?.languages || []))
+                      ).map((language: string, index: number) => (
+                        <span 
+                          key={index} 
+                          className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs font-medium border border-orange-200"
+                        >
+                          {language}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <p className="text-gray-600 text-xs mb-1 px-2">{vendor.description || vendor.quick_intro || "Professional services for your special day"}</p>
                 
                 {/* Category Badges */}
                 <div className="flex justify-center gap-2 flex-wrap">
@@ -533,9 +567,12 @@ const VendorProfile = () => {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4 pb-4 border-b border-gray-200">
                 <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-wedding-orange shadow-md flex-shrink-0">
                   <img 
-                    src="/images/vendor.jpeg" 
+                    src={contactPersonImageUrl || "/images/vendor.jpeg"} 
                     alt={vendor.spoc_name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "/images/vendor.jpeg";
+                    }}
                   />
                 </div>
                 <div className="flex-1 min-w-0 text-center sm:text-left">
@@ -550,9 +587,33 @@ const VendorProfile = () => {
               {/* Key Info - Better Layout */}
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-100">
-                  <MapPin className="w-4 h-4 text-wedding-orange mx-auto mb-1.5" />
+                  {vendor.google_maps_link ? (
+                    <a
+                      href={vendor.google_maps_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                      title="Click to view on Google Maps"
+                    >
+                      <MapPin className="w-4 h-4 text-wedding-orange mx-auto mb-1.5 cursor-pointer hover:scale-110 transition-transform" />
+                    </a>
+                  ) : (
+                    <MapPin className="w-4 h-4 text-wedding-orange mx-auto mb-1.5" />
+                  )}
                   <div className="font-bold text-xs text-gray-900 mb-0.5 line-clamp-2">{vendor.address || "Location"}</div>
                   <div className="text-xs text-gray-600">Location</div>
+                  {vendor.google_maps_link && (
+                    <a
+                      href={vendor.google_maps_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1 text-xs text-wedding-orange hover:text-orange-700 font-medium mt-1 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MapPin className="w-3 h-3" />
+                      View Map
+                    </a>
+                  )}
                 </div>
                 <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
                   <Trophy className="w-4 h-4 text-blue-600 mx-auto mb-1.5" />
@@ -576,20 +637,20 @@ const VendorProfile = () => {
             {highlightedCatalogImages.length > 0 && (
               <div className="relative rounded-2xl overflow-hidden shadow-xl mb-4">
                 <div className="aspect-video bg-gray-100">
-                  <img 
-                    src={highlightedCatalogImages[currentSlide]?.media_url || "/images/vendor.jpeg"} 
-                    alt={highlightedCatalogImages[currentSlide]?.title || "Highlighted Work"}
-                    className="w-full h-full object-cover"
-                  />
+                <img 
+                  src={highlightedCatalogImages[currentSlide]?.media_url || "/images/vendor.jpeg"} 
+                  alt={highlightedCatalogImages[currentSlide]?.title || "Highlighted Work"}
+                  className="w-full h-full object-cover"
+                />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
                 <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge className="bg-yellow-500 text-white text-xs px-2 py-1">
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      Featured
-                    </Badge>
-                  </div>
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Featured
+                  </Badge>
+                </div>
                   <h3 className="font-bold text-lg mb-1">Highlight</h3>
                   <p className="text-sm opacity-90">Featured Work</p>
                 </div>
@@ -614,7 +675,7 @@ const VendorProfile = () => {
 
         {/* Desktop Layout (unchanged) */}
         <div className="hidden lg:block min-h-[80vh]">
-        <div className="relative z-10 container mx-auto px-6 py-16">
+        <div className="relative z-10 container mx-auto px-6 py-4">
           <div className="max-w-8xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch min-h-[60vh]">
               
@@ -632,13 +693,39 @@ const VendorProfile = () => {
                         <h1 className="text-5xl lg:text-6xl font-black text-gray-900 leading-tight tracking-tight">
                           {vendor.brand_name}
             </h1>
+                        {/* Languages Display - Desktop Hero */}
+                        {((vendor.languages && vendor.languages.length > 0) || 
+                          (vendor.languages_spoken && vendor.languages_spoken.length > 0) || 
+                          (vendor.additional_info?.languages && Array.isArray(vendor.additional_info.languages) && vendor.additional_info.languages.length > 0)) && (
+                          <div className="mt-3 flex items-center gap-2 flex-wrap">
+                            <span className="text-base font-semibold text-gray-600">Communicates in:</span>
+                            <div className="flex flex-wrap gap-2">
+                              {(vendor.languages && vendor.languages.length > 0
+                                ? vendor.languages
+                                : (vendor.languages_spoken && vendor.languages_spoken.length > 0
+                                  ? vendor.languages_spoken
+                                  : (vendor.additional_info?.languages || []))
+                              ).map((language: string, index: number) => (
+                                <span 
+                                  key={index} 
+                                  className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium border border-orange-200"
+                                >
+                                  {language}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className="flex flex-col items-center flex-shrink-0">
                         <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 shadow-lg">
                           <img 
-                            src="/images/vendor.jpeg" 
+                            src={contactPersonImageUrl || "/images/vendor.jpeg"} 
                             alt={vendor.spoc_name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/images/vendor.jpeg";
+                            }}
                           />
                         </div>
                         <div className="text-center mt-3 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl shadow-md border border-gray-200">
@@ -685,9 +772,21 @@ const VendorProfile = () => {
                     {/* Details Icons Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                       <div className="flex items-center gap-6 text-gray-700 p-8 bg-gradient-to-r from-amber-50/70 to-orange-50/70 rounded-3xl border-2 border-amber-200/60 shadow-xl hover:shadow-2xl transition-all duration-300">
+                        {vendor.google_maps_link ? (
+                          <a
+                            href={vendor.google_maps_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-20 h-20 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center border-2 border-amber-300 shadow-lg hover:scale-110 transition-transform cursor-pointer"
+                            title="Click to view on Google Maps"
+                          >
+                            <MapPin className="w-10 h-10 text-amber-700" />
+                          </a>
+                        ) : (
                         <div className="w-20 h-20 bg-gradient-to-r from-amber-100 to-orange-100 rounded-full flex items-center justify-center border-2 border-amber-300 shadow-lg">
                           <MapPin className="w-10 h-10 text-amber-700" />
                         </div>
+                        )}
               <div>
                           <span className="font-bold text-2xl text-gray-800">Location</span>
                           <p className="text-lg text-gray-600">
@@ -696,6 +795,17 @@ const VendorProfile = () => {
                               : vendor.address || "Service areas not specified"
                             }
                           </p>
+                          {vendor.google_maps_link && (
+                            <a
+                              href={vendor.google_maps_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-base text-amber-700 hover:text-amber-800 font-semibold mt-2 transition-colors"
+                            >
+                              <MapPin className="w-5 h-5" />
+                              View on Google Maps
+                            </a>
+                          )}
                 </div>
               </div>
 
@@ -792,15 +902,15 @@ const VendorProfile = () => {
             </div>
 
       {/* Section Divider */}
-      <div className="h-4 lg:h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
+      <div className="h-1 lg:h-4 bg-gradient-to-b from-transparent to-slate-50"></div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8 lg:py-16">
+      <div className="container mx-auto px-3 sm:px-6 py-1 sm:py-2 lg:py-4">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-12">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-3 sm:space-y-6 lg:space-y-8">
+          <div className="lg:col-span-2 space-y-2 sm:space-y-4 lg:space-y-6">
             {/* Additional Info Badges - Mobile Optimized */}
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-2 sm:mb-3 lg:mb-4">
               {[
                 { text: "Professional Service", icon: Award, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50", textColor: "text-blue-800" },
                 { text: "Quality Guarantee", icon: CheckCircle, color: "from-purple-500 to-pink-500", bg: "from-purple-50 to-pink-50", textColor: "text-purple-800" },
@@ -814,7 +924,7 @@ const VendorProfile = () => {
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0`}>
                       <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                    </div>
+              </div>
                     <span className={item.textColor}>{item.text}</span>
                   </div>
                 </div>
@@ -871,7 +981,7 @@ const VendorProfile = () => {
                         <div className="flex items-start gap-2 sm:gap-3">
                           <div className={`p-2 sm:p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg sm:rounded-xl group-hover:scale-110 transition-all duration-300 shadow-md flex-shrink-0`}>
                             <CategoryIcon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white" />
-                          </div>
+                            </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-base sm:text-lg lg:text-xl text-gray-800 mb-1 group-hover:text-gray-900 transition-colors">
                               {typeof service === 'string' ? service : service.name}
@@ -1269,7 +1379,9 @@ const VendorProfile = () => {
                     )}
 
                     {/* Languages */}
-                    {vendor.additional_info.languages && Array.isArray(vendor.additional_info.languages) && vendor.additional_info.languages.length > 0 && (
+                    {((vendor.languages && vendor.languages.length > 0) || 
+                      (vendor.languages_spoken && vendor.languages_spoken.length > 0) || 
+                      (vendor.additional_info?.languages && Array.isArray(vendor.additional_info.languages) && vendor.additional_info.languages.length > 0)) && (
                       <div className="p-3 sm:p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
                         <div className="flex items-start gap-2 sm:gap-3">
                           <div className="w-7 h-7 sm:w-8 sm:h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
@@ -1278,7 +1390,12 @@ const VendorProfile = () => {
                           <div>
                             <h4 className="font-bold text-orange-800 mb-1 sm:mb-2 text-sm sm:text-base">Languages Spoken</h4>
                             <div className="flex flex-wrap gap-2">
-                              {vendor.additional_info.languages.map((language, index) => (
+                              {(vendor.languages && vendor.languages.length > 0
+                                ? vendor.languages
+                                : (vendor.languages_spoken && vendor.languages_spoken.length > 0
+                                  ? vendor.languages_spoken
+                                  : (vendor.additional_info?.languages || []))
+                              ).map((language: string, index: number) => (
                                 <span key={index} className="px-2 sm:px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs sm:text-sm font-medium">
                                   {language}
                                 </span>
@@ -1563,10 +1680,33 @@ const VendorProfile = () => {
               </div>
             )}
                   <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg hover:from-emerald-100 hover:to-teal-100 transition-colors border border-emerald-200">
-                    <MapPin className="w-6 h-6 text-emerald-600" />
+                    {vendor.google_maps_link ? (
+                      <a
+                        href={vendor.google_maps_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                        title="Click to view on Google Maps"
+                      >
+                        <MapPin className="w-6 h-6 text-emerald-600 hover:text-emerald-700 cursor-pointer hover:scale-110 transition-all" />
+                      </a>
+                    ) : (
+                      <MapPin className="w-6 h-6 text-emerald-600 flex-shrink-0" />
+                    )}
                     <div className="flex-1">
                       <div className="font-semibold text-gray-800 mb-1">Location</div>
                       <p className="text-sm text-gray-600 mb-2">{vendor.address || 'Location not specified'}</p>
+                      {vendor.google_maps_link && (
+                        <a
+                          href={vendor.google_maps_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium mt-2 transition-colors"
+                        >
+                          <MapPin className="w-4 h-4" />
+                          View on Google Maps
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1643,7 +1783,7 @@ const VendorProfile = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+                          </div>
         </div>
       </div>
 

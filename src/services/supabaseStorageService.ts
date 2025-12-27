@@ -153,6 +153,120 @@ export const getVendorCatalogImagesFromStorage = async (
 };
 
 /**
+ * Fetch brand logo from Supabase Storage bucket
+ * @param vendorId - The vendor ID to fetch logo for
+ * @param bucketName - The storage bucket name (default: 'vendor-images')
+ * @returns Promise<string | null> - Returns the public URL of the brand logo or null
+ */
+export const getVendorBrandLogoFromStorage = async (
+  vendorId: string | number,
+  bucketName: string = 'vendor-images'
+): Promise<string | null> => {
+  try {
+    console.log('=== FETCHING BRAND LOGO FROM STORAGE ===');
+    console.log('Vendor ID:', vendorId);
+    console.log('Bucket name:', bucketName);
+    
+    const vendorIdStr = vendorId.toString();
+    const possibleBuckets = ['vendor-images', 'catalog-images', 'images', 'media'];
+    
+    for (const bucket of possibleBuckets) {
+      try {
+        // Try brand_logo folder
+        const { data: files, error } = await supabase.storage
+          .from(bucket)
+          .list(`${vendorIdStr}/brand_logo`, {
+            limit: 10,
+            sortBy: { column: 'created_at', order: 'desc' }
+          });
+
+        if (error) {
+          console.log(`No brand_logo folder in bucket ${bucket}, trying next...`);
+          continue;
+        }
+
+        if (files && files.length > 0) {
+          // Get the most recent file
+          const logoFile = files[0];
+          const { data: urlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(`${vendorIdStr}/brand_logo/${logoFile.name}`);
+
+          console.log(`✅ Found brand logo in bucket ${bucket}:`, urlData.publicUrl);
+          return urlData.publicUrl;
+        }
+      } catch (bucketError) {
+        console.log(`Error checking bucket ${bucket}:`, bucketError);
+        continue;
+      }
+    }
+
+    console.log('⚠️ No brand logo found in any storage bucket');
+    return null;
+  } catch (error) {
+    console.error('Error fetching brand logo from storage:', error);
+    return null;
+  }
+};
+
+/**
+ * Fetch contact person image from Supabase Storage bucket
+ * @param vendorId - The vendor ID to fetch image for
+ * @param bucketName - The storage bucket name (default: 'vendor-images')
+ * @returns Promise<string | null> - Returns the public URL of the contact person image or null
+ */
+export const getVendorContactPersonImageFromStorage = async (
+  vendorId: string | number,
+  bucketName: string = 'vendor-images'
+): Promise<string | null> => {
+  try {
+    console.log('=== FETCHING CONTACT PERSON IMAGE FROM STORAGE ===');
+    console.log('Vendor ID:', vendorId);
+    console.log('Bucket name:', bucketName);
+    
+    const vendorIdStr = vendorId.toString();
+    const possibleBuckets = ['vendor-images', 'catalog-images', 'images', 'media'];
+    
+    for (const bucket of possibleBuckets) {
+      try {
+        // Try contact_person folder
+        const { data: files, error } = await supabase.storage
+          .from(bucket)
+          .list(`${vendorIdStr}/contact_person`, {
+            limit: 10,
+            sortBy: { column: 'created_at', order: 'desc' }
+          });
+
+        if (error) {
+          console.log(`No contact_person folder in bucket ${bucket}, trying next...`);
+          continue;
+        }
+
+        if (files && files.length > 0) {
+          // Get the most recent file
+          const contactFile = files[0];
+          const { data: urlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(`${vendorIdStr}/contact_person/${contactFile.name}`);
+
+          console.log(`✅ Found contact person image in bucket ${bucket}:`, urlData.publicUrl);
+          return urlData.publicUrl;
+        }
+      } catch (bucketError) {
+        console.log(`Error checking bucket ${bucket}:`, bucketError);
+        continue;
+      }
+    }
+
+    console.log('⚠️ No contact person image found in any storage bucket');
+    return null;
+  } catch (error) {
+    console.error('Error fetching contact person image from storage:', error);
+    return null;
+  }
+};
+
+/**
  * Alternative method: Fetch from a specific folder structure
  * @param vendorId - The vendor ID
  * @param bucketName - The storage bucket name

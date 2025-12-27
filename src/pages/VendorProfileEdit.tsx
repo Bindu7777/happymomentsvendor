@@ -7,12 +7,12 @@ import { Textarea } from '../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
-import { ArrowLeft, Save, AlertCircle, CheckCircle, Trash2, X, FileText } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, AlertCircle, CheckCircle, Trash2, X, FileText } from 'lucide-react';
 import { Checkbox } from '../components/ui/checkbox';
-import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorByFieldId, saveVendorSession, refreshVendorSession, clearVendorHardcodedServices } from '../services/supabaseService';
-import { getVendorCatalogImagesFromStorage, listStorageBuckets, deleteImageFromStorage } from '../services/supabaseStorageService';
+import { getLoggedInVendor, submitVendorProfileChange, getVendorPendingChanges, getVendorByFieldId, saveVendorSession, refreshVendorSession, clearVendorHardcodedServices, getVendorMedia } from '../services/supabaseService';
+import { getVendorCatalogImagesFromStorage, listStorageBuckets, deleteImageFromStorage, getVendorBrandLogoFromStorage, getVendorContactPersonImageFromStorage } from '../services/supabaseStorageService';
 import ImageUpload from '../components/ImageUpload';
-import { Vendor } from '../lib/supabase';
+import { Vendor, supabase } from '../lib/supabase';
 import { CATEGORY_LIST } from '@/constants/categories';
 
 // Indian States and Union Territories
@@ -62,6 +62,8 @@ type VendorEditForm = {
   spoc_name: string;
   category: string;
   subcategory?: string;
+  brand_logo_url?: string;  // Brand logo URL from vendor_media
+  contact_person_image_url?: string;  // Contact person image URL from vendor_media
   
   // Contact Information
   phone_number: string;
@@ -70,16 +72,17 @@ type VendorEditForm = {
   email?: string;
   instagram?: string;
   address?: string;
+  google_maps_link?: string;
   
   // Business Details
   experience?: string;
-  total_events?: number;
+  total_events?: number;  // Form field name, maps to events_completed in database
   quick_intro?: string;
   caption?: string;
   detailed_intro?: string;
   highlight_features?: string[];
   starting_price: number;
-  languages_spoken?: string[];
+  languages?: string[];  // New dedicated languages field
   
   // JSON Fields
   services?: Array<{
@@ -137,9 +140,13 @@ const VendorProfileEdit: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submittedChanges, setSubmittedChanges] = useState<any>({});
+  const [submittedCurrentData, setSubmittedCurrentData] = useState<any>({});
   const [pendingChanges, setPendingChanges] = useState<any[]>([]);
   const [catalogImages, setCatalogImages] = useState<string[]>([]);
   const [originalCatalogImages, setOriginalCatalogImages] = useState<string[]>([]);
+  const [originalBrandLogoUrl, setOriginalBrandLogoUrl] = useState<string>('');
+  const [originalContactPersonImageUrl, setOriginalContactPersonImageUrl] = useState<string>('');
   const [catalogImagesWithMeta, setCatalogImagesWithMeta] = useState<any[]>([]);
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState<string>('');
@@ -148,7 +155,6 @@ const VendorProfileEdit: React.FC = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteConfirmType, setDeleteConfirmType] = useState<'brand_logo' | 'contact_person' | 'catalog'>('brand_logo');
   const [deleteConfirmData, setDeleteConfirmData] = useState<any>(null);
-  const [changesSummaryOpen, setChangesSummaryOpen] = useState(false);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [showStatesDropdown, setShowStatesDropdown] = useState(false);
 
@@ -160,7 +166,6 @@ const VendorProfileEdit: React.FC = () => {
     console.log('catalogImagesWithMeta type:', typeof catalogImagesWithMeta);
     console.log('Is catalogImagesWithMeta an array?', Array.isArray(catalogImagesWithMeta));
   }, [catalogImagesWithMeta]);
-  const [submittedChanges, setSubmittedChanges] = useState<any>({});
   const navigate = useNavigate();
 
   const {
@@ -183,12 +188,15 @@ const VendorProfileEdit: React.FC = () => {
       email: '',
       instagram: '',
       address: '',
+      google_maps_link: '',
       experience: '',
       total_events: 0,
       quick_intro: '',
       caption: '',
       detailed_intro: '',
       highlight_features: [],
+      starting_price: 0,
+      languages: [],
       services: [],
       packages: [],
       deliverables: [],
@@ -280,6 +288,33 @@ const VendorProfileEdit: React.FC = () => {
     name: "highlight_features" as any
   });
 
+  // Effect to ensure brand logo and contact person image are set after form loads
+  useEffect(() => {
+    if (!isLoadingFormData && vendor) {
+      // Use a small delay to ensure form is ready
+      const timer = setTimeout(() => {
+        if (originalBrandLogoUrl) {
+          const currentValue = watch('brand_logo_url' as any);
+          console.log('Checking brand logo - current:', currentValue, 'original:', originalBrandLogoUrl);
+          if (currentValue !== originalBrandLogoUrl) {
+            console.log('Setting brand_logo_url from original:', originalBrandLogoUrl);
+            setValue('brand_logo_url' as any, originalBrandLogoUrl, { shouldValidate: false, shouldDirty: false });
+          }
+        }
+        if (originalContactPersonImageUrl) {
+          const currentValue = watch('contact_person_image_url' as any);
+          console.log('Checking contact person - current:', currentValue, 'original:', originalContactPersonImageUrl);
+          if (currentValue !== originalContactPersonImageUrl) {
+            console.log('Setting contact_person_image_url from original:', originalContactPersonImageUrl);
+            setValue('contact_person_image_url' as any, originalContactPersonImageUrl, { shouldValidate: false, shouldDirty: false });
+          }
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingFormData, vendor, originalBrandLogoUrl, originalContactPersonImageUrl, watch, setValue]);
+
   // Removed duplicate services loading - now handled in loadVendorData function
 
   useEffect(() => {
@@ -328,10 +363,40 @@ const VendorProfileEdit: React.FC = () => {
           setOriginalCatalogImages([]);
         }
         
+        // Load brand logo and contact person image directly from storage (same as catalog images)
+        let brandLogoUrl = '';
+        let contactPersonImageUrl = '';
+        try {
+          const vendorIdStr = finalVendorData.vendor_id.toString();
+          console.log('=== LOADING BRAND LOGO AND CONTACT PERSON IMAGE FROM STORAGE ===');
+          console.log('Vendor ID (string):', vendorIdStr);
+          
+          // Load brand logo from storage (same approach as catalog images)
+          brandLogoUrl = await getVendorBrandLogoFromStorage(vendorIdStr) || '';
+          if (brandLogoUrl) {
+            console.log('✅ Brand logo loaded from storage:', brandLogoUrl);
+            setOriginalBrandLogoUrl(brandLogoUrl);
+          } else {
+            console.log('⚠️ No brand logo found in storage');
+          }
+          
+          // Load contact person image from storage (same approach as catalog images)
+          contactPersonImageUrl = await getVendorContactPersonImageFromStorage(vendorIdStr) || '';
+          if (contactPersonImageUrl) {
+            console.log('✅ Contact person image loaded from storage:', contactPersonImageUrl);
+            setOriginalContactPersonImageUrl(contactPersonImageUrl);
+          } else {
+            console.log('⚠️ No contact person image found in storage');
+          }
+        } catch (mediaError) {
+          console.error('❌ Error loading brand logo/contact person image from storage:', mediaError);
+          console.error('Error stack:', mediaError instanceof Error ? mediaError.stack : 'No stack');
+        }
+        
         // Load form with final data - SINGLE CALL ONLY
         console.log('Loading form with final vendor data (single call)');
         console.log('Passing catalogImages to loadVendorData:', catalogImages);
-        loadVendorData(finalVendorData, catalogImages);
+        loadVendorData(finalVendorData, catalogImages, brandLogoUrl, contactPersonImageUrl);
         
         // Load pending changes
         loadPendingChanges(parseInt(finalVendorData.vendor_id));
@@ -341,7 +406,28 @@ const VendorProfileEdit: React.FC = () => {
         // Last resort: use localStorage data only
         console.warn('Using localStorage data as last resort');
         setVendor(loggedInVendor);
-        loadVendorData(loggedInVendor, []);
+        // Try to load media even in last resort - from storage (same as catalog images)
+        let brandLogoUrl = '';
+        let contactPersonImageUrl = '';
+        try {
+          const vendorIdStr = loggedInVendor.vendor_id.toString();
+          console.log('Loading media in last resort from storage for vendor:', vendorIdStr);
+          
+          brandLogoUrl = await getVendorBrandLogoFromStorage(vendorIdStr) || '';
+          if (brandLogoUrl) {
+            console.log('✅ Loaded brand logo in last resort:', brandLogoUrl);
+            setOriginalBrandLogoUrl(brandLogoUrl);
+          }
+          
+          contactPersonImageUrl = await getVendorContactPersonImageFromStorage(vendorIdStr) || '';
+          if (contactPersonImageUrl) {
+            console.log('✅ Loaded contact person image in last resort:', contactPersonImageUrl);
+            setOriginalContactPersonImageUrl(contactPersonImageUrl);
+          }
+        } catch (e) {
+          console.error('Error loading media in last resort:', e);
+        }
+        loadVendorData(loggedInVendor, [], brandLogoUrl, contactPersonImageUrl);
         loadPendingChanges(parseInt(loggedInVendor.vendor_id));
       }
     };
@@ -349,7 +435,7 @@ const VendorProfileEdit: React.FC = () => {
     initializeVendorData();
   }, [navigate]);
 
-  const loadVendorData = (vendorData: Vendor, catalogImagesData?: string[]) => {
+  const loadVendorData = (vendorData: Vendor, catalogImagesData?: string[], brandLogoUrl?: string, contactPersonImageUrl?: string) => {
     // Prevent multiple simultaneous calls
     if (isLoadingFormData) {
       console.log('Form data is already loading, skipping duplicate call');
@@ -390,8 +476,8 @@ const VendorProfileEdit: React.FC = () => {
       spoc_name: vendorData.spoc_name || '',
       category: vendorData.category || '',
       subcategory: vendorData.subcategory || '',
-      brand_logo_url: vendorData.brand_logo_url || '',
-      contact_person_image_url: vendorData.contact_person_image_url || '',
+      brand_logo_url: brandLogoUrl || '',
+      contact_person_image_url: contactPersonImageUrl || '',
       
       // Contact Information
       phone_number: vendorData.phone_number || '',
@@ -400,15 +486,16 @@ const VendorProfileEdit: React.FC = () => {
       email: vendorData.email || '',
       instagram: vendorData.instagram || '',
       address: vendorData.address || '',
+      google_maps_link: vendorData.google_maps_link || '',
       
       // Business Details
       experience: vendorData.experience || '',
-      total_events: vendorData.total_events || 0,
+      total_events: vendorData.events_completed || 0,  // Map events_completed from database to total_events in form
       quick_intro: vendorData.quick_intro || '',
       caption: vendorData.caption || '',
       detailed_intro: vendorData.detailed_intro || '',
       starting_price: vendorData.starting_price || 0,
-      languages_spoken: vendorData.languages_spoken || [],
+      languages: vendorData.languages || vendorData.languages_spoken || [],  // Use new languages field, fallback to languages_spoken
       currently_available: vendorData.currently_available || false,
       catalog_highlights_updated: '',
       
@@ -445,9 +532,39 @@ const VendorProfileEdit: React.FC = () => {
     };
     
     console.log('Resetting form with complete data:', formData);
+    console.log('Brand logo URL being set:', brandLogoUrl);
+    console.log('Contact person image URL being set:', contactPersonImageUrl);
     
     // Reset the entire form with new data - this clears everything and sets new values
     reset(formData);
+    
+    // Explicitly set brand logo and contact person image URLs to ensure they're in the form
+    if (brandLogoUrl) {
+      console.log('Setting brand_logo_url via setValue:', brandLogoUrl);
+      setValue('brand_logo_url', brandLogoUrl, { shouldValidate: false, shouldDirty: false });
+      // Also update the original state
+      setOriginalBrandLogoUrl(brandLogoUrl);
+      console.log('✅ brand_logo_url set in form');
+    } else {
+      console.log('⚠️ No brandLogoUrl to set');
+    }
+    if (contactPersonImageUrl) {
+      console.log('Setting contact_person_image_url via setValue:', contactPersonImageUrl);
+      setValue('contact_person_image_url', contactPersonImageUrl, { shouldValidate: false, shouldDirty: false });
+      // Also update the original state
+      setOriginalContactPersonImageUrl(contactPersonImageUrl);
+      console.log('✅ contact_person_image_url set in form');
+    } else {
+      console.log('⚠️ No contactPersonImageUrl to set');
+    }
+    
+    // Verify the values were set
+    setTimeout(() => {
+      const currentBrandLogo = watch('brand_logo_url');
+      const currentContactPerson = watch('contact_person_image_url');
+      console.log('Form values after setValue - brand_logo_url:', currentBrandLogo);
+      console.log('Form values after setValue - contact_person_image_url:', currentContactPerson);
+    }, 100);
     
     // Initialize selectedStates for service areas multi-select
     if (Array.isArray(vendorData.additional_info?.service_areas)) {
@@ -457,6 +574,8 @@ const VendorProfileEdit: React.FC = () => {
     }
     
     console.log('Form reset completed');
+    console.log('Form values after reset - brand_logo_url:', watch('brand_logo_url'));
+    console.log('Form values after reset - contact_person_image_url:', watch('contact_person_image_url'));
     setLoading(false);
     setIsLoadingFormData(false);
   };
@@ -678,13 +797,91 @@ const VendorProfileEdit: React.FC = () => {
   const handleDeleteConfirm = async () => {
     try {
       if (deleteConfirmType === 'brand_logo') {
+        const vendorIdStr = vendor?.vendor_id?.toString() || '';
+        const possibleBuckets = ['vendor-images', 'catalog-images', 'images', 'media'];
+        let success = false;
+        
+        // Try to delete from storage
+        for (const bucket of possibleBuckets) {
+          try {
+            // List files in brand_logo folder
+            const { data: files, error: listError } = await supabase.storage
+              .from(bucket)
+              .list(`${vendorIdStr}/brand_logo`);
+            
+            if (!listError && files && files.length > 0) {
+              // Delete all brand logo files
+              const filePaths = files.map(file => `${vendorIdStr}/brand_logo/${file.name}`);
+              const { error: deleteError } = await supabase.storage
+                .from(bucket)
+                .remove(filePaths);
+              
+              if (!deleteError) {
+                console.log(`✅ Successfully deleted brand logo from bucket: ${bucket}`);
+                success = true;
+                break;
+              }
+            }
+          } catch (bucketError) {
+            console.log(`Error checking bucket ${bucket}:`, bucketError);
+            continue;
+          }
+        }
+        
+        // Clear form value and original state
         setValue('brand_logo_url', '');
-        setHighlightMessage('✅ Brand logo removed successfully!');
+        setOriginalBrandLogoUrl('');
+        
+        if (success) {
+          setHighlightMessage('✅ Brand logo removed successfully!');
+        } else {
+          setHighlightMessage('⚠️ Brand logo removed from form, but file may still exist in storage.');
+        }
         setTimeout(() => setHighlightMessage(''), 3000);
+        
       } else if (deleteConfirmType === 'contact_person') {
+        const vendorIdStr = vendor?.vendor_id?.toString() || '';
+        const possibleBuckets = ['vendor-images', 'catalog-images', 'images', 'media'];
+        let success = false;
+        
+        // Try to delete from storage
+        for (const bucket of possibleBuckets) {
+          try {
+            // List files in contact_person folder
+            const { data: files, error: listError } = await supabase.storage
+              .from(bucket)
+              .list(`${vendorIdStr}/contact_person`);
+            
+            if (!listError && files && files.length > 0) {
+              // Delete all contact person files
+              const filePaths = files.map(file => `${vendorIdStr}/contact_person/${file.name}`);
+              const { error: deleteError } = await supabase.storage
+                .from(bucket)
+                .remove(filePaths);
+              
+              if (!deleteError) {
+                console.log(`✅ Successfully deleted contact person image from bucket: ${bucket}`);
+                success = true;
+                break;
+              }
+            }
+          } catch (bucketError) {
+            console.log(`Error checking bucket ${bucket}:`, bucketError);
+            continue;
+          }
+        }
+        
+        // Clear form value and original state
         setValue('contact_person_image_url', '');
-        setHighlightMessage('✅ Contact person image removed successfully!');
+        setOriginalContactPersonImageUrl('');
+        
+        if (success) {
+          setHighlightMessage('✅ Contact person image removed successfully!');
+        } else {
+          setHighlightMessage('⚠️ Contact person image removed from form, but file may still exist in storage.');
+        }
         setTimeout(() => setHighlightMessage(''), 3000);
+        
       } else if (deleteConfirmType === 'catalog' && deleteConfirmData) {
         console.log('Deleting catalog image:', deleteConfirmData.id);
         // Extract the file path from the image data
@@ -914,20 +1111,23 @@ const VendorProfileEdit: React.FC = () => {
         spoc_name: vendor.spoc_name || '',
         category: vendor.category || '',
         subcategory: vendor.subcategory || '',
-        brand_logo_url: vendor.brand_logo_url || '', // Added brand logo
-        contact_person_image_url: vendor.contact_person_image_url || '', // Added contact person image
+        brand_logo_url: originalBrandLogoUrl || '', // Use original value for comparison
+        contact_person_image_url: originalContactPersonImageUrl || '', // Use original value for comparison
         phone_number: vendor.phone_number || '',
         alternate_number: vendor.alternate_number || '',
         whatsapp_number: vendor.whatsapp_number || '',
         email: vendor.email || '',
         instagram: vendor.instagram || '',
         address: vendor.address || '',
+        google_maps_link: vendor.google_maps_link || '',
         experience: vendor.experience || '',
-        total_events: vendor.total_events || 0,
+        events_completed: vendor.events_completed || 0,  // Use events_completed to match processedFormData
         quick_intro: vendor.quick_intro || '',
         caption: vendor.caption || '',
         detailed_intro: vendor.detailed_intro || '',
         highlight_features: vendor.highlight_features || [],
+        starting_price: vendor.starting_price || 0,
+        languages: vendor.languages || vendor.languages_spoken || [],  // Include languages field
         services: vendor.services || [],
         packages: vendor.packages || [],
         deliverables: vendor.deliverables || [],
@@ -955,13 +1155,15 @@ const VendorProfileEdit: React.FC = () => {
         email: data.email || '',
         instagram: data.instagram || '',
         address: data.address || '',
+        google_maps_link: data.google_maps_link || '',
         experience: data.experience || '',
-        total_events: data.total_events || 0,
+        events_completed: data.total_events || 0,  // Map total_events to events_completed for database
         quick_intro: data.quick_intro || '',
         caption: data.caption || '',
         detailed_intro: data.detailed_intro || '',
         highlight_features: data.highlight_features?.filter(h => h && h.trim() !== '') || [],
         starting_price: data.starting_price || 0,
+        languages: data.languages?.filter(l => l && l.trim() !== '') || [],  // Save to new languages field
         services: data.services?.filter(s => s.name && s.name.trim() !== '') || [],
         packages: data.packages?.filter(p => p.name && p.name.trim() !== '').map(pkg => ({
           ...pkg,
@@ -1244,14 +1446,10 @@ const VendorProfileEdit: React.FC = () => {
       );
 
       if (result.success) {
-        // Store the submitted changes for the summary dialog
-        setSubmittedChanges(proposedChanges);
-        
         setSubmitSuccess(true);
-        setSubmitMessage(result.message || 'Changes submitted successfully');
-        
-        // Show changes summary dialog
-        setChangesSummaryOpen(true);
+        setSubmitMessage('Changes went for approval');
+        setSubmittedChanges(proposedChanges); // Store the changes to display
+        setSubmittedCurrentData(currentData); // Store current data for before/after comparison
         
         // Reload pending changes
         loadPendingChanges(parseInt(vendor.vendor_id));
@@ -1337,17 +1535,176 @@ const VendorProfileEdit: React.FC = () => {
           </Card>
         )}
 
-        {/* Success/Error Message */}
-        {submitMessage && (
-          <Card className={`mb-6 ${submitSuccess ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+        {/* Change Review Card - Before/After Comparison */}
+        {submitMessage && submitSuccess && Object.keys(submittedChanges).length > 0 && (
+          <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 pb-4">
+            <Card className="border-green-300 bg-white shadow-2xl max-w-4xl mx-4 w-full">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">Changes Submitted for Approval</h3>
+                        <p className="text-sm text-gray-600">
+                          {Object.keys(submittedChanges).length} field{Object.keys(submittedChanges).length > 1 ? 's' : ''} changed
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setSubmitMessage('');
+                        setSubmitSuccess(false);
+                        setSubmittedChanges({});
+                        setSubmittedCurrentData({});
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      size="sm"
+                    >
+                      Close
+                    </Button>
+                  </div>
+
+                  {/* Change Review Cards */}
+                  <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+                    {Object.entries(submittedChanges).map(([key, newValue]) => {
+                      const currentValue = submittedCurrentData[key];
+                      
+                      // Field name mapping
+                      const getFieldDisplayName = (fieldKey: string) => {
+                        const fieldNames: Record<string, string> = {
+                          'brand_name': 'Brand Name',
+                          'spoc_name': 'Contact Person Name',
+                          'category': 'Category',
+                          'subcategory': 'Subcategory',
+                          'phone_number': 'Phone Number',
+                          'alternate_number': 'Alternate Number',
+                          'whatsapp_number': 'WhatsApp Number',
+                          'email': 'Email Address',
+                          'instagram': 'Instagram Handle',
+                          'address': 'Address',
+                          'google_maps_link': 'Google Maps Link',
+                          'experience': 'Experience',
+                          'events_completed': 'Events Completed',
+                          'quick_intro': 'Quick Intro',
+                          'caption': 'Caption',
+                          'detailed_intro': 'Detailed Intro',
+                          'highlight_features': 'Highlight Features',
+                          'starting_price': 'Starting Price',
+                          'languages': 'Languages',
+                          'services': 'Services',
+                          'packages': 'Packages',
+                          'deliverables': 'Deliverables',
+                          'booking_policies': 'Booking Policies',
+                          'additional_info': 'Additional Information',
+                          'currently_available': 'Currently Available',
+                          'catalog_images': 'Catalog Images',
+                          'highlight_status_changes': 'Image Highlight Changes'
+                        };
+                        return fieldNames[fieldKey] || fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      };
+
+                      const formatValue = (val: any, fieldKey: string): string => {
+                        if (val === null || val === undefined || val === '') return '(Empty)';
+                        if (Array.isArray(val)) {
+                          if (val.length === 0) return '(No items)';
+                          if (typeof val[0] === 'object') {
+                            if (fieldKey === 'services') {
+                              return `${val.length} service(s): ${val.map((s: any) => s.name || 'Unnamed').slice(0, 2).join(', ')}${val.length > 2 ? '...' : ''}`;
+                            } else if (fieldKey === 'packages') {
+                              return `${val.length} package(s): ${val.map((p: any) => p.name || 'Unnamed').slice(0, 2).join(', ')}${val.length > 2 ? '...' : ''}`;
+                            }
+                            return `${val.length} item(s)`;
+                          }
+                          return val.slice(0, 3).join(', ') + (val.length > 3 ? ` +${val.length - 3} more` : '');
+                        }
+                        if (typeof val === 'object') {
+                          if (fieldKey === 'catalog_images' && val.added && val.removed) {
+                            return `${val.added.length} added, ${val.removed.length} removed`;
+                          }
+                          if (fieldKey === 'highlight_status_changes' && val.changed_images) {
+                            return `${val.changed_images.length} image(s) highlight status changed`;
+                          }
+                          if (fieldKey === 'booking_policies') {
+                            const policies = [];
+                            if (val.cancellation_policy) policies.push('Cancellation Policy');
+                            if (val.payment_terms) policies.push('Payment Terms');
+                            if (val.booking_requirements) policies.push('Booking Requirements');
+                            return policies.join(', ') || 'Updated';
+                          }
+                          if (fieldKey === 'additional_info') {
+                            const info = [];
+                            if (val.working_hours) info.push('Working Hours');
+                            if (val.languages && val.languages.length > 0) info.push('Languages');
+                            if (val.service_areas && val.service_areas.length > 0) info.push('Service Areas');
+                            if (val.awards && val.awards.length > 0) info.push('Awards');
+                            if (val.certifications && val.certifications.length > 0) info.push('Certifications');
+                            return info.join(', ') || 'Updated';
+                          }
+                          return 'Updated';
+                        }
+                        if (typeof val === 'boolean') {
+                          return val ? 'Yes' : 'No';
+                        }
+                        if (fieldKey.includes('_url') && val) {
+                          return 'Image updated';
+                        }
+                        const strVal = String(val);
+                        return strVal.length > 60 ? strVal.substring(0, 60) + '...' : strVal;
+                      };
+
+                      return (
+                        <div key={key} className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:border-green-300 transition-colors">
+                          <div className="flex items-start gap-4">
+                            {/* Field Name */}
+                            <div className="min-w-[140px] flex-shrink-0">
+                              <p className="font-semibold text-gray-900 text-sm">
+                                {getFieldDisplayName(key)}
+                              </p>
+                            </div>
+                            
+                            {/* Before/After Values */}
+                            <div className="flex-1 flex items-center gap-3">
+                              {/* Previous Value */}
+                              <div className="flex-1 bg-white rounded border border-gray-200 p-2.5">
+                                <p className="text-xs text-gray-500 mb-1">Previous</p>
+                                <p className="text-sm text-gray-600 line-through">
+                                  {formatValue(currentValue, key)}
+                                </p>
+                              </div>
+                              
+                              {/* Arrow */}
+                              <ArrowRight className="w-5 h-5 text-green-600 flex-shrink-0" />
+                              
+                              {/* Updated Value */}
+                              <div className="flex-1 bg-green-50 rounded border-2 border-green-300 p-2.5">
+                                <p className="text-xs text-green-700 mb-1 font-medium">Updated</p>
+                                <p className="text-sm text-green-800 font-semibold">
+                                  {formatValue(newValue, key)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        
+        {/* Error Message */}
+        {submitMessage && !submitSuccess && (
+          <Card className={`mb-6 border-red-200 bg-red-50`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                {submitSuccess ? (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                ) : (
                   <AlertCircle className="w-5 h-5 text-red-600" />
-                )}
-                <p className={`font-medium ${submitSuccess ? 'text-green-800' : 'text-red-800'}`}>
+                <p className="font-medium text-red-800">
                   {submitMessage}
                 </p>
               </div>
@@ -1432,18 +1789,22 @@ const VendorProfileEdit: React.FC = () => {
                   </label>
                   <div className="border rounded-lg p-4 bg-gray-50">
                     {/* Show existing brand logo if it exists */}
-                    {watch("brand_logo_url") && (
+                    {(watch("brand_logo_url") || originalBrandLogoUrl) && (
                       <div className="mb-4 p-3 bg-white rounded-lg border">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-700 mb-2">Current Brand Logo:</p>
                             <div className="relative inline-block">
                               <img
-                                src={watch("brand_logo_url")}
+                                src={watch("brand_logo_url") || originalBrandLogoUrl}
                                 alt="Current brand logo"
                                 className="w-24 h-24 object-cover rounded-lg border"
                                 onError={(e) => {
+                                  console.error('Brand logo image failed to load:', watch("brand_logo_url") || originalBrandLogoUrl);
                                   (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                                onLoad={() => {
+                                  console.log('Brand logo image loaded successfully:', watch("brand_logo_url") || originalBrandLogoUrl);
                                 }}
                               />
                             </div>
@@ -1467,11 +1828,11 @@ const VendorProfileEdit: React.FC = () => {
                     )}
                     
                     <ImageUpload
-                      key={`brand-logo-${watch("brand_logo_url") || 'empty'}`}
+                      key={`brand-logo-${watch("brand_logo_url") || originalBrandLogoUrl || 'empty'}`}
                       vendorId={vendor?.vendor_id || ''}
                       category="brand_logo"
                       maxImages={1}
-                      existingImages={watch("brand_logo_url") ? [watch("brand_logo_url")] : []}
+                      existingImages={(watch("brand_logo_url") || originalBrandLogoUrl) ? [watch("brand_logo_url") || originalBrandLogoUrl] : []}
                       onUploadComplete={(urls) => {
                         console.log('Brand logo uploaded:', urls);
                         if (urls.length > 0) {
@@ -1511,18 +1872,22 @@ const VendorProfileEdit: React.FC = () => {
                   </label>
                   <div className="border rounded-lg p-4 bg-gray-50">
                     {/* Show existing contact person image if it exists */}
-                    {watch("contact_person_image_url") && (
+                    {(watch("contact_person_image_url") || originalContactPersonImageUrl) && (
                       <div className="mb-4 p-3 bg-white rounded-lg border">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-700 mb-2">Current Contact Person Image:</p>
                             <div className="relative inline-block">
                               <img
-                                src={watch("contact_person_image_url")}
+                                src={watch("contact_person_image_url") || originalContactPersonImageUrl}
                                 alt="Current contact person"
                                 className="w-24 h-24 object-cover rounded-lg border"
                                 onError={(e) => {
+                                  console.error('Contact person image failed to load:', watch("contact_person_image_url") || originalContactPersonImageUrl);
                                   (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                                onLoad={() => {
+                                  console.log('Contact person image loaded successfully:', watch("contact_person_image_url") || originalContactPersonImageUrl);
                                 }}
                               />
                             </div>
@@ -1546,11 +1911,11 @@ const VendorProfileEdit: React.FC = () => {
                     )}
                     
                     <ImageUpload
-                      key={`contact-person-${watch("contact_person_image_url") || 'empty'}`}
+                      key={`contact-person-${watch("contact_person_image_url") || originalContactPersonImageUrl || 'empty'}`}
                       vendorId={vendor?.vendor_id || ''}
                       category="contact_person"
                       maxImages={1}
-                      existingImages={watch("contact_person_image_url") ? [watch("contact_person_image_url")] : []}
+                      existingImages={(watch("contact_person_image_url") || originalContactPersonImageUrl) ? [watch("contact_person_image_url") || originalContactPersonImageUrl] : []}
                       onUploadComplete={(urls) => {
                         console.log('Contact person image uploaded:', urls);
                         if (urls.length > 0) {
@@ -1743,6 +2108,28 @@ const VendorProfileEdit: React.FC = () => {
                   rows={3}
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Google Maps Link <span className="text-xs text-gray-500">(Optional)</span>
+                </label>
+                <Input
+                  {...register("google_maps_link", {
+                    pattern: {
+                      value: /^(https?:\/\/)?(www\.)?(google\.com\/maps|maps\.google\.com|goo\.gl\/maps|maps\.app\.goo\.gl)/i,
+                      message: "Please enter a valid Google Maps link"
+                    }
+                  })}
+                  type="url"
+                  placeholder="https://maps.google.com/... or https://maps.app.goo.gl/..."
+                />
+                {errors.google_maps_link && (
+                  <p className="mt-1 text-sm text-red-600">{errors.google_maps_link.message}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Paste your Google Maps location link here. Customers can click the map icon to view your location.
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -1804,12 +2191,13 @@ const VendorProfileEdit: React.FC = () => {
                     Languages Spoken
                   </label>
                   <Input
-                    {...register("languages_spoken")}
+                    {...register("languages")}
                     placeholder="e.g., English, Hindi, Telugu (comma separated)"
+                    defaultValue={Array.isArray(watch("languages")) ? watch("languages").join(', ') : (watch("languages") || '')}
                     onBlur={(e) => {
                       const value = e.target.value;
                       const languages = value.split(',').map(lang => lang.trim()).filter(lang => lang);
-                      setValue('languages_spoken', languages);
+                      setValue('languages', languages);
                     }}
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -2395,24 +2783,6 @@ const VendorProfileEdit: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Languages
-                </label>
-                <Input
-                  {...register("additional_info.languages")}
-                  placeholder="e.g., English, Hindi, Telugu (comma-separated)"
-                  onBlur={(e) => {
-                    const value = e.target.value;
-                    const languages = value.split(',').map(lang => lang.trim()).filter(lang => lang);
-                    setValue('additional_info.languages', languages);
-                  }}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter languages separated by commas
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Service Areas
                 </label>
                 
@@ -2595,133 +2965,6 @@ const VendorProfileEdit: React.FC = () => {
           </div>
         </form>
       </div>
-
-      {/* Changes Summary Dialog */}
-      <Dialog open={changesSummaryOpen} onOpenChange={setChangesSummaryOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              Changes Submitted Successfully
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-gray-700 mb-4">
-              Your profile changes have been submitted for admin approval. Here's a summary of what you changed:
-            </p>
-            
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h5 className="text-sm font-medium text-green-800 mb-3 flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
-                Changes Submitted ({Object.keys(submittedChanges).length} fields):
-              </h5>
-              
-              <div className="space-y-3 text-sm max-h-60 overflow-y-auto">
-                {Object.entries(submittedChanges).map(([key, value]) => {
-                  // Field name mapping
-                  const getFieldDisplayName = (fieldKey: string) => {
-                    const fieldNames: Record<string, string> = {
-                      'brand_name': 'Brand Name',
-                      'spoc_name': 'Contact Person Name',
-                      'category': 'Category',
-                      'subcategory': 'Subcategory',
-                      'brand_logo_url': 'Brand Logo',
-                      'contact_person_image_url': 'Contact Person Image',
-                      'phone_number': 'Phone Number',
-                      'alternate_number': 'Alternate Number',
-                      'whatsapp_number': 'WhatsApp Number',
-                      'email': 'Email Address',
-                      'instagram': 'Instagram Handle',
-                      'address': 'Address',
-                      'experience': 'Experience',
-                      'total_events': 'Events Completed',
-                      'quick_intro': 'Quick Intro',
-                      'caption': 'Caption',
-                      'detailed_intro': 'Detailed Intro',
-                      'highlight_features': 'Highlight Features',
-                      'services': 'Services',
-                      'packages': 'Packages',
-                      'deliverables': 'Deliverables',
-                      'booking_policies': 'Booking Policies',
-                      'additional_info': 'Additional Information',
-                      'currently_available': 'Currently Available'
-                    };
-                    return fieldNames[fieldKey] || fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-                  };
-
-                  return (
-                    <div key={key} className="p-3 bg-white rounded border border-green-200">
-                      <div className="font-semibold text-green-800 text-sm mb-1">
-                        {getFieldDisplayName(key)}
-                      </div>
-                      <div className="text-gray-700 text-sm">
-                        {(() => {
-                          if (Array.isArray(value)) {
-                            if (value.length > 0 && typeof value[0] === 'object') {
-                              // Handle services, packages, reviews
-                              if (key === 'services') {
-                                return `${value.length} service(s): ${value.map(s => s.name).join(', ')}`;
-                              } else if (key === 'packages') {
-                                return `${value.length} package(s): ${value.map(p => p.name).join(', ')}`;
-                              }
-                              return `${value.length} items`;
-                            }
-                            return value.join(', ');
-                          } else if (typeof value === 'object' && value !== null) {
-                            if (key === 'booking_policies') {
-                              const policies = [];
-                              const bookingPolicies = value as any;
-                              if (bookingPolicies.cancellation_policy) policies.push('Cancellation Policy');
-                              if (bookingPolicies.payment_terms) policies.push('Payment Terms');
-                              if (bookingPolicies.booking_requirements) policies.push('Booking Requirements');
-                              return policies.join(', ') || 'Updated';
-                            } else if (key === 'additional_info') {
-                              const info = [];
-                              const additionalInfo = value as any;
-                              if (additionalInfo.working_hours) info.push('Working Hours');
-                              if (additionalInfo.languages && additionalInfo.languages.length > 0) info.push('Languages');
-                              if (additionalInfo.service_areas && additionalInfo.service_areas.length > 0) info.push('Service Areas');
-                              if (additionalInfo.awards && additionalInfo.awards.length > 0) info.push('Awards');
-                              if (additionalInfo.certifications && additionalInfo.certifications.length > 0) info.push('Certifications');
-                              return info.join(', ') || 'Updated';
-                            }
-                            return 'Updated';
-                          } else if (typeof value === 'boolean') {
-                            return value ? 'Yes' : 'No';
-                          } else if (key.includes('_url') && value) {
-                            return 'Image updated';
-                          } else if (Array.isArray(value)) {
-                            return value.join(', ');
-                          }
-                          return String(value);
-                        })()}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>⏳ What happens next?</strong><br />
-                Your changes are now pending admin approval. You'll be notified once they're reviewed and approved. 
-                The changes will then be visible on your public profile.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              onClick={() => setChangesSummaryOpen(false)}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Got it!
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
 
       {/* Delete Confirmation Modal */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

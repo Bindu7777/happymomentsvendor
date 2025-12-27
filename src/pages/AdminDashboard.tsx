@@ -1142,6 +1142,20 @@ const AdminDashboard = () => {
                         {/* Clean Side-by-Side Changes Comparison */}
                         <div className="mt-4 space-y-4">
                           {Object.entries(change.proposed_changes)
+                            .filter(([key, newValue]) => {
+                              // Only show fields that actually changed
+                              const currentValue = change.current_data?.[key];
+                              // Skip special fields that are handled separately
+                              if (key === 'catalog_images' || key === 'highlight_status_changes') {
+                                return true; // Always show these as they have special handling
+                              }
+                              // For other fields, only show if they actually differ
+                              if (currentValue === undefined) {
+                                return true; // New field
+                              }
+                              // Deep comparison
+                              return JSON.stringify(currentValue) !== JSON.stringify(newValue);
+                            })
                             .map(([key, newValue]) => {
                               const currentValue = change.current_data?.[key];
                             const isChanged = currentValue !== undefined && JSON.stringify(currentValue) !== JSON.stringify(newValue);

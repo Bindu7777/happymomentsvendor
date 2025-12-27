@@ -703,16 +703,22 @@ const AdminDashboard = () => {
             </div>
             <div className="flex-1 flex items-center justify-center p-4">
               <img 
-                src="/images/tokito-hq.png" 
+                src="/tokito.jpeg" 
                 alt="Muichiro Tokito - Mist Hashira" 
                 className="w-full h-full object-contain rounded-2xl shadow-2xl border-4 border-white/40"
                 style={{
                   imageRendering: 'auto'
                 }}
                 onError={(e) => {
-                  // Fallback to a placeholder or existing image if tokito.png is not found
-                  e.currentTarget.src = "/one.jpg";
-                  e.currentTarget.alt = "Muichiro Tokito - Mist Hashira (Placeholder)";
+                  // Fallback to other tokito images if tokito.jpeg is not found
+                  if (e.currentTarget.src.includes('tokito.jpeg')) {
+                    e.currentTarget.src = "/tokito-hq.png";
+                  } else if (e.currentTarget.src.includes('tokito-hq.png')) {
+                    e.currentTarget.src = "/tokito.png";
+                  } else {
+                    e.currentTarget.src = "/images/logo.jpg";
+                    e.currentTarget.alt = "Muichiro Tokito - Mist Hashira (Placeholder)";
+                  }
                 }}
               />
             </div>

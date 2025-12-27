@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { Vendor } from '@/lib/supabase';
 import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
-import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2, Info, Globe, Scroll, FileText } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2, Info, Globe, Scroll, FileText, Menu, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -41,6 +41,21 @@ const VendorProfile = () => {
   const [showCoupon, setShowCoupon] = useState(false);
   const [recentClaims, setRecentClaims] = useState(Math.floor(Math.random() * 100) + 1);
   const [showRatingTooltip, setShowRatingTooltip] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuOpen && !(event.target as Element).closest('.mobile-menu-container')) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [mobileMenuOpen]);
 
   // Check contact status
   const checkContactStatus = async () => {
@@ -315,56 +330,135 @@ const VendorProfile = () => {
         .animate-fade-in-up:nth-child(4) { animation-delay: 0.4s; }
       `}</style>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
-      {/* Mobile Header - Compact */}
-      <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm lg:hidden">
-        <div className="container mx-auto px-3 py-3">
+      {/* Mobile Header - Clean and Simple */}
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm lg:hidden mobile-menu-container">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Left side - Company info */}
+            {/* Left side - Company name only */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <img 
-                src={vendor.avatar_url || "/images/vendor.jpeg"} 
-                alt={vendor.brand_name}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-blue-500 flex-shrink-0"
-              />
-              <div className="min-w-0 flex-1">
-                <h1 className="text-sm sm:text-base font-bold text-gray-900 truncate leading-tight">{vendor.brand_name}</h1>
-                <div className="flex items-center gap-1 mt-1">
-                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5 h-5 whitespace-nowrap">{vendor.category}</Badge>
-                  <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-5 whitespace-nowrap">All Events</Badge>
-                </div>
-              </div>
+              <h1 className="text-base font-bold text-gray-900 truncate">{vendor.brand_name}</h1>
             </div>
 
-            {/* Right side - Contact Status, Rating and actions */}
+            {/* Right side - Only Chat, Like, and Hamburger */}
             <div className="flex items-center gap-2">
-              {/* Contact Status - Compact version in mobile header */}
-              {customer && isContacted && (
-                <div className="px-2 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-md border border-blue-200">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs font-medium text-gray-700">Status:</span>
+              {/* Chat Button - Simple */}
+              {vendor && (
+                <WhatsAppButton
+                  vendor={vendor}
+                  size="sm"
+                  className="bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-semibold shadow-sm transition-all"
+                >
+                  Chat
+                </WhatsAppButton>
+              )}
+
+              {/* Like Button */}
+              <LikeButton 
+                vendorId={vendorId || ''} 
+                className="p-2"
+              />
+
+              {/* Hamburger Menu */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-5 h-5 text-gray-700" />
+                ) : (
+                  <Menu className="w-5 h-5 text-gray-700" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Mobile Menu Dropdown */}
+          {mobileMenuOpen && (
+            <div className="mt-3 pt-3 border-t border-gray-200 animate-fade-in bg-white rounded-b-lg shadow-lg">
+              <div className="space-y-2">
+                {/* Rating */}
+                <div className="flex items-center justify-between px-4 py-3 bg-amber-50 rounded-lg border border-amber-100">
+                  <div className="flex items-center gap-2">
+                    <Star className="w-4 h-4 text-amber-500 fill-current" />
+                    <span className="text-sm font-medium text-gray-700">Rating</span>
+                  </div>
+                  <span className="text-sm font-bold text-amber-700">{rating}</span>
+                </div>
+
+                {/* Contact Status */}
+                {customer && isContacted && (
+                  <div className="px-4 py-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Contact Status</span>
+                    </div>
                     <VendorStatusDropdown
                       customerId={customer.id}
                       vendorId={vendorId || ''}
                       currentStatus={contactStatus}
                       onStatusUpdate={handleStatusUpdate}
-                      className="min-w-[100px] text-xs"
+                      className="w-full text-sm"
                       vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
                       vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
                     />
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Compact Rating */}
-              <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 rounded-lg border border-amber-200">
-                <Star className="w-3 h-3 text-amber-500 fill-current" />
-                <span className="text-xs font-bold text-amber-700">{rating}</span>
+                {/* Call Button */}
+                <Button
+                  onClick={() => {
+                    if (vendor?.phone_number) {
+                      window.location.href = `tel:${vendor.phone_number}`;
+                    }
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start bg-blue-500 hover:bg-blue-600 text-white h-11"
+                >
+                  <Phone className="w-4 h-4 mr-2" />
+                  Call Vendor
+                </Button>
+
+                {/* Visit Button */}
+                <Button
+                  onClick={() => {
+                    // Handle visit action
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full justify-start bg-purple-500 hover:bg-purple-600 text-white h-11"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Schedule Visit
+                </Button>
+
+                {/* Share Button */}
+                <Button
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: vendor.brand_name,
+                          text: `Check out ${vendor.brand_name} on Happy Moments`,
+                          url: window.location.href,
+                        });
+                      } catch (err) {
+                        console.log('Error sharing:', err);
+                      }
+                    } else {
+                      // Fallback: Copy to clipboard
+                      navigator.clipboard.writeText(window.location.href);
+                    }
+                    setMobileMenuOpen(false);
+                  }}
+                  variant="outline"
+                  className="w-full justify-start h-11 border-gray-300"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Profile
+                </Button>
               </div>
-
-              {/* Action Buttons - Mobile Optimized */}
-              <VendorActionButtons vendor={vendor} className="gap-1" size="sm" />
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -412,90 +506,107 @@ const VendorProfile = () => {
 
       {/* Hero Section - Mobile Optimized */}
       <div className="relative bg-gradient-to-br from-slate-50 via-amber-50/30 to-orange-50/30">
-        
         {/* Mobile-First Simple Layout */}
         <div className="block lg:hidden">
           <div className="container mx-auto px-4 py-2">
             {/* Mobile Hero Card - Clean and Simple */}
-            <div className="bg-white/95 backdrop-blur-md rounded-2xl p-2 shadow-lg border border-amber-200/50 mb-4">
-              {/* Company Name and Category Badges Combined */}
-              <div className="text-center">
-                <h1 className="text-2xl font-black text-gray-900 mb-0">{vendor.brand_name}</h1>
-                <p className="text-amber-600 font-medium mb-0">{vendor.description || "Professional services for your special day"}</p>
+            <div className="bg-white rounded-2xl p-4 shadow-xl border border-orange-200 mb-4">
+              {/* Company Name and Category Badges */}
+              <div className="text-center mb-4">
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{vendor.brand_name}</h1>
+                <p className="text-gray-600 text-xs mb-3 px-2">{vendor.description || vendor.quick_intro || "Professional services for your special day"}</p>
                 
-                {/* Category Badges - Directly under heading */}
-                <div className="flex justify-center gap-2 mt-0">
-                  <Badge className="px-3 py-1 text-xs bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-full">
+                {/* Category Badges */}
+                <div className="flex justify-center gap-2 flex-wrap">
+                  <Badge className="px-3 py-1 text-xs bg-wedding-orange text-white rounded-full font-medium">
                     <CategoryIcon className="w-3 h-3 mr-1" />
                     {vendor.category}
                   </Badge>
-                  <Badge className="px-3 py-1 text-xs bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-full">
+                  <Badge className="px-3 py-1 text-xs bg-pink-500 text-white rounded-full font-medium">
                     <Calendar className="w-3 h-3 mr-1" />
                     All Events
                   </Badge>
                 </div>
               </div>
 
-              {/* Owner Info */}
-              <div className="flex items-center justify-center gap-4 mb-0">
-                <div className="w-16 h-16 rounded-full overflow-hidden border-3 border-blue-500 shadow-lg">
+              {/* Owner Info - Better Spacing */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4 pb-4 border-b border-gray-200">
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-wedding-orange shadow-md flex-shrink-0">
                   <img 
                     src="/images/vendor.jpeg" 
                     alt={vendor.spoc_name}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div>
-                  <div className="font-bold text-gray-800">{vendor.spoc_name}</div>
-                  <div className="text-sm text-blue-600 flex items-center gap-1">
+                <div className="flex-1 min-w-0 text-center sm:text-left">
+                  <div className="font-bold text-base text-gray-900">{vendor.spoc_name}</div>
+                  <div className="text-xs text-wedding-orange flex items-center justify-center sm:justify-start gap-1 mt-0.5">
                     <Users className="w-3 h-3" />
-                    Contact Person
+                    <span>Contact Person</span>
                   </div>
                 </div>
               </div>
 
-              {/* Key Info */}
-              <div className="grid grid-cols-2 gap-3 mb-0">
-                <div className="text-center p-2 bg-amber-50 rounded-lg">
-                  <div className="font-bold text-amber-600">{vendor.address || "Location"}</div>
+              {/* Key Info - Better Layout */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <MapPin className="w-4 h-4 text-wedding-orange mx-auto mb-1.5" />
+                  <div className="font-bold text-xs text-gray-900 mb-0.5 line-clamp-2">{vendor.address || "Location"}</div>
                   <div className="text-xs text-gray-600">Location</div>
                 </div>
-                <div className="text-center p-2 bg-blue-50 rounded-lg">
-                  <div className="font-bold text-blue-600">{vendor.experience || "5+ Years"}</div>
+                <div className="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+                  <Trophy className="w-4 h-4 text-blue-600 mx-auto mb-1.5" />
+                  <div className="font-bold text-xs text-gray-900 mb-0.5">{vendor.experience || "5+ Years"}</div>
                   <div className="text-xs text-gray-600">Experience</div>
                 </div>
               </div>
 
-              {/* CTA Button */}
+              {/* CTA Button - Better Styling */}
               {vendor && (
                 <WhatsAppButton
                   vendor={vendor}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 text-lg font-bold rounded-xl shadow-lg"
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 text-sm font-bold rounded-xl shadow-md transition-all"
                 >
                   Chat to Book Now
                 </WhatsAppButton>
               )}
             </div>
 
-            {/* Mobile Gallery */}
+            {/* Mobile Gallery - Better Display */}
             {highlightedCatalogImages.length > 0 && (
-              <div className="relative rounded-2xl overflow-hidden shadow-lg h-64 mb-6">
-                <img 
-                  src={highlightedCatalogImages[currentSlide]?.media_url || "/images/vendor.jpeg"} 
-                  alt={highlightedCatalogImages[currentSlide]?.title || "Highlighted Work"}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <h3 className="font-bold mb-1">Highlight</h3>
+              <div className="relative rounded-2xl overflow-hidden shadow-xl mb-4">
+                <div className="aspect-video bg-gray-100">
+                  <img 
+                    src={highlightedCatalogImages[currentSlide]?.media_url || "/images/vendor.jpeg"} 
+                    alt={highlightedCatalogImages[currentSlide]?.title || "Highlighted Work"}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge className="bg-yellow-500 text-white text-xs px-2 py-1">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Featured
+                    </Badge>
+                  </div>
+                  <h3 className="font-bold text-lg mb-1">Highlight</h3>
                   <p className="text-sm opacity-90">Featured Work</p>
                 </div>
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-yellow-500 text-white">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    Featured
-                  </Badge>
-                </div>
+                {/* Image Navigation Dots */}
+                {highlightedCatalogImages.length > 1 && (
+                  <div className="absolute top-4 right-4 flex gap-2">
+                    {highlightedCatalogImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={(e) => { e.stopPropagation(); setCurrentSlide(index); }}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === currentSlide ? 'bg-yellow-400 w-6' : 'bg-white/50'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -681,15 +792,15 @@ const VendorProfile = () => {
             </div>
 
       {/* Section Divider */}
-      <div className="h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
+      <div className="h-4 lg:h-16 bg-gradient-to-b from-transparent to-slate-50"></div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-3 sm:px-6 py-8 sm:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-12">
+      <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8 lg:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-12">
           {/* Left Column - Main Content */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-8">
-            {/* Additional Info Badges */}
-            <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-8">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-6 lg:space-y-8">
+            {/* Additional Info Badges - Mobile Optimized */}
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
               {[
                 { text: "Professional Service", icon: Award, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50", textColor: "text-blue-800" },
                 { text: "Quality Guarantee", icon: CheckCircle, color: "from-purple-500 to-pink-500", bg: "from-purple-50 to-pink-50", textColor: "text-purple-800" },
@@ -698,39 +809,39 @@ const VendorProfile = () => {
               ].map((item, index) => (
                 <div 
                   key={index} 
-                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-bold bg-gradient-to-r ${item.bg} border-2 border-transparent hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group cursor-pointer`}
+                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r ${item.bg} border border-gray-200 hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg group`}
                 >
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                      <item.icon className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
-              </div>
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0`}>
+                      <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                    </div>
                     <span className={item.textColor}>{item.text}</span>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Highlights of Vendor Section */}
+            {/* Highlights of Vendor Section - Mobile Optimized */}
             {vendor.highlight_features && vendor.highlight_features.length > 0 && (
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-purple-100">
-                <CardContent className="p-8">
-                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    <Sparkles className="w-8 h-8 text-purple-600" />
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-purple-200">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-purple-600" />
                     Highlights of Vendor
                   </h2>
-                  <p className="text-gray-600 mb-8 text-lg">What makes us stand out from the rest</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <p className="text-gray-600 mb-3 sm:mb-4 lg:mb-6 text-xs sm:text-sm lg:text-base">What makes us stand out from the rest</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     {vendor.highlight_features.map((feature, index) => (
                       <div 
                         key={index}
-                        className="group p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 border-transparent hover:border-purple-200 shadow-lg"
+                        className="group p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-300 border border-purple-100"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            <CheckCircle className="w-6 h-6 text-white" />
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                           </div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-bold text-gray-800 group-hover:text-purple-800 transition-colors duration-300">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-800 group-hover:text-purple-800 transition-colors duration-300">
                               {feature}
                             </h3>
                           </div>
@@ -742,36 +853,36 @@ const VendorProfile = () => {
               </Card>
             )}
 
-            {/* Services Section - Only show if services exist */}
+            {/* Services Section - Mobile Optimized */}
             {services.length > 0 && (
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
-                <CardContent className="p-8">
-                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    <CategoryIcon className="w-8 h-8 text-amber-600" />
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-amber-200">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-2">
+                    <CategoryIcon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-amber-600" />
                     Our Services
                   </h2>
-                  <p className="text-gray-600 mb-8 text-lg">Specialized in professional {vendor.category.toLowerCase()} services</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <p className="text-gray-600 mb-3 sm:mb-4 lg:mb-6 text-xs sm:text-sm lg:text-base">Specialized in professional {vendor.category.toLowerCase()} services</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                     {services.slice(0, 6).map((service, index) => (
                       <div 
                         key={index}
-                        className={`group p-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border-2 border-transparent hover:border-white/50 shadow-lg`}
+                        className={`group p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-300 border border-amber-100`}
                       >
-                        <div className="flex items-start gap-4">
-                          <div className={`p-4 bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl group-hover:scale-110 transition-all duration-300 shadow-lg`}>
-                            <CategoryIcon className="w-8 h-8 text-white" />
-                            </div>
-                          <div className="flex-1">
-                            <h3 className="font-bold text-xl text-gray-800 mb-2 group-hover:text-gray-900 transition-colors">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className={`p-2 sm:p-3 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg sm:rounded-xl group-hover:scale-110 transition-all duration-300 shadow-md flex-shrink-0`}>
+                            <CategoryIcon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-base sm:text-lg lg:text-xl text-gray-800 mb-1 group-hover:text-gray-900 transition-colors">
                               {typeof service === 'string' ? service : service.name}
                             </h3>
-                            <p className="text-gray-600 text-base leading-relaxed">
+                            <p className="text-gray-600 text-xs sm:text-sm lg:text-base leading-relaxed mb-1">
                               {typeof service === 'object' && service.description 
                                 ? service.description 
                                 : 'Professional service with expertise and quality.'}
                             </p>
                             {typeof service === 'object' && service.price && (
-                              <p className="text-green-600 font-semibold mt-2">₹{service.price}</p>
+                              <p className="text-green-600 font-semibold text-sm sm:text-base lg:text-lg">₹{service.price}</p>
                             )}
                           </div>
                         </div>
@@ -782,26 +893,26 @@ const VendorProfile = () => {
               </Card>
             )}
 
-            {/* Deliverables Section */}
+            {/* Deliverables Section - Mobile Optimized */}
             {vendor.deliverables && vendor.deliverables.length > 0 && (
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-100">
-                <CardContent className="p-8">
-                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-green-200">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-green-600" />
                     What You'll Get
                   </h2>
-                  <p className="text-gray-600 mb-8 text-lg">Complete deliverables included in our service</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <p className="text-gray-600 mb-3 sm:mb-4 lg:mb-6 text-xs sm:text-sm lg:text-base">Complete deliverables included in our service</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3">
                     {vendor.deliverables.map((deliverable, index) => (
                       <div 
                         key={index}
-                        className="group flex items-start gap-4 p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border border-green-200/50"
+                        className="group flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg hover:shadow-md transition-all duration-300 border border-green-200/50"
                       >
-                        <div className="flex-shrink-0 p-2 bg-green-500 rounded-full group-hover:scale-110 transition-all duration-300">
-                          <CheckCircle className="w-4 h-4 text-white" />
+                        <div className="flex-shrink-0 p-1.5 sm:p-2 bg-green-500 rounded-full group-hover:scale-110 transition-all duration-300">
+                          <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                         </div>
-                        <div className="flex-1">
-                          <p className="text-gray-800 font-medium leading-relaxed">{deliverable}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-800 font-medium text-xs sm:text-sm lg:text-base leading-relaxed">{deliverable}</p>
                         </div>
                       </div>
                     ))}
@@ -940,9 +1051,145 @@ const VendorProfile = () => {
               </CardContent>
             </Card>
 
+            {/* Claim Offer Container - Mobile Only */}
+            <Card className="lg:hidden overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-orange-200 bg-white/95 backdrop-blur-md relative mb-4">
+              {/* Confetti Effect */}
+              {showConfetti && (
+                <div className="absolute inset-0 pointer-events-none z-50">
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 animate-bounce">
+                    <div className="text-4xl">🎉</div>
+                  </div>
+                  <div className="absolute top-4 left-1/4 animate-bounce" style={{ animationDelay: '0.2s' }}>
+                    <div className="text-3xl">✨</div>
+                  </div>
+                  <div className="absolute top-6 right-1/4 animate-bounce" style={{ animationDelay: '0.4s' }}>
+                    <div className="text-3xl">🎊</div>
+                  </div>
+                </div>
+              )}
+              
+              <CardContent className="p-4 relative z-10">
+                {/* Headline Hook */}
+                <div className="text-center mb-3">
+                  <h3 className="text-base font-bold text-gray-800">Best {vendor.category} Service – Limited Spot!</h3>
+                </div>
+
+                {/* Social Proof Badge */}
+                <div className="mb-3 text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-100 to-red-100 rounded-full border border-orange-200">
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-bold text-red-700">{recentClaims} people claimed this offer today!</span>
+                  </div>
+                </div>
+
+                {/* Urgency Banner */}
+                <div className="mb-3 p-3 bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 rounded-xl shadow-lg border-2 border-green-400/30">
+                  <div className="flex items-center justify-center gap-2 text-white">
+                    <Clock className="w-4 h-4 animate-pulse" />
+                    <span className="text-sm font-bold">Contact Now in next 60 minutes & get 10% OFF!</span>
+                    <span className="text-xl">🎯</span>
+                  </div>
+                </div>
+
+                {/* Starting Price Highlight */}
+                <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200 shadow-md">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">₹</span>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-lg font-black text-blue-800">
+                        {vendor.starting_price 
+                          ? `Starting ₹${vendor.starting_price.toLocaleString()}`
+                          : 'Contact for Pricing'
+                        }
+                      </div>
+                      <div className="text-xs text-blue-600 font-semibold">Professional {vendor.category}</div>
+                    </div>
+                    <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Animated Countdown Timer */}
+                <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 rounded-xl border border-red-200 text-center">
+                  <div className="text-xs font-semibold text-red-700 mb-2">⏰ Limited Time Offer Ends In:</div>
+                  <div className={`text-2xl font-black text-red-800 flex items-center justify-center gap-2 ${timeLeft.minutes < 5 ? 'animate-pulse' : ''}`}>
+                    <span className="bg-red-100 px-2 py-1 rounded-lg">
+                      {timeLeft.minutes.toString().padStart(2, '0')}
+                    </span>
+                    <span className="text-red-500">:</span>
+                    <span className="bg-red-100 px-2 py-1 rounded-lg">
+                      {timeLeft.seconds.toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="text-xs text-red-600 mt-1">Minutes : Seconds</div>
+                </div>
+
+                {/* Coupon Reveal Section */}
+                {showCoupon && (
+                  <div className="mb-4 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border-2 border-yellow-300 animate-bounce">
+                    <div className="text-center">
+                      <h4 className="text-sm font-bold text-yellow-800 mb-2">🎉 Your Secret Coupon Code!</h4>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="bg-yellow-200 px-3 py-1.5 rounded-lg border-2 border-yellow-400">
+                          <span className="text-lg font-black text-yellow-800">HAPPYMOMENTS10</span>
+                        </div>
+                        <Button 
+                          size="sm"
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-xs"
+                          onClick={copyCouponCode}
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      <p className="text-xs text-yellow-700 mt-2">Use this code when you contact us!</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Enhanced CTA Buttons */}
+                <div className="space-y-3">
+                  {/* WhatsApp Quick Chat Button */}
+                  {vendor && (
+                    <WhatsAppButton
+                      vendor={vendor}
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white py-4 text-base font-black rounded-xl shadow-xl hover:scale-105 transition-all duration-300"
+                    >
+                      💬 WhatsApp Quick Chat
+                    </WhatsAppButton>
+                  )}
+                  
+                  {/* Unlock Secret Offer Button */}
+                  <Button 
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-4 text-base font-black rounded-xl shadow-xl hover:scale-105 transition-all duration-300"
+                    onClick={(e) => { e.stopPropagation(); revealCoupon(); }}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span>🔓</span>
+                      <span>Unlock My Secret Offer</span>
+                      <span>🎁</span>
+                    </div>
+                  </Button>
+                  
+                  {/* Request Callback Button */}
+                  {vendor && (
+                    <WhatsAppButton
+                      vendor={vendor}
+                      className="w-full border-2 border-purple-500 text-purple-700 hover:bg-purple-50 py-3 text-sm font-bold rounded-xl transition-all duration-300 bg-transparent"
+                    >
+                      <Phone className="w-4 h-4 mr-2" />
+                      Request Callback
+                    </WhatsAppButton>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Reviews */}
             <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-green-100">
-              <CardContent className="p-8">
+              <CardContent className="p-4 sm:p-6 lg:p-8">
                 <div className="flex items-center justify-between mb-8">
                   <h2 className="text-3xl font-bold flex items-center gap-3">
                     <Users className="w-8 h-8 text-green-600" />
@@ -993,10 +1240,129 @@ const VendorProfile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Additional Information Section - Moved from Sidebar */}
+            {vendor.additional_info && (
+              <Card className="hover:shadow-lg transition-all duration-300 border-2 border-purple-100">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2 text-gray-800">
+                    <Info className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+                    Additional Information
+                  </h3>
+                  <div className="space-y-4 sm:space-y-6">
+                    
+                    {/* Working Hours */}
+                    {vendor.additional_info.working_hours && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl border border-purple-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-purple-800 mb-1 sm:mb-2 text-sm sm:text-base">Working Hours</h4>
+                            <p className="text-xs sm:text-sm text-purple-700 leading-relaxed">
+                              {vendor.additional_info.working_hours}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Languages */}
+                    {vendor.additional_info.languages && Array.isArray(vendor.additional_info.languages) && vendor.additional_info.languages.length > 0 && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-orange-800 mb-1 sm:mb-2 text-sm sm:text-base">Languages Spoken</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {vendor.additional_info.languages.map((language, index) => (
+                                <span key={index} className="px-2 sm:px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs sm:text-sm font-medium">
+                                  {language}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Awards */}
+                    {vendor.additional_info.awards && Array.isArray(vendor.additional_info.awards) && vendor.additional_info.awards.length > 0 && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border border-yellow-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-yellow-800 mb-1 sm:mb-2 text-sm sm:text-base">Awards & Recognition</h4>
+                            <div className="space-y-2">
+                              {vendor.additional_info.awards.map((award, index) => (
+                                <p key={index} className="text-xs sm:text-sm text-yellow-700 leading-relaxed flex items-start gap-2">
+                                  <span className="text-yellow-600 mt-1">🏆</span>
+                                  {award}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Certifications */}
+                    {vendor.additional_info.certifications && Array.isArray(vendor.additional_info.certifications) && vendor.additional_info.certifications.length > 0 && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-indigo-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <Scroll className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-indigo-800 mb-1 sm:mb-2 text-sm sm:text-base">Certifications</h4>
+                            <div className="space-y-2">
+                              {vendor.additional_info.certifications.map((cert, index) => (
+                                <p key={index} className="text-xs sm:text-sm text-indigo-700 leading-relaxed flex items-start gap-2">
+                                  <span className="text-indigo-600 mt-1">📜</span>
+                                  {cert}
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom Fields */}
+                    {vendor.additional_info.custom_fields && Array.isArray(vendor.additional_info.custom_fields) && vendor.additional_info.custom_fields.length > 0 && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl border border-gray-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-800 mb-1 sm:mb-2 text-sm sm:text-base">Additional Details</h4>
+                            <div className="space-y-2 sm:space-y-3">
+                              {vendor.additional_info.custom_fields.map((field, index) => (
+                                <div key={index} className="bg-white p-2 sm:p-3 rounded-lg border border-gray-200">
+                                  <h5 className="font-semibold text-gray-800 text-xs sm:text-sm mb-1">{field.field_name}</h5>
+                                  <p className="text-xs sm:text-sm text-gray-600">{field.field_value}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Right Column - Sidebar */}
-          <div className="space-y-8">
+          <div className="hidden lg:block space-y-8">
             {/* Quick Contact Card - Enhanced for Maximum Conversions */}
             <Card className="sticky top-4 bg-white/95 backdrop-blur-md border-2 border-white/30 shadow-2xl relative overflow-hidden">
               {/* Confetti Effect */}
@@ -1277,125 +1643,6 @@ const VendorProfile = () => {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Additional Information Section */}
-            {vendor.additional_info && (
-              <Card className="hover:shadow-lg transition-all duration-300 border-2 border-purple-100">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-800">
-                    <Info className="w-6 h-6 text-purple-600" />
-                    Additional Information
-                  </h3>
-                  <div className="space-y-6">
-                    
-                    {/* Working Hours */}
-                    {vendor.additional_info.working_hours && (
-                      <div className="p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl border border-purple-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                            <Clock className="w-4 h-4 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-purple-800 mb-2">Working Hours</h4>
-                            <p className="text-sm text-purple-700 leading-relaxed">
-                              {vendor.additional_info.working_hours}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Languages */}
-                    {vendor.additional_info.languages && Array.isArray(vendor.additional_info.languages) && vendor.additional_info.languages.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl border border-orange-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                            <Globe className="w-4 h-4 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-orange-800 mb-2">Languages Spoken</h4>
-                            <div className="flex flex-wrap gap-2">
-                              {vendor.additional_info.languages.map((language, index) => (
-                                <span key={index} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium">
-                                  {language}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Awards */}
-                    {vendor.additional_info.awards && Array.isArray(vendor.additional_info.awards) && vendor.additional_info.awards.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-xl border border-yellow-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                            <Award className="w-4 h-4 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-yellow-800 mb-2">Awards & Recognition</h4>
-                            <div className="space-y-2">
-                              {vendor.additional_info.awards.map((award, index) => (
-                                <p key={index} className="text-sm text-yellow-700 leading-relaxed flex items-start gap-2">
-                                  <span className="text-yellow-600 mt-1">🏆</span>
-                                  {award}
-                                </p>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Certifications */}
-                    {vendor.additional_info.certifications && Array.isArray(vendor.additional_info.certifications) && vendor.additional_info.certifications.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                            <Scroll className="w-4 h-4 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-indigo-800 mb-2">Certifications</h4>
-                            <div className="space-y-2">
-                              {vendor.additional_info.certifications.map((cert, index) => (
-                                <p key={index} className="text-sm text-indigo-700 leading-relaxed flex items-start gap-2">
-                                  <span className="text-indigo-600 mt-1">📜</span>
-                                  {cert}
-                                </p>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Custom Fields */}
-                    {vendor.additional_info.custom_fields && Array.isArray(vendor.additional_info.custom_fields) && vendor.additional_info.custom_fields.length > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl border border-gray-200">
-                        <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                            <FileText className="w-4 h-4 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-gray-800 mb-2">Additional Details</h4>
-                            <div className="space-y-3">
-                              {vendor.additional_info.custom_fields.map((field, index) => (
-                                <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
-                                  <h5 className="font-semibold text-gray-800 text-sm mb-1">{field.field_name}</h5>
-                                  <p className="text-sm text-gray-600">{field.field_value}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>

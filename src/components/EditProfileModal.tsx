@@ -283,7 +283,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose, on
             <Button
               type="submit"
               disabled={loading}
-              className="bg-gradient-to-r from-wedding-navy to-wedding-orange hover:from-wedding-navy/90 hover:to-wedding-orange/90"
+              className="bg-wedding-orange hover:bg-wedding-orange/90 text-white"
             >
               {loading ? (
                 <>

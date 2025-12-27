@@ -51,7 +51,7 @@ const CustomerProfile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-wedding-navy/5 via-wedding-orange/5 to-wedding-navy/10">
+    <div className="min-h-screen bg-gray-50">
       <Header />
       
       <main className="container mx-auto px-8 sm:px-12 pt-28 pb-8 max-w-4xl">
@@ -66,17 +66,17 @@ const CustomerProfile = () => {
               <ArrowLeft className="h-4 w-4" />
               Back
             </Button>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-wedding-navy to-wedding-orange bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-wedding-orange">
               My Profile
             </h1>
           </div>
           
           {/* Profile Card */}
           <Card className="shadow-xl border-0 overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-wedding-navy to-wedding-orange text-white">
+            <CardHeader className="bg-wedding-orange text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                  <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
                     <User className="h-10 w-10 text-white" />
                   </div>
                   <div>
@@ -90,7 +90,7 @@ const CustomerProfile = () => {
                 <Button
                   variant="secondary"
                   onClick={() => setIsEditModalOpen(true)}
-                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm"
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Profile
@@ -98,18 +98,18 @@ const CustomerProfile = () => {
               </div>
             </CardHeader>
             
-            <CardContent className="p-6 bg-gradient-to-br from-white to-gray-50/50">
+            <CardContent className="p-6 bg-white">
               <div className="max-w-2xl">
                 {/* Personal Information */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold bg-gradient-to-r from-wedding-navy to-wedding-orange bg-clip-text text-transparent flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-wedding-orange flex items-center gap-2">
                     <User className="h-5 w-5 text-wedding-orange" />
                     Personal Information
                   </h3>
                   
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-white to-wedding-orange/5 rounded-lg border border-wedding-orange/10 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-2 bg-gradient-to-br from-wedding-navy/10 to-wedding-orange/10 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-2 bg-wedding-orange/10 rounded-lg">
                         <Mail className="h-4 w-4 text-wedding-orange" />
                       </div>
                       <div className="flex-1">
@@ -118,8 +118,8 @@ const CustomerProfile = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-white to-wedding-orange/5 rounded-lg border border-wedding-orange/10 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-2 bg-gradient-to-br from-wedding-navy/10 to-wedding-orange/10 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-2 bg-wedding-orange/10 rounded-lg">
                         <Phone className="h-4 w-4 text-wedding-orange" />
                       </div>
                       <div className="flex-1">
@@ -129,8 +129,8 @@ const CustomerProfile = () => {
                     </div>
                     
                     {/* Secondary Phone - Always shown */}
-                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-white to-wedding-orange/5 rounded-lg border border-wedding-orange/10 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-2 bg-gradient-to-br from-wedding-navy/10 to-wedding-orange/10 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-2 bg-wedding-orange/10 rounded-lg">
                         <Phone className="h-4 w-4 text-wedding-orange" />
                       </div>
                       <div className="flex-1">
@@ -140,8 +140,8 @@ const CustomerProfile = () => {
                     </div>
                     
                     {/* Location - Always shown */}
-                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-white to-wedding-orange/5 rounded-lg border border-wedding-orange/10 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-2 bg-gradient-to-br from-wedding-navy/10 to-wedding-orange/10 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-2 bg-wedding-orange/10 rounded-lg">
                         <MapPin className="h-4 w-4 text-wedding-orange" />
                       </div>
                       <div className="flex-1">
@@ -150,8 +150,8 @@ const CustomerProfile = () => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-white to-wedding-orange/5 rounded-lg border border-wedding-orange/10 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-2 bg-gradient-to-br from-wedding-navy/10 to-wedding-orange/10 rounded-lg">
+                    <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-2 bg-wedding-orange/10 rounded-lg">
                         <Calendar className="h-4 w-4 text-wedding-orange" />
                       </div>
                       <div className="flex-1">
@@ -167,7 +167,7 @@ const CustomerProfile = () => {
               </div>
 
               {/* Logout Button */}
-              <div className="mt-6 pt-6 border-t border-wedding-orange/20">
+              <div className="mt-6 pt-6 border-t border-orange-200">
                 <Button
                   variant="outline"
                   onClick={() => setShowLogoutConfirm(true)}

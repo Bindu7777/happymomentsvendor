@@ -421,45 +421,14 @@ const Header = () => {
                 <span className="hidden lg:inline">Helpline</span>
               </Link>
 
-              {/* Profile Icon Dropdown - styled as rounded button */}
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center text-white hover:text-wedding-orange transition-colors p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 shadow-lg" title="My Profile">
-                  <User className="h-6 w-6 stroke-2" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  className="bg-white/95 backdrop-blur-md border border-wedding-orange/20 shadow-card p-2 rounded-xl w-48 animate-fade-in"
-                  side="bottom"
-                  align="end"
-                  sideOffset={8}
-                  avoidCollisions={true}
-                  collisionPadding={20}
-                  sticky="always"
-                  onCloseAutoFocus={(e) => e.preventDefault()}
-                >
-                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                    <Link to="/customer-dashboard" className="w-full flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2">
-                    <Link to="/customer-profile" className="w-full flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      View Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <div className="border-t border-gray-200 my-1"></div>
-                  <DropdownMenuItem 
-                    className="hover:bg-red-50 rounded-lg transition-custom cursor-pointer px-3 py-2 text-red-600"
-                    onClick={() => {
-                      setShowLogoutConfirm(true);
-                    }}
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Profile Icon - Direct navigation to profile page */}
+              <button
+                onClick={() => navigate('/customer-profile')}
+                className="flex items-center text-white hover:text-wedding-orange transition-colors p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 shadow-lg"
+                title="My Profile"
+              >
+                <User className="h-6 w-6 stroke-2" />
+              </button>
             </div>
           ) : (
             <>

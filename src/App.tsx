@@ -44,6 +44,7 @@ import CustomerLogin from "./pages/CustomerLogin";
 import CustomerDashboard from "./pages/CustomerDashboard";
 import CustomerProfile from "./pages/CustomerProfile";
 import EmailVerification from "./pages/EmailVerification";
+import EmailChangeVerification from "./pages/EmailChangeVerification";
 import LikedVendors from "./pages/LikedVendors";
 import MyVendors from "./pages/MyVendors";
 import Contact from "./pages/Contact";
@@ -102,6 +103,10 @@ const App = () => {
                 <Route 
                   path="/verify-email" 
                   element={<EmailVerification />} 
+                />
+                <Route 
+                  path="/verify-email-change" 
+                  element={<EmailChangeVerification />} 
                 />
                 <Route 
                   path="/customer-dashboard" 

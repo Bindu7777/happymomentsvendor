@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { createUnverifiedUser, createVerifiedUser, verifyEmailWithToken, resendVerificationEmail } from '@/services/emailVerificationService';
+import { createUnverifiedUser, createVerifiedUser, verifyEmailWithToken, resendVerificationEmail as resendVerificationEmailService, generateVerificationToken } from '@/services/emailVerificationService';
 
 export interface Customer {
   id: number;  // Changed from string to number for auto-increment integer
@@ -9,9 +9,14 @@ export interface Customer {
   password_hash: string;  // Required for authentication
   gender?: string;
   mobile_number: string;
+  secondary_phone_number?: string;
+  location?: string;
   status: 'unverified' | 'verified';
   verification_token?: string;
   verification_token_expires_at?: string;
+  new_email?: string;
+  email_change_token?: string;
+  email_change_token_expires_at?: string;
   last_login_at?: string;
   login_count: number;
   created_at: string;
@@ -45,6 +50,8 @@ interface CustomerAuthContextType {
   signOut: () => Promise<{ error: any }>;
   verifyEmail: (token: string) => Promise<{ success: boolean; message: string; customer?: Customer }>;
   resendVerificationEmail: (email: string) => Promise<{ success: boolean; message: string }>;
+  updateProfile: (updates: { full_name?: string; mobile_number?: string; secondary_phone_number?: string; location?: string; email?: string }) => Promise<{ customer: Customer | null; error: any; message?: string; requiresVerification?: boolean }>;
+  verifyEmailChange: (token: string) => Promise<{ success: boolean; message: string; customer?: Customer }>;
   saveSearchFilter: (filterData: any, filterName?: string) => Promise<{ filter: CustomerSearchFilter | null; error: any }>;
   getSearchFilters: () => Promise<{ filters: CustomerSearchFilter[]; error: any }>;
   updateSearchFilter: (filterId: string, filterData: any, filterName?: string) => Promise<{ filter: CustomerSearchFilter | null; error: any }>;
@@ -376,13 +383,187 @@ export const CustomerAuthProvider: React.FC<CustomerAuthProviderProps> = ({ chil
 
   const resendVerificationEmail = async (email: string) => {
     try {
-      const result = await resendVerificationEmail(email);
+      const result = await resendVerificationEmailService(email);
       return result;
     } catch (error) {
       return {
         success: false,
         message: 'An unexpected error occurred while resending verification email'
       };
+    }
+  };
+
+  const updateProfile = async (updates: { full_name?: string; mobile_number?: string; secondary_phone_number?: string; location?: string; email?: string }) => {
+    if (!customer) {
+      return { customer: null, error: new Error('Customer not logged in'), message: 'Please log in to update your profile' };
+    }
+
+    try {
+      const updateData: any = {};
+      let requiresEmailVerification = false;
+      let emailChangeToken: string | null = null;
+
+      // Handle email change - requires verification
+      if (updates.email && updates.email !== customer.email) {
+        // Check if email is already taken
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('email', updates.email)
+          .neq('id', customer.id)
+          .single();
+
+        if (existingCustomer) {
+          return { 
+            customer: null, 
+            error: new Error('Email already in use'), 
+            message: 'This email address is already registered to another account' 
+          };
+        }
+
+        // Generate email change token
+        const token = generateVerificationToken();
+        const tokenExpiration = new Date();
+        tokenExpiration.setHours(tokenExpiration.getHours() + 24);
+
+        updateData.new_email = updates.email;
+        updateData.email_change_token = token;
+        updateData.email_change_token_expires_at = tokenExpiration.toISOString();
+        emailChangeToken = token;
+        requiresEmailVerification = true;
+      }
+
+      // Handle other fields
+      if (updates.full_name) updateData.full_name = updates.full_name;
+      if (updates.mobile_number) updateData.mobile_number = updates.mobile_number;
+      if (updates.secondary_phone_number !== undefined) updateData.secondary_phone_number = updates.secondary_phone_number || null;
+      if (updates.location !== undefined) updateData.location = updates.location || null;
+
+      // Update the customer record
+      const { data, error } = await supabase
+        .from('customers')
+        .update(updateData)
+        .eq('id', customer.id)
+        .select()
+        .single();
+
+      if (error) {
+        return { customer: null, error, message: 'Failed to update profile' };
+      }
+
+      // If email change, send verification email
+      if (requiresEmailVerification && emailChangeToken && updates.email) {
+        const { sendVerificationEmail } = await import('@/services/smtpEmailService');
+        const baseUrl = window.location.origin;
+        
+        // Send verification email with the token
+        await sendVerificationEmail(
+          updates.email,
+          data.full_name,
+          emailChangeToken,
+          `${baseUrl}/verify-email-change`
+        );
+      }
+
+      // Update local state
+      setCustomer(data);
+
+      return { 
+        customer: data, 
+        error: null, 
+        message: requiresEmailVerification 
+          ? 'Profile updated. Please check your new email for verification link.' 
+          : 'Profile updated successfully',
+        requiresVerification: requiresEmailVerification
+      };
+    } catch (error) {
+      return { customer: null, error, message: 'An unexpected error occurred' };
+    }
+  };
+
+  const verifyEmailChange = async (token: string) => {
+    if (!customer) {
+      return { success: false, message: 'Customer not logged in' };
+    }
+
+    try {
+      // Find customer by email change token
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('email_change_token', token)
+        .eq('id', customer.id)
+        .single();
+
+      if (error || !data) {
+        return { success: false, message: 'Invalid or expired verification token' };
+      }
+
+      // Check if token is expired
+      if (data.email_change_token_expires_at) {
+        const now = new Date();
+        const tokenExpiration = new Date(data.email_change_token_expires_at);
+        
+        if (now > tokenExpiration) {
+          return { success: false, message: 'Verification token has expired. Please request a new email change.' };
+        }
+      }
+
+      // Check if new_email exists
+      if (!data.new_email) {
+        return { success: false, message: 'No pending email change found' };
+      }
+
+      // Check if new email is already taken
+      const { data: existingCustomer } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', data.new_email)
+        .neq('id', customer.id)
+        .single();
+
+      if (existingCustomer) {
+        // Clear the pending email change
+        await supabase
+          .from('customers')
+          .update({
+            new_email: null,
+            email_change_token: null,
+            email_change_token_expires_at: null
+          })
+          .eq('id', customer.id);
+
+        return { success: false, message: 'This email address is already registered to another account' };
+      }
+
+      // Update email and clear verification fields
+      const { data: updatedData, error: updateError } = await supabase
+        .from('customers')
+        .update({
+          email: data.new_email,
+          new_email: null,
+          email_change_token: null,
+          email_change_token_expires_at: null
+        })
+        .eq('id', customer.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        return { success: false, message: 'Failed to update email', error: updateError };
+      }
+
+      // Update local state
+      setCustomer(updatedData);
+
+      return { 
+        success: true, 
+        message: 'Email updated successfully!', 
+        customer: updatedData 
+      };
+    } catch (error) {
+      console.error('Error verifying email change:', error);
+      return { success: false, message: 'An unexpected error occurred during verification' };
     }
   };
 
@@ -394,6 +575,8 @@ export const CustomerAuthProvider: React.FC<CustomerAuthProviderProps> = ({ chil
     signOut,
     verifyEmail,
     resendVerificationEmail,
+    updateProfile,
+    verifyEmailChange,
     saveSearchFilter,
     getSearchFilters,
     updateSearchFilter,

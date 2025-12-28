@@ -235,7 +235,7 @@ const Header = () => {
       ${scrolled ? "bg-wedding-navy/95 backdrop-blur-md shadow-lg shadow-orange-500/20" : "bg-wedding-navy/95 backdrop-blur-md"}
       ${scrollDirection === "down" ? "-translate-y-full" : "translate-y-0"}
     `}
-    style={{ zIndex: 9999, height: 'auto', minHeight: '64px' }}
+    style={{ zIndex: 9999, height: 'auto', minHeight: '64px', maxHeight: 'none', overflow: 'visible' }}
   >
       <div className="container-custom flex items-center justify-between px-4 md:px-6">
         <div className="flex items-center space-x-2 md:space-x-8">

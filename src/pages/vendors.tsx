@@ -7,6 +7,8 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Checkbox } from '../components/ui/checkbox';
 import Header from '../components/layout/Header';
 import LikeButton from '@/components/LikeButton';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -98,10 +100,27 @@ const VendorsPage = () => {
   const navigate = useNavigate();
   
   
-  // Filter states
-  const [serviceType, setServiceType] = useState(searchParams.get('service') || 'all');
-  const [location, setLocation] = useState(searchParams.get('location') || 'all');
-  const [budget, setBudget] = useState(searchParams.get('budget') || 'all');
+  // Filter states - Multi-select arrays
+  const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>(() => {
+    const serviceParam = searchParams.get('service');
+    return serviceParam && serviceParam !== 'all' ? [serviceParam] : [];
+  });
+  const [selectedLocations, setSelectedLocations] = useState<string[]>(() => {
+    const locationParam = searchParams.get('location');
+    return locationParam && locationParam !== 'all' ? [locationParam] : [];
+  });
+  const [selectedBudgetRanges, setSelectedBudgetRanges] = useState<string[]>(() => {
+    const budgetParam = searchParams.get('budget');
+    return budgetParam && budgetParam !== 'all' ? [budgetParam] : [];
+  });
+  const [showCustomBudget, setShowCustomBudget] = useState(false);
+  const [customMinBudget, setCustomMinBudget] = useState('');
+  const [customMaxBudget, setCustomMaxBudget] = useState('');
+  
+  // Legacy single-value states for backward compatibility (will be removed)
+  const serviceType = selectedServiceTypes.length === 0 ? 'all' : selectedServiceTypes[0];
+  const location = selectedLocations.length === 0 ? 'all' : selectedLocations[0];
+  const budget = selectedBudgetRanges.length === 0 ? 'all' : selectedBudgetRanges[0];
   const [searchQuery, setSearchQuery] = useState(searchParams.get('query') || '');
   const [displayQuery, setDisplayQuery] = useState(searchParams.get('query') || '');
   const [originalSmartRequest, setOriginalSmartRequest] = useState(searchParams.get('original') || '');
@@ -133,6 +152,91 @@ const VendorsPage = () => {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
+  // Toggle functions for multi-select
+  const toggleServiceType = (value: string) => {
+    if (value === 'all') {
+      setSelectedServiceTypes([]);
+    } else {
+      setSelectedServiceTypes(prev => 
+        prev.includes(value) 
+          ? prev.filter(v => v !== value)
+          : [...prev, value]
+      );
+    }
+  };
+  
+  const toggleLocation = (value: string) => {
+    if (value === 'all') {
+      setSelectedLocations([]);
+    } else {
+      setSelectedLocations(prev => 
+        prev.includes(value) 
+          ? prev.filter(v => v !== value)
+          : [...prev, value]
+      );
+    }
+  };
+  
+  const toggleBudgetRange = (value: string) => {
+    if (value === 'all') {
+      setSelectedBudgetRanges([]);
+      setCustomMinBudget('');
+      setCustomMaxBudget('');
+      setShowCustomBudget(false);
+    } else {
+      setSelectedBudgetRanges(prev => 
+        prev.includes(value) 
+          ? prev.filter(v => v !== value)
+          : [...prev, value]
+      );
+    }
+  };
+  
+  // Format number with Indian numbering system
+  const formatIndianNumber = (value: string): string => {
+    const numStr = value.replace(/[^\d]/g, '');
+    if (!numStr) return '';
+    const num = parseInt(numStr);
+    if (isNaN(num)) return '';
+    return num.toLocaleString('en-IN');
+  };
+
+  // Handle custom budget input
+  const handleCustomBudgetChange = (type: 'min' | 'max', value: string) => {
+    const numStr = value.replace(/[^\d]/g, '');
+    if (type === 'min') {
+      setCustomMinBudget(numStr);
+    } else {
+      setCustomMaxBudget(numStr);
+    }
+  };
+
+  // Apply custom budget filter
+  const applyCustomBudget = () => {
+    const min = parseInt(customMinBudget.replace(/[^\d]/g, ''));
+    const max = parseInt(customMaxBudget.replace(/[^\d]/g, ''));
+    
+    if (isNaN(min) || isNaN(max)) {
+      alert('Please enter valid budget values');
+      return;
+    }
+    
+    if (min > max) {
+      alert('Minimum budget cannot be greater than maximum budget');
+      return;
+    }
+    
+    if (min <= 0 || max <= 0) {
+      alert('Budget values must be greater than 0');
+      return;
+    }
+    
+    // Add 'custom' to selected ranges if not already present
+    if (!selectedBudgetRanges.includes('custom')) {
+      setSelectedBudgetRanges(prev => [...prev, 'custom']);
+    }
+  };
+
   // Fetch all vendors from Supabase
   useEffect(() => {
     const fetchVendors = async () => {
@@ -141,21 +245,6 @@ const VendorsPage = () => {
         const vendorData = await getAllVendors();
         console.log('Fetched vendors:', vendorData);
         console.log('Total vendors fetched:', vendorData.length);
-        
-        // Debug: Log all photographer vendors
-        const photographers = vendorData.filter(v => 
-          v.category && v.category.toLowerCase().includes('photograph')
-        );
-        console.log('Photographers found in database:', photographers.length);
-        photographers.forEach((vendor, index) => {
-          console.log(`${index + 1}. ${vendor.brand_name} - Category: "${vendor.category}", Verified: ${vendor.verified}, Available: ${vendor.currently_available}, Address: "${vendor.address}"`);
-        });
-        
-        // Debug: Log all vendors with their verification status and ratings
-        console.log('All vendors verification status and ratings:');
-        vendorData.forEach((vendor, index) => {
-          console.log(`${index + 1}. ${vendor.brand_name} - Category: "${vendor.category}", Verified: ${vendor.verified}, Available: ${vendor.currently_available}, Rating: ${vendor.rating} (${typeof vendor.rating})`);
-        });
         
         setVendors(vendorData);
       } catch (error) {
@@ -166,17 +255,31 @@ const VendorsPage = () => {
     };
 
     fetchVendors();
+    
+    // Scroll to top when page loads
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   // Update URL when filters change
   useEffect(() => {
     const params = new URLSearchParams();
-    if (serviceType !== 'all') params.append('service', serviceType);
-    if (location !== 'all') params.append('location', location);
-    if (budget !== 'all') params.append('budget', budget);
+    if (selectedServiceTypes.length > 0) {
+      selectedServiceTypes.forEach(s => params.append('service', s));
+    }
+    if (selectedLocations.length > 0) {
+      selectedLocations.forEach(l => params.append('location', l));
+    }
+    if (selectedBudgetRanges.length > 0) {
+      selectedBudgetRanges.forEach(b => params.append('budget', b));
+    }
     
     setSearchParams(params, { replace: true });
-  }, [serviceType, location, budget, setSearchParams]);
+    
+    // Scroll to top when filters change (but not on initial load)
+    if (vendors.length > 0) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedServiceTypes, selectedLocations, selectedBudgetRanges, setSearchParams, vendors.length]);
 
   // Sync displayQuery with searchQuery when URL changes
   useEffect(() => {
@@ -273,13 +376,19 @@ const VendorsPage = () => {
       
       // Update the filter states based on parsed data
       if (parsed.serviceType !== 'all') {
-        setServiceType(parsed.serviceType);
+        if (!selectedServiceTypes.includes(parsed.serviceType)) {
+          setSelectedServiceTypes(prev => [...prev, parsed.serviceType]);
+        }
       }
       if (parsed.location !== 'all') {
-        setLocation(parsed.location);
+        if (!selectedLocations.includes(parsed.location)) {
+          setSelectedLocations(prev => [...prev, parsed.location]);
+        }
       }
       if (parsed.budget !== 'all') {
-        setBudget(parsed.budget);
+        if (!selectedBudgetRanges.includes(parsed.budget)) {
+          setSelectedBudgetRanges(prev => [...prev, parsed.budget]);
+        }
       }
       
       // Show the "We understood your request" window
@@ -304,14 +413,12 @@ const VendorsPage = () => {
       
       // Process the extracted data to update filters
       if (extractedData.serviceType) {
-        setServiceType(extractedData.serviceType);
+        if (!selectedServiceTypes.includes(extractedData.serviceType)) {
+          setSelectedServiceTypes(prev => [...prev, extractedData.serviceType]);
       }
-      if (extractedData.location) {
-        setLocation(extractedData.location);
       }
-      if (extractedData.budget) {
-        setBudget(extractedData.budget);
-      }
+      // Note: extractedData.location and extractedData.budget may not exist in VoiceExtractedData type
+      // This will be handled by the request parser instead
       
       // Auto-trigger search with voice data
       setSearchQuery(transcript);
@@ -340,7 +447,7 @@ const VendorsPage = () => {
         });
       }
       
-      // Service type filter - more flexible matching
+      // Service type filter - check ALL categories, not just the first one
       const matchesServiceType = serviceType === 'all' || (() => {
         const vendorCategories = Array.isArray(vendor.category) 
           ? vendor.category 
@@ -348,7 +455,9 @@ const VendorsPage = () => {
         
         if (vendorCategories.length === 0) return false;
         
-        const vendorCategory = String(vendorCategories[0]).toLowerCase();
+        // Check ALL categories, not just the first one
+        return vendorCategories.some(cat => {
+          const vendorCategory = String(cat).toLowerCase();
         
         switch (serviceType) {
           case 'photography':
@@ -399,6 +508,7 @@ const VendorsPage = () => {
           default:
             return false;
         }
+        });
       })();
 
       // Debug logging for service type filtering
@@ -412,38 +522,74 @@ const VendorsPage = () => {
         });
       }
       
-      // Location filter - check both address and service_areas
-      const matchesLocation = location === 'all' || 
-        (vendor.address && vendor.address.toLowerCase().includes(location.toLowerCase())) ||
-        (vendor.additional_info?.service_areas && Array.isArray(vendor.additional_info.service_areas) && 
-         vendor.additional_info.service_areas.includes(location));
+      // Location filter - check both address and service_areas with flexible matching (match ANY selected location)
+      const matchesLocation = selectedLocations.length === 0 || (() => {
+        return selectedLocations.some(selectedLocation => {
+          const locationLower = selectedLocation.toLowerCase();
+          
+          // Check address
+          if (vendor.address && vendor.address.toLowerCase().includes(locationLower)) {
+            return true;
+          }
+          
+          // Check service_areas array with flexible matching
+          if (vendor.additional_info?.service_areas && Array.isArray(vendor.additional_info.service_areas)) {
+            return vendor.additional_info.service_areas.some((area: string) => {
+              const areaLower = String(area).toLowerCase();
+              // Exact match
+              if (areaLower === locationLower) return true;
+              // Contains match
+              if (areaLower.includes(locationLower) || locationLower.includes(areaLower)) return true;
+              // Handle state names (e.g., "telangana" matches "Telangana", "TELANGANA")
+              const normalizedArea = areaLower.replace(/[^a-z]/g, '');
+              const normalizedLocation = locationLower.replace(/[^a-z]/g, '');
+              if (normalizedArea === normalizedLocation) return true;
+              return false;
+            });
+          }
+          
+          return false;
+        });
+      })();
 
-      // Budget filter - Show vendors whose starting price is within or below the selected budget
+      // Budget filter - Show vendors whose starting price is within ANY of the selected budget ranges
       const matchesBudget = (() => {
-        if (budget === 'all') return true;
+        if (selectedBudgetRanges.length === 0) return true;
         
         const vendorStartingPrice = vendor.starting_price || 0;
         
-        switch (budget) {
+        // Check if vendor price falls within ANY of the selected ranges
+        return selectedBudgetRanges.some(range => {
+          if (range === 'custom' && customMinBudget && customMaxBudget) {
+            const min = parseInt(customMinBudget.replace(/[^\d]/g, ''));
+            const max = parseInt(customMaxBudget.replace(/[^\d]/g, ''));
+            if (!isNaN(min) && !isNaN(max) && min > 0 && max > 0) {
+              return vendorStartingPrice >= min && vendorStartingPrice <= max;
+            }
+            return false;
+          }
+          
+          switch (range) {
           case '10k-50k':
-            return vendorStartingPrice <= 50000; // Show vendors with starting price up to ₹50k
+              return vendorStartingPrice >= 10000 && vendorStartingPrice <= 50000;
           case '50k-1l':
-            return vendorStartingPrice <= 100000; // Show vendors with starting price up to ₹1L
+              return vendorStartingPrice >= 50000 && vendorStartingPrice <= 100000;
           case '1l-3l':
-            return vendorStartingPrice <= 300000; // Show vendors with starting price up to ₹3L
+              return vendorStartingPrice >= 100000 && vendorStartingPrice <= 300000;
           case '3l-10l':
-            return vendorStartingPrice <= 1000000; // Show vendors with starting price up to ₹10L
+              return vendorStartingPrice >= 300000 && vendorStartingPrice <= 1000000;
           case '10l-15l':
-            return vendorStartingPrice <= 1500000; // Show vendors with starting price up to ₹15L
+              return vendorStartingPrice >= 1000000 && vendorStartingPrice <= 1500000;
           case '15l-25l':
-            return vendorStartingPrice <= 2500000; // Show vendors with starting price up to ₹25L
+              return vendorStartingPrice >= 1500000 && vendorStartingPrice <= 2500000;
           case '25l-50l':
-            return vendorStartingPrice <= 5000000; // Show vendors with starting price up to ₹50L
+              return vendorStartingPrice >= 2500000 && vendorStartingPrice <= 5000000;
           case '50l-1cr':
-            return vendorStartingPrice <= 10000000; // Show vendors with starting price up to ₹1CR
+              return vendorStartingPrice >= 5000000 && vendorStartingPrice <= 10000000;
           default:
             return true;
         }
+        });
       })();
       
       // Debug logging for location filtering
@@ -520,8 +666,12 @@ const VendorsPage = () => {
         return result;
       })();
       
-      const finalMatch = matchesServiceType && matchesLocation && matchesBudget && 
-             matchesSearch && matchesRating;
+      // When all filters are empty, show all vendors (only apply search query if provided)
+      const allFiltersAreAll = selectedServiceTypes.length === 0 && selectedLocations.length === 0 && selectedBudgetRanges.length === 0 && ratingFilter === 'all';
+      
+      const finalMatch = allFiltersAreAll 
+        ? matchesSearch  // Only apply search query filter when all others are empty
+        : (matchesServiceType && matchesLocation && matchesBudget && matchesSearch && matchesRating);
 
       // Debug logging for overall filtering
       if (serviceType === 'photography' && location === 'telangana') {
@@ -533,6 +683,7 @@ const VendorsPage = () => {
           matchesBudget,
           matchesSearch,
           matchesRating,
+          allFiltersAreAll,
           finalMatch
         });
       }
@@ -580,14 +731,15 @@ const VendorsPage = () => {
 
   // Clear all filters
   const clearAllFilters = () => {
-    setServiceType('all');
-    setLocation('all');
-    setBudget('all');
+    setSelectedServiceTypes([]);
+    setSelectedLocations([]);
+    setSelectedBudgetRanges([]);
     setSearchQuery('');
     setDisplayQuery('');
     setOriginalSmartRequest('');
     setRatingFilter('all');
-    setSortBy('rating');
+    // Scroll to top when clearing filters
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Navigate to individual vendor profile
@@ -600,7 +752,7 @@ const VendorsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/30 via-white to-orange-50/30 pb-8">
       {/* Smart Request Input Section - Fixed Layout */}
-      <div className="relative py-4 mt-0 overflow-visible min-h-[180px]">
+      <div className="relative py-4 pt-4 overflow-visible min-h-[180px]">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-600 via-orange-500 to-orange-400"></div>
         
         {/* Back Button - Far Left */}
@@ -954,79 +1106,284 @@ const VendorsPage = () => {
       <div className="container mx-auto px-4 sm:px-6 py-4 mt-2">
         <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 p-3 mb-4">
           {/* Main Filter Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-            {/* Service Type */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+            {/* Service Type - Multi-select */}
             <div className="flex-1">
-              <label htmlFor="service-type" className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
+              <label className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
                 <Camera className="h-3 w-3 text-orange-500" />
                 What do you need?
               </label>
-              <Select value={serviceType} onValueChange={setServiceType}>
-                <SelectTrigger id="service-type" className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm">
-                  <SelectValue placeholder="Select service" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 rounded-lg">
-                  {serviceTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value} className="rounded-md text-sm">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm justify-start"
+                  >
+                    <span>
+                      {selectedServiceTypes.length === 0 
+                        ? 'All Services' 
+                        : selectedServiceTypes.length === 1
+                        ? serviceTypes.find(s => s.value === selectedServiceTypes[0])?.label || '1 Service'
+                        : `${selectedServiceTypes.length} Services`
+                      }
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="start">
+                  <div className="p-3 border-b">
+                    <p className="text-sm font-semibold text-gray-700">Select Services</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {serviceTypes.filter(s => s.value !== 'all').map((type) => {
+                      const isChecked = selectedServiceTypes.includes(type.value);
+                      return (
+                        <div
+                          key={type.value}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                        >
+                          <Checkbox
+                            id={`service-${type.value}`}
+                            checked={isChecked}
+                            onCheckedChange={() => toggleServiceType(type.value)}
+                          />
+                          <label 
+                            htmlFor={`service-${type.value}`}
+                            className="text-sm text-gray-700 cursor-pointer flex-1"
+                          >
                       {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {selectedServiceTypes.length > 0 && (
+                    <div className="p-2 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setSelectedServiceTypes([])}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
             
-            {/* Location */}
+            {/* Location - Multi-select */}
             <div className="flex-1">
-              <label htmlFor="city" className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
+              <label className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
                 <MapPin className="h-3 w-3 text-orange-500" />
                 Where?
               </label>
-              <Select value={location} onValueChange={setLocation}>
-                <SelectTrigger id="city" className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm">
-                  <SelectValue placeholder="Choose location" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 rounded-lg">
-                  {cities.map((city) => (
-                    <SelectItem key={city.value} value={city.value} className="rounded-md text-sm">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm justify-start"
+                  >
+                    <span>
+                      {selectedLocations.length === 0 
+                        ? 'All Locations' 
+                        : selectedLocations.length === 1
+                        ? cities.find(c => c.value === selectedLocations[0])?.label || '1 Location'
+                        : `${selectedLocations.length} Locations`
+                      }
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="start">
+                  <div className="p-3 border-b">
+                    <p className="text-sm font-semibold text-gray-700">Select Locations</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {cities.filter(c => c.value !== 'all').map((city) => {
+                      const isChecked = selectedLocations.includes(city.value);
+                      return (
+                        <div
+                          key={city.value}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                        >
+                          <Checkbox
+                            id={`location-${city.value}`}
+                            checked={isChecked}
+                            onCheckedChange={() => toggleLocation(city.value)}
+                          />
+                          <label 
+                            htmlFor={`location-${city.value}`}
+                            className="text-sm text-gray-700 cursor-pointer flex-1"
+                          >
                       {city.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {selectedLocations.length > 0 && (
+                    <div className="p-2 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => setSelectedLocations([])}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
             
-            {/* Budget */}
+            {/* Budget - Multi-select */}
             <div className="flex-1">
-              <label htmlFor="budget" className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
+              <label className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
                 <Users className="h-3 w-3 text-orange-500" />
                 Your budget (Optional)
               </label>
-              <Select value={budget} onValueChange={setBudget}>
-                <SelectTrigger id="budget" className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm">
-                  <SelectValue placeholder="Select budget range" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 rounded-lg">
-                  {budgetRanges.map((range) => (
-                    <SelectItem key={range.value} value={range.value} className="rounded-md text-sm">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm justify-start"
+                  >
+                    <span>
+                      {selectedBudgetRanges.length === 0 
+                        ? 'All Budgets' 
+                        : selectedBudgetRanges.length === 1
+                        ? (selectedBudgetRanges[0] === 'custom' 
+                          ? `₹${formatIndianNumber(customMinBudget)}-₹${formatIndianNumber(customMaxBudget)}`
+                          : budgetRanges.find(b => b.value === selectedBudgetRanges[0])?.label || '1 Range')
+                        : `${selectedBudgetRanges.length} Ranges`
+                      }
+                    </span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-72 p-0" align="start">
+                  <div className="p-3 border-b">
+                    <p className="text-sm font-semibold text-gray-700">Select Budget Ranges</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-2">
+                    {budgetRanges.filter(b => b.value !== 'all').map((range) => {
+                      const isChecked = selectedBudgetRanges.includes(range.value);
+                      return (
+                        <div
+                          key={range.value}
+                          className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                        >
+                          <Checkbox
+                            id={`budget-${range.value}`}
+                            checked={isChecked}
+                            onCheckedChange={() => toggleBudgetRange(range.value)}
+                          />
+                          <label 
+                            htmlFor={`budget-${range.value}`}
+                            className="text-sm text-gray-700 cursor-pointer flex-1"
+                          >
                       {range.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                          </label>
           </div>
+                      );
+                    })}
           </div>
 
-          {/* Clear Filters and More Filters Buttons - Moved below budget */}
-          <div className="flex justify-end gap-2 mb-3 flex-wrap">
-            {/* Additional Filters - Only shown when More Filters is clicked */}
-            {showAdvancedFilters && (
-              <>
-                {/* Rating Filter */}
+                  <div className="border-t p-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="budget-custom"
+                          checked={selectedBudgetRanges.includes('custom')}
+                          onCheckedChange={() => {
+                            if (!selectedBudgetRanges.includes('custom')) {
+                              setShowCustomBudget(true);
+                              if (!selectedBudgetRanges.includes('custom')) {
+                                setSelectedBudgetRanges(prev => [...prev, 'custom']);
+                              }
+                            } else {
+                              toggleBudgetRange('custom');
+                              setCustomMinBudget('');
+                              setCustomMaxBudget('');
+                              setShowCustomBudget(false);
+                            }
+                          }}
+                        />
+                        <label 
+                          htmlFor="budget-custom"
+                          className="text-sm font-semibold text-gray-700 cursor-pointer flex-1"
+                        >
+                          Custom Budget
+                        </label>
+                      </div>
+                      {selectedBudgetRanges.includes('custom') && (
+                        <div className="space-y-2 pl-6">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">Min (₹)</label>
+                              <Input
+                                type="text"
+                                placeholder="Min"
+                                value={customMinBudget ? `₹${formatIndianNumber(customMinBudget)}` : ''}
+                                onChange={(e) => handleCustomBudgetChange('min', e.target.value)}
+                                className="text-sm"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">Max (₹)</label>
+                              <Input
+                                type="text"
+                                placeholder="Max"
+                                value={customMaxBudget ? `₹${formatIndianNumber(customMaxBudget)}` : ''}
+                                onChange={(e) => handleCustomBudgetChange('max', e.target.value)}
+                                className="text-sm"
+                              />
+                            </div>
+                          </div>
+                          <Button
+                            onClick={applyCustomBudget}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm"
+                            disabled={!customMinBudget || !customMaxBudget}
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {selectedBudgetRanges.length > 0 && (
+                    <div className="p-2 border-t">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs"
+                        onClick={() => {
+                          setSelectedBudgetRanges([]);
+                          setCustomMinBudget('');
+                          setCustomMaxBudget('');
+                          setShowCustomBudget(false);
+                        }}
+                      >
+                        Clear All
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            {/* Rating Filter - In main row */}
+            <div className="flex-1">
+              <label className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
+                <Star className="h-3 w-3 text-orange-500" />
+                Rating
+              </label>
                 <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="w-32 h-9 border border-gray-200 focus:border-orange-400 text-sm">
-                    <SelectValue placeholder="Ratings" />
+                <SelectTrigger className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm">
+                  <SelectValue placeholder="All Ratings" />
                   </SelectTrigger>
-                  <SelectContent>
+                <SelectContent className="bg-white border border-gray-200 rounded-lg">
                     <SelectItem value="all">All Ratings</SelectItem>
                     <SelectItem value="5">5+ Stars</SelectItem>
                     <SelectItem value="4.5">4.5+ Stars</SelectItem>
@@ -1037,39 +1394,25 @@ const VendorsPage = () => {
                     <SelectItem value="1">1+ Stars</SelectItem>
                   </SelectContent>
                 </Select>
-                
-
-                {/* Search Bar */}
+            </div>
+            
+            {/* Search Bar - In main row */}
+            <div className="flex-1">
+              <label className="block text-wedding-navy text-xs font-semibold mb-2 text-left flex items-center gap-1">
+                <Search className="h-3 w-3 text-orange-500" />
+                Search
+              </label>
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
                 <Input
                   placeholder="Search vendors..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 h-9 w-48 border border-gray-200 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm"
+                  className="w-full pl-8 h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 focus:border-orange-400 focus:ring-1 focus:ring-orange-200 rounded-lg text-sm transition-all duration-200"
                 />
               </div>
-              </>
-            )}
-
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="h-9 border border-gray-200 hover:border-orange-400 text-gray-700 hover:text-orange-600 transition-all duration-200 text-sm"
-            >
-              <SlidersHorizontal className="w-3 h-3 mr-1" />
-              {showAdvancedFilters ? 'Hide Filters' : 'More Filters'}
-              <ChevronDown className={`w-3 h-3 ml-1 transition-transform duration-200 ${showAdvancedFilters ? 'rotate-180' : ''}`} />
-                </Button>
-                <Button
-                  onClick={clearAllFilters}
-                  variant="outline"
-              size="sm"
-              className="border-orange-200 text-orange-600 hover:bg-orange-50 text-sm"
-                >
-              Clear All Filters
-                </Button>
             </div>
+          </div>
             
         </div>
       </div>
@@ -1097,7 +1440,7 @@ const VendorsPage = () => {
               {sortedVendors.map((vendor) => (
                 <VendorShortCard
                   key={vendor.vendor_id}
-                  vendor={vendor}
+                            vendor={vendor}
                 />
               ))}
             </div>

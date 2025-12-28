@@ -1,35 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, User, Calendar, Shield, X } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, ChevronDown, User, Calendar, Shield, X, Check } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { Checkbox } from '../components/ui/checkbox';
 import Header from '../components/layout/Header';
 import VendorShortCard from '../components/VendorShortCard';
 import { Vendor } from '@/lib/supabase';
 import { getVendorsByCategory } from '@/services/supabaseService';
 import { CATEGORY_NAMES } from '@/constants/categories';
 
+// Indian States list (Telangana and Andhra Pradesh first)
+const indianStates = [
+  { value: 'telangana', label: 'Telangana' },
+  { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
+  { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
+  { value: 'assam', label: 'Assam' },
+  { value: 'bihar', label: 'Bihar' },
+  { value: 'chhattisgarh', label: 'Chhattisgarh' },
+  { value: 'goa', label: 'Goa' },
+  { value: 'gujarat', label: 'Gujarat' },
+  { value: 'haryana', label: 'Haryana' },
+  { value: 'himachal-pradesh', label: 'Himachal Pradesh' },
+  { value: 'jharkhand', label: 'Jharkhand' },
+  { value: 'karnataka', label: 'Karnataka' },
+  { value: 'kerala', label: 'Kerala' },
+  { value: 'madhya-pradesh', label: 'Madhya Pradesh' },
+  { value: 'maharashtra', label: 'Maharashtra' },
+  { value: 'manipur', label: 'Manipur' },
+  { value: 'meghalaya', label: 'Meghalaya' },
+  { value: 'mizoram', label: 'Mizoram' },
+  { value: 'nagaland', label: 'Nagaland' },
+  { value: 'odisha', label: 'Odisha' },
+  { value: 'punjab', label: 'Punjab' },
+  { value: 'rajasthan', label: 'Rajasthan' },
+  { value: 'sikkim', label: 'Sikkim' },
+  { value: 'tamil-nadu', label: 'Tamil Nadu' },
+  { value: 'tripura', label: 'Tripura' },
+  { value: 'uttar-pradesh', label: 'Uttar Pradesh' },
+  { value: 'uttarakhand', label: 'Uttarakhand' },
+  { value: 'west-bengal', label: 'West Bengal' },
+  { value: 'andaman-nicobar', label: 'Andaman and Nicobar Islands' },
+  { value: 'chandigarh', label: 'Chandigarh' },
+  { value: 'dadra-nagar-haveli', label: 'Dadra and Nagar Haveli' },
+  { value: 'daman-diu', label: 'Daman and Diu' },
+  { value: 'delhi', label: 'Delhi' },
+  { value: 'jammu-kashmir', label: 'Jammu and Kashmir' },
+  { value: 'ladakh', label: 'Ladakh' },
+  { value: 'lakshadweep', label: 'Lakshadweep' },
+  { value: 'puducherry', label: 'Puducherry' },
+];
+
 const CategoryVendors = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [locationFilter, setLocationFilter] = useState('all');
-  const [priceFilter, setPriceFilter] = useState('all');
-  const [genderPreference, setGenderPreference] = useState('all');
-  const [serviceDuration, setServiceDuration] = useState('all');
-  const [eventType, setEventType] = useState('all');
+  const [selectedStates, setSelectedStates] = useState<string[]>([]);
+  const [selectedBudgetRanges, setSelectedBudgetRanges] = useState<string[]>([]);
+  const [showCustomBudget, setShowCustomBudget] = useState(false);
+  const [customMinBudget, setCustomMinBudget] = useState('');
+  const [customMaxBudget, setCustomMaxBudget] = useState('');
   const [ratingFilter, setRatingFilter] = useState('all');
-  const [availabilityFilter, setAvailabilityFilter] = useState('all');
-  const [negotiableFilter, setNegotiableFilter] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [comparisonVendors, setComparisonVendors] = useState<Vendor[]>([]);
   const [showComparison, setShowComparison] = useState(false);
 
@@ -72,6 +112,18 @@ const CategoryVendors = () => {
         if (vendorData.length > 0) {
           console.log('Sample vendor data:', vendorData[0]);
           console.log('Vendor fields:', Object.keys(vendorData[0]));
+          
+          // Specifically check rating field for Siva Events
+          const sivaVendor = vendorData.find(v => v.brand_name && v.brand_name.toLowerCase().includes('siva'));
+          if (sivaVendor) {
+            console.log('🔍 SIVA EVENTS RATING DEBUG:', {
+              brand_name: sivaVendor.brand_name,
+              rating: sivaVendor.rating,
+              ratingType: typeof sivaVendor.rating,
+              allKeys: Object.keys(sivaVendor),
+              rawData: JSON.stringify(sivaVendor, null, 2)
+            });
+          }
         }
         
         setVendors(vendorData);
@@ -95,35 +147,135 @@ const CategoryVendors = () => {
                              specialty.toLowerCase().includes(searchQuery.toLowerCase())
                             ));
       
-      const matchesLocation = locationFilter === 'all' || 
-                             (vendor.address && vendor.address.toLowerCase().includes(locationFilter.toLowerCase()));
-      
-      const matchesPrice = priceFilter === 'all' || 
-        (vendor.starting_price && (
-          (priceFilter === 'budget' && vendor.starting_price < 35000) ||
-          (priceFilter === 'mid' && vendor.starting_price >= 35000 && vendor.starting_price <= 45000) ||
-          (priceFilter === 'premium' && vendor.starting_price > 45000)
-        ));
-      
-      const matchesGender = genderPreference === 'all' || 
-                           (genderPreference === 'male' && vendor.spoc_name && vendor.spoc_name.toLowerCase().includes('male')) ||
-                           (genderPreference === 'female' && vendor.spoc_name && vendor.spoc_name.toLowerCase().includes('female'));
-      
-      const matchesRating = ratingFilter === 'all' || (() => {
-        const rating = vendor.rating || 0;
-        switch (ratingFilter) {
-          case '4+': return rating >= 4;
-          case '3+': return rating >= 3;
-          case '2+': return rating >= 2;
-          default: return true;
+      // Check if vendor's service areas match any selected states
+      const matchesLocation = selectedStates.length === 0 || (() => {
+        const vendorServiceAreas = vendor.additional_info?.service_areas || [];
+        if (!Array.isArray(vendorServiceAreas) || vendorServiceAreas.length === 0) {
+          return false;
         }
+        // Check if any selected state matches any vendor service area
+        return selectedStates.some(selectedState => 
+          vendorServiceAreas.some((area: string) => 
+            area.toLowerCase() === selectedState.toLowerCase() ||
+            area.toLowerCase().includes(selectedState.toLowerCase()) ||
+            selectedState.toLowerCase().includes(area.toLowerCase())
+          )
+        );
       })();
       
-      const matchesAvailability = availabilityFilter === 'all' || 
-                                 (availabilityFilter === 'available' && vendor.currently_available) ||
-                                 (availabilityFilter === 'busy' && !vendor.currently_available);
+      const matchesPrice = (() => {
+        // If no budget ranges selected, show all
+        if (selectedBudgetRanges.length === 0) return true;
+        
+        // Get vendor starting price, handle different data types
+        const vendorPrice = typeof vendor.starting_price === 'number' 
+          ? vendor.starting_price 
+          : (typeof vendor.starting_price === 'string' 
+            ? parseFloat(vendor.starting_price.replace(/[^\d.]/g, '')) 
+            : 0);
+        
+        if (!vendorPrice || vendorPrice <= 0) return false;
+        
+        // Check if vendor price matches any of the selected ranges
+        return selectedBudgetRanges.some(range => {
+          if (range === '10k-25k') {
+            return vendorPrice >= 10000 && vendorPrice <= 25000;
+          }
+          if (range === '25k-50k') {
+            return vendorPrice >= 25000 && vendorPrice <= 50000;
+          }
+          if (range === '50k-100k') {
+            return vendorPrice >= 50000 && vendorPrice <= 100000;
+          }
+          if (range === 'above-100k') {
+            return vendorPrice > 100000;
+          }
+          if (range === 'custom' && customMinBudget && customMaxBudget) {
+            const min = parseInt(customMinBudget.replace(/[^\d]/g, ''));
+            const max = parseInt(customMaxBudget.replace(/[^\d]/g, ''));
+            if (!isNaN(min) && !isNaN(max) && min > 0 && max > 0) {
+              return vendorPrice >= min && vendorPrice <= max;
+            }
+          }
+          return false;
+        });
+      })();
       
-      return matchesSearch && matchesLocation && matchesPrice && matchesGender && matchesRating && matchesAvailability;
+      const matchesRating = ratingFilter === 'all' || (() => {
+        // Get rating from the actual database column
+        // Check multiple possible field names in case of case sensitivity or naming differences
+        const ratingValue = (vendor as any).rating || (vendor as any).Rating || (vendor as any).RATING;
+        
+        // Debug: Log the actual vendor object for Siva Events to see all fields
+        if (vendor.brand_name && vendor.brand_name.toLowerCase().includes('siva')) {
+          console.log('🔍 DATABASE RATING CHECK - Siva Events:', {
+            brand_name: vendor.brand_name,
+            vendor_rating: vendor.rating,
+            vendor_Rating: (vendor as any).Rating,
+            vendor_RATING: (vendor as any).RATING,
+            allVendorKeys: Object.keys(vendor),
+            fullVendorObject: JSON.stringify(vendor, null, 2),
+            ratingFilter: ratingFilter
+          });
+        }
+        
+        // Convert rating to number
+        let rating: number = 4; // Default to 4, matching VendorShortCard behavior
+        
+        if (ratingValue !== null && ratingValue !== undefined) {
+          if (typeof ratingValue === 'number') {
+            rating = ratingValue;
+          } else if (typeof ratingValue === 'string') {
+            // Handle string ratings like "4/5" or "4" or "4.0"
+            const numStr = String(ratingValue).split('/')[0].trim();
+            const parsed = parseFloat(numStr);
+            if (!isNaN(parsed) && parsed > 0) {
+              rating = parsed;
+            }
+          }
+        }
+        
+        // Debug: Log converted rating
+        if (vendor.brand_name && vendor.brand_name.toLowerCase().includes('siva')) {
+          console.log('🔍 RATING CONVERSION - Siva Events:', {
+            originalValue: ratingValue,
+            convertedRating: rating,
+            filter: ratingFilter,
+            willMatch4Plus: rating >= 4
+          });
+        }
+        
+        // Apply filter based on selected rating
+        let result: boolean;
+        switch (ratingFilter) {
+          case '5': 
+            result = rating >= 5;
+            break;
+          case '4+': 
+            result = rating >= 4;
+            if (vendor.brand_name && vendor.brand_name.toLowerCase().includes('siva')) {
+              console.log('🔍 FILTER RESULT - Siva Events:', {
+                rating: rating,
+                filter: '4+',
+                ratingGreaterEqual4: rating >= 4,
+                result: result
+              });
+            }
+            break;
+          case '3+': 
+            result = rating >= 3;
+            break;
+          case '2+': 
+            result = rating >= 2;
+            break;
+          default: 
+            result = true;
+        }
+        
+        return result;
+      })();
+      
+      return matchesSearch && matchesLocation && matchesPrice && matchesRating;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -156,15 +308,77 @@ const CategoryVendors = () => {
   // Clear all filters
   const clearAllFilters = () => {
     setSearchQuery('');
-    setLocationFilter('all');
-    setPriceFilter('all');
-    setGenderPreference('all');
-    setServiceDuration('all');
-    setEventType('all');
+    setSelectedStates([]);
+    setSelectedBudgetRanges([]);
+    setShowCustomBudget(false);
+    setCustomMinBudget('');
+    setCustomMaxBudget('');
     setRatingFilter('all');
-    setAvailabilityFilter('all');
-    setNegotiableFilter('all');
     setSortBy('rating');
+  };
+
+  // Format number with Indian numbering system
+  const formatIndianNumber = (value: string): string => {
+    const numStr = value.replace(/[^\d]/g, '');
+    if (!numStr) return '';
+    const num = parseInt(numStr);
+    if (isNaN(num)) return '';
+    return num.toLocaleString('en-IN');
+  };
+
+  // Handle custom budget input
+  const handleCustomBudgetChange = (type: 'min' | 'max', value: string) => {
+    const numStr = value.replace(/[^\d]/g, '');
+    if (type === 'min') {
+      setCustomMinBudget(numStr);
+    } else {
+      setCustomMaxBudget(numStr);
+    }
+  };
+
+  // Apply custom budget filter
+  const applyCustomBudget = () => {
+    const min = parseInt(customMinBudget.replace(/[^\d]/g, ''));
+    const max = parseInt(customMaxBudget.replace(/[^\d]/g, ''));
+    
+    if (isNaN(min) || isNaN(max)) {
+      alert('Please enter valid budget values');
+      return;
+    }
+    
+    if (min > max) {
+      alert('Minimum budget cannot be greater than maximum budget');
+      return;
+    }
+    
+    if (min < 0 || max < 0) {
+      alert('Budget values must be positive');
+      return;
+    }
+    
+    // Add custom range to selected ranges if not already there
+    if (!selectedBudgetRanges.includes('custom')) {
+      setSelectedBudgetRanges(prev => [...prev, 'custom']);
+    }
+    setShowCustomBudget(false);
+  };
+
+  // Toggle state selection
+  const toggleState = (stateValue: string) => {
+    setSelectedStates(prev => 
+      prev.includes(stateValue)
+        ? prev.filter(s => s !== stateValue)
+        : [...prev, stateValue]
+    );
+  };
+
+  // Toggle budget range selection
+  const toggleBudgetRange = (rangeValue: string) => {
+    setSelectedBudgetRanges(prev => 
+      prev.includes(rangeValue)
+        ? prev.filter(r => r !== rangeValue)
+        : [...prev, rangeValue]
+    );
   };
 
   // Comparison functions
@@ -259,51 +473,220 @@ const CategoryVendors = () => {
                 {/* Compact Filters */}
                 <div className="flex items-center gap-2">
                   <div className="relative">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="pl-7 h-10 w-40 border border-gray-300 focus:border-amber-400 text-sm justify-start"
+                        >
                     <MapPin className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 z-10" />
-                    <Select value={locationFilter} onValueChange={setLocationFilter}>
-                      <SelectTrigger className="pl-7 h-10 w-32 border border-gray-300 focus:border-amber-400 text-sm">
-                        <SelectValue placeholder="Location" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Cities</SelectItem>
-                        <SelectItem value="hyderabad">Hyderabad</SelectItem>
-                        <SelectItem value="bangalore">Bangalore</SelectItem>
-                        <SelectItem value="chennai">Chennai</SelectItem>
-                        <SelectItem value="mumbai">Mumbai</SelectItem>
-                      </SelectContent>
-                    </Select>
+                          <span className="ml-2">
+                            {selectedStates.length === 0 
+                              ? 'All States' 
+                              : selectedStates.length === 1
+                              ? indianStates.find(s => s.value === selectedStates[0])?.label || '1 State'
+                              : `${selectedStates.length} States`
+                            }
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0" align="start">
+                        <div className="p-3 border-b">
+                          <p className="text-sm font-semibold text-gray-700">Select States</p>
+                  </div>
+                        <div className="max-h-64 overflow-y-auto p-2">
+                          {indianStates.map((state) => {
+                            const isChecked = selectedStates.includes(state.value);
+                            return (
+                              <div
+                                key={state.value}
+                                className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                              >
+                                <Checkbox
+                                  id={`state-${state.value}`}
+                                  checked={isChecked}
+                                  onCheckedChange={(checked) => {
+                                    toggleState(state.value);
+                                  }}
+                                />
+                                <label 
+                                  htmlFor={`state-${state.value}`}
+                                  className="text-sm text-gray-700 cursor-pointer flex-1"
+                                >
+                                  {state.label}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {selectedStates.length > 0 && (
+                          <div className="p-2 border-t">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full text-xs"
+                              onClick={() => setSelectedStates([])}
+                            >
+                              Clear All
+                            </Button>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="relative">
-                    <DollarSign className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 z-10" />
-                    <Select value={priceFilter} onValueChange={setPriceFilter}>
-                      <SelectTrigger className="pl-7 h-10 w-28 border border-gray-300 focus:border-amber-400 text-sm">
-                        <SelectValue placeholder="Budget" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Prices</SelectItem>
-                        <SelectItem value="budget">Under ₹35k</SelectItem>
-                        <SelectItem value="mid">₹35k-45k</SelectItem>
-                        <SelectItem value="premium">Above ₹45k</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="h-10 w-40 border border-gray-300 focus:border-amber-400 text-sm justify-start px-3"
+                        >
+                          <span>
+                            {selectedBudgetRanges.length === 0 
+                              ? '₹ Budget' 
+                              : selectedBudgetRanges.length === 1
+                              ? (selectedBudgetRanges[0] === 'custom' 
+                                ? `₹${formatIndianNumber(customMinBudget)}-₹${formatIndianNumber(customMaxBudget)}`
+                                : selectedBudgetRanges[0] === '10k-25k' ? '₹10k-25k'
+                                : selectedBudgetRanges[0] === '25k-50k' ? '₹25k-50k'
+                                : selectedBudgetRanges[0] === '50k-100k' ? '₹50k-100k'
+                                : 'Above ₹1L')
+                              : `${selectedBudgetRanges.length} Ranges`
+                            }
+                          </span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 p-0" align="start">
+                        <div className="p-3 border-b">
+                          <p className="text-sm font-semibold text-gray-700">Select Budget</p>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto p-2">
+                          {[
+                            { value: '10k-25k', label: '₹10,000 – ₹25,000' },
+                            { value: '25k-50k', label: '₹25,000 – ₹50,000' },
+                            { value: '50k-100k', label: '₹50,000 – ₹1,00,000' },
+                            { value: 'above-100k', label: 'Above ₹1,00,000' },
+                          ].map((range) => {
+                            const isChecked = selectedBudgetRanges.includes(range.value);
+                            return (
+                              <div
+                                key={range.value}
+                                className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                              >
+                                <Checkbox
+                                  id={`budget-${range.value}`}
+                                  checked={isChecked}
+                                  onCheckedChange={() => {
+                                    toggleBudgetRange(range.value);
+                                  }}
+                                />
+                                <label 
+                                  htmlFor={`budget-${range.value}`}
+                                  className="text-sm text-gray-700 cursor-pointer flex-1"
+                                >
+                                  {range.label}
+                                </label>
+                              </div>
+                            );
+                          })}
                   </div>
 
-                  <div className="relative">
-                    <TrendingUp className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 z-10" />
-                    <Select value={sortBy} onValueChange={setSortBy}>
+                        <div className="border-t p-2">
+                          <div className="space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox
+                                id="budget-custom"
+                                checked={selectedBudgetRanges.includes('custom')}
+                                onCheckedChange={() => {
+                                  if (!selectedBudgetRanges.includes('custom')) {
+                                    setShowCustomBudget(true);
+                                  } else {
+                                    toggleBudgetRange('custom');
+                                    setCustomMinBudget('');
+                                    setCustomMaxBudget('');
+                                  }
+                                }}
+                              />
+                              <label 
+                                htmlFor="budget-custom"
+                                className="text-sm font-semibold text-gray-700 cursor-pointer flex-1"
+                              >
+                                Custom Budget
+                              </label>
+                </div>
+                            {selectedBudgetRanges.includes('custom') && (
+                              <div className="space-y-2 pl-6">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="text-xs text-gray-500 mb-1 block">Min (₹)</label>
+                                    <Input
+                                      type="text"
+                                      placeholder="Min"
+                                      value={customMinBudget ? `₹${formatIndianNumber(customMinBudget)}` : ''}
+                                      onChange={(e) => handleCustomBudgetChange('min', e.target.value)}
+                                      className="text-sm"
+                                    />
+              </div>
+                                  <div>
+                                    <label className="text-xs text-gray-500 mb-1 block">Max (₹)</label>
+                                    <Input
+                                      type="text"
+                                      placeholder="Max"
+                                      value={customMaxBudget ? `₹${formatIndianNumber(customMaxBudget)}` : ''}
+                                      onChange={(e) => handleCustomBudgetChange('max', e.target.value)}
+                                      className="text-sm"
+                                    />
+            </div>
+          </div>
+                                <Button
+                                  onClick={applyCustomBudget}
+                                  className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm"
+                                  disabled={!customMinBudget || !customMaxBudget}
+                                >
+                                  Apply
+                                </Button>
+        </div>
+                            )}
+                          </div>
+      </div>
+
+                        {selectedBudgetRanges.length > 0 && (
+                          <div className="p-2 border-t">
+            <Button
+                              variant="ghost"
+              size="sm"
+                              className="w-full text-xs"
+                              onClick={() => {
+                                setSelectedBudgetRanges([]);
+                                setCustomMinBudget('');
+                                setCustomMaxBudget('');
+                              }}
+                            >
+                              Clear All
+            </Button>
+          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+              </div>
+
+              {/* Rating Filter */}
+              <div className="relative">
+                    <Star className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400 z-10" />
+                <Select value={ratingFilter} onValueChange={setRatingFilter}>
                       <SelectTrigger className="pl-7 h-10 w-32 border border-gray-300 focus:border-amber-400 text-sm">
-                        <SelectValue placeholder="Sort By" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="rating">Top Rated</SelectItem>
-                        <SelectItem value="price-low">Price ↑</SelectItem>
-                        <SelectItem value="price-high">Price ↓</SelectItem>
-                        <SelectItem value="experience">Experience</SelectItem>
-                        <SelectItem value="response">Fast Response</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <SelectValue placeholder="Rating" />
+                  </SelectTrigger>
+                  <SelectContent>
+                        <SelectItem value="all">All Ratings</SelectItem>
+                        <SelectItem value="5">5 Stars</SelectItem>
+                    <SelectItem value="4+">4+ Stars</SelectItem>
+                    <SelectItem value="3+">3+ Stars</SelectItem>
+                    <SelectItem value="2+">2+ Stars</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
                   <Button 
                     className="h-10 px-6 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white font-bold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 rounded-xl relative overflow-hidden group"
@@ -316,11 +699,11 @@ const CategoryVendors = () => {
                     <Search className="w-4 h-4 mr-2 relative z-10" />
                     <span className="relative z-10">Search</span>
                   </Button>
-                </div>
               </div>
             </div>
-          </div>
+            </div>
         </div>
+      </div>
         
         {/* Enhanced Curved Separator with Shadow */}
         <div className="absolute bottom-0 left-0 right-0 h-6 bg-white rounded-t-3xl shadow-inner" style={{
@@ -328,109 +711,6 @@ const CategoryVendors = () => {
         }}></div>
       </div>
 
-      {/* Advanced Filters Section */}
-      <div className="container mx-auto px-4 py-4 -mt-2">
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-orange-200 p-4 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-              <SlidersHorizontal className="w-5 h-5 text-orange-500" />
-              Advanced Filters
-            </h3>
-            <Button
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              variant="outline"
-              size="sm"
-              className="border-orange-200 text-orange-600 hover:bg-orange-50 flex items-center gap-2"
-            >
-              <span>{showAdvancedFilters ? 'Hide' : 'Show'} Options</span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
-            </Button>
-          </div>
-          
-          {showAdvancedFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Gender Preference */}
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                <Select value={genderPreference} onValueChange={setGenderPreference}>
-                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
-                    <SelectValue placeholder="Gender Preference" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Gender</SelectItem>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Service Duration */}
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                <Select value={serviceDuration} onValueChange={setServiceDuration}>
-                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
-                    <SelectValue placeholder="Duration" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Duration</SelectItem>
-                    <SelectItem value="half-day">Half Day (4-6 hrs)</SelectItem>
-                    <SelectItem value="full-day">Full Day (8+ hrs)</SelectItem>
-                    <SelectItem value="multi-day">Multi Day</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Event Type */}
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                <Select value={eventType} onValueChange={setEventType}>
-                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
-                    <SelectValue placeholder="Event Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Event</SelectItem>
-                    <SelectItem value="wedding">Wedding</SelectItem>
-                    <SelectItem value="birthday">Birthday</SelectItem>
-                    <SelectItem value="corporate">Corporate</SelectItem>
-                    <SelectItem value="festival">Festival</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Rating Filter */}
-              <div className="relative">
-                <Star className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                <Select value={ratingFilter} onValueChange={setRatingFilter}>
-                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
-                    <SelectValue placeholder="Rating" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Rating</SelectItem>
-                    <SelectItem value="4+">4+ Stars</SelectItem>
-                    <SelectItem value="3+">3+ Stars</SelectItem>
-                    <SelectItem value="2+">2+ Stars</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Availability */}
-              <div className="relative">
-                <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-                  <SelectTrigger className="pl-10 h-12 w-full border-2 border-gray-200 focus:border-orange-400 text-sm rounded-xl">
-                    <SelectValue placeholder="Availability" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any Status</SelectItem>
-                    <SelectItem value="available">Available Now</SelectItem>
-                    <SelectItem value="busy">Currently Busy</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Compact Results Summary */}
       <div className="container mx-auto px-4 py-4 -mt-2">
@@ -478,7 +758,7 @@ const CategoryVendors = () => {
           
           {/* Active Filters Display */}
           <div className="flex items-center gap-2">
-            {(searchQuery || locationFilter !== 'all' || priceFilter !== 'all' || genderPreference !== 'all' || ratingFilter !== 'all' || availabilityFilter !== 'all') && (
+            {(searchQuery || selectedStates.length > 0 || selectedBudgetRanges.length > 0 || ratingFilter !== 'all') && (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Filters:</span>
                 {searchQuery && (
@@ -486,29 +766,19 @@ const CategoryVendors = () => {
                     "{searchQuery}"
                   </Badge>
                 )}
-                {locationFilter !== 'all' && (
+                {selectedStates.length > 0 && (
                   <Badge variant="secondary" className="text-xs">
-                    📍 {locationFilter}
+                    📍 {selectedStates.length} {selectedStates.length === 1 ? 'State' : 'States'}
                   </Badge>
                 )}
-                {priceFilter !== 'all' && (
+                {selectedBudgetRanges.length > 0 && (
                   <Badge variant="secondary" className="text-xs">
-                    💰 {priceFilter}
-                  </Badge>
-                )}
-                {genderPreference !== 'all' && (
-                  <Badge variant="secondary" className="text-xs">
-                    👤 {genderPreference}
+                    ₹ {selectedBudgetRanges.length} {selectedBudgetRanges.length === 1 ? 'Range' : 'Ranges'}
                   </Badge>
                 )}
                 {ratingFilter !== 'all' && (
                   <Badge variant="secondary" className="text-xs">
-                    ⭐ {ratingFilter}
-                  </Badge>
-                )}
-                {availabilityFilter !== 'all' && (
-                  <Badge variant="secondary" className="text-xs">
-                    🟢 {availabilityFilter}
+                    ⭐ {ratingFilter === '5' ? '5 Stars' : ratingFilter === '4+' ? '4+ Stars' : ratingFilter === '3+' ? '3+ Stars' : '2+ Stars'}
                   </Badge>
                 )}
                 <Button
@@ -549,7 +819,7 @@ const CategoryVendors = () => {
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No vendors found</h3>
                 <p className="text-gray-500 mb-6">Try adjusting your search criteria or browse all vendors</p>
                 <Button 
-                  onClick={() => { setSearchQuery(''); setLocationFilter('all'); setPriceFilter('all'); }}
+                  onClick={() => { setSearchQuery(''); setSelectedStates([]); setSelectedBudgetRanges([]); }}
                   className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   Clear Filters

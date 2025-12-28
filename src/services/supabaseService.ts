@@ -426,7 +426,32 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
       }));
       }
       
-      return filteredVendors as Vendor[];
+      // Parse JSON fields and ensure rating is properly handled
+      const parsedVendors = filteredVendors.map(vendor => {
+        const parsed = parseVendorJsonFields(vendor);
+        
+        // Ensure rating is a number
+        if (parsed.rating !== null && parsed.rating !== undefined) {
+          if (typeof parsed.rating === 'string') {
+            // Handle string ratings like "4/5" or "4" or "4.0"
+            const numStr = String(parsed.rating).split('/')[0].trim();
+            parsed.rating = parseFloat(numStr) || 0;
+          }
+        }
+        
+        // Debug logging for Siva Events
+        if (parsed.brand_name && parsed.brand_name.toLowerCase().includes('siva')) {
+          console.log('🔍 Siva Events in getVendorsByCategory:', {
+            brand_name: parsed.brand_name,
+            rating: parsed.rating,
+            ratingType: typeof parsed.rating
+          });
+        }
+        
+        return parsed;
+      });
+      
+      return parsedVendors as Vendor[];
   } catch (error) {
     console.error('Error fetching vendors by category:', error);
     return [];

@@ -300,6 +300,36 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
     console.log('=== GET VENDORS BY CATEGORY DEBUG ===');
     console.log('Looking for category:', category);
     
+    // Get all valid category names from constants for exact matching
+    const validCategoryNames = Object.values(CATEGORY_NAMES);
+    
+    // Normalize the search category to match against valid category names
+    const normalizeSearchCategory = (searchCat: string): string => {
+      const lowerSearch = searchCat.toLowerCase().trim();
+      
+      // Try exact match first (case-insensitive)
+      for (const validName of validCategoryNames) {
+        if (validName.toLowerCase() === lowerSearch) {
+          return validName;
+        }
+      }
+      
+      // Try normalized match (remove slashes and spaces)
+      const normalizedSearch = lowerSearch.replace(/[\/\s]/g, '');
+      for (const validName of validCategoryNames) {
+        const normalizedValid = validName.toLowerCase().replace(/[\/\s]/g, '');
+        if (normalizedValid === normalizedSearch) {
+          return validName;
+        }
+      }
+      
+      // Return original if no match found
+      return searchCat;
+    };
+    
+    const normalizedSearchCategory = normalizeSearchCategory(category);
+    console.log('Normalized search category:', normalizedSearchCategory);
+    
     // Fetch all vendors first to avoid URL encoding issues with special characters
     const { data: allVendors, error: fetchError } = await supabase
       .from('vendors')
@@ -311,73 +341,71 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
       return [];
     }
 
-    if (allVendors) {
+    if (!allVendors || allVendors.length === 0) {
+      console.log('No vendors found in database');
+      return [];
+    }
+
       // Log unique categories to help debug
-      const uniqueCategories = [...new Set(allVendors.map(v => v.category))];
+    const uniqueCategories = [...new Set(allVendors.map(v => {
+      const cats = Array.isArray(v.category) ? v.category : (v.categories || (v.category ? [v.category] : []));
+      return cats;
+    }).flat())];
       console.log('Unique categories found in database:', uniqueCategories);
       
-      // Filter vendors by category (case-insensitive partial match to handle variations)
+    // Filter vendors by category - check if vendor has the category in their categories array
       const filteredVendors = allVendors.filter(vendor => {
-        // Handle both string and array for category
-        const vendorCategories = Array.isArray(vendor.category) 
-          ? vendor.category 
-          : (vendor.categories || (vendor.category ? [vendor.category] : []));
-        
-        if (vendorCategories.length === 0) return false;
-        
-        const searchCategory = category.toLowerCase().trim();
-        
-        // Check if any category matches (case-insensitive)
-        const hasMatch = vendorCategories.some(cat => {
-          const vendorCategory = String(cat).toLowerCase().trim();
+      // Get all categories for this vendor (handle both string and array formats)
+      const vendorCategories: string[] = [];
+      
+      // Check categories field first (new array field)
+      if (vendor.categories && Array.isArray(vendor.categories)) {
+        vendorCategories.push(...vendor.categories.filter(c => typeof c === 'string'));
+      }
+      
+      // Check category field (legacy - can be string or array)
+      if (vendor.category) {
+        if (Array.isArray(vendor.category)) {
+          vendorCategories.push(...vendor.category.filter(c => typeof c === 'string'));
+        } else if (typeof vendor.category === 'string') {
+          vendorCategories.push(vendor.category);
+        }
+      }
+      
+      if (vendorCategories.length === 0) {
+        return false;
+      }
+      
+      // Check if any of the vendor's categories match the search category
+      const hasMatch = vendorCategories.some(vendorCat => {
+        const vendorCatStr = String(vendorCat).trim();
+        const searchCatStr = normalizedSearchCategory.trim();
           
           // Exact match (case-insensitive)
-          if (vendorCategory === searchCategory) {
+        if (vendorCatStr.toLowerCase() === searchCatStr.toLowerCase()) {
             return true;
           }
           
-          // Handle slash variations: "Photography/Videography" vs "PhotographyVideography" vs "Photography Videography"
-          const normalizedVendor = vendorCategory.replace(/[\/\s]/g, '');
-          const normalizedSearch = searchCategory.replace(/[\/\s]/g, '');
+        // Normalized match (remove slashes, spaces, case)
+        const normalizedVendor = vendorCatStr.toLowerCase().replace(/[\/\s]/g, '');
+        const normalizedSearch = searchCatStr.toLowerCase().replace(/[\/\s]/g, '');
           
           if (normalizedVendor === normalizedSearch) {
             return true;
           }
           
-          // Keyword matching for common variations
-          if (searchCategory.includes('photograph')) {
-            if (vendorCategory.includes('photograph') || vendorCategory.includes('photo') || vendorCategory.includes('video')) {
+        // Also check if vendor category matches any valid category name that matches search
+        for (const validName of validCategoryNames) {
+          const validLower = validName.toLowerCase();
+          const searchLower = searchCatStr.toLowerCase();
+          
+          // If search category matches this valid name, check if vendor has this valid name
+          if (validLower === searchLower || validLower.replace(/[\/\s]/g, '') === searchLower.replace(/[\/\s]/g, '')) {
+            if (vendorCatStr.toLowerCase() === validLower || 
+                vendorCatStr.toLowerCase().replace(/[\/\s]/g, '') === validLower.replace(/[\/\s]/g, '')) {
               return true;
             }
           }
-          
-          if (searchCategory.includes('planner')) {
-            if (vendorCategory.includes('planner') || vendorCategory.includes('event')) {
-              return true;
-            }
-          }
-          
-          if (searchCategory.includes('cater')) {
-            if (vendorCategory.includes('cater')) {
-              return true;
-            }
-          }
-          
-          if (searchCategory.includes('decor')) {
-            if (vendorCategory.includes('decor')) {
-              return true;
-            }
-          }
-          
-          if (searchCategory.includes('makeup')) {
-            if (vendorCategory.includes('makeup')) {
-              return true;
-            }
-          }
-          
-          // General partial match (as last resort)
-          if (vendorCategory.includes(searchCategory) || searchCategory.includes(vendorCategory)) {
-            return true;
           }
           
           return false;
@@ -386,19 +414,19 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
         return hasMatch;
       });
       
-      console.log(`Filtered ${filteredVendors.length} vendors for category "${category}"`);
+    console.log(`Filtered ${filteredVendors.length} vendors for category "${category}" (normalized: "${normalizedSearchCategory}")`);
       
       if (filteredVendors.length > 0) {
-        console.log('Sample vendors found:', filteredVendors.slice(0, 3).map(v => ({
+      console.log('Sample vendors found:', filteredVendors.slice(0, 3).map(v => {
+        const cats = Array.isArray(v.category) ? v.category : (v.categories || (v.category ? [v.category] : []));
+        return {
           name: v.brand_name,
-          category: v.category
-        })));
+          categories: cats
+        };
+      }));
       }
       
       return filteredVendors as Vendor[];
-    }
-    
-    return [];
   } catch (error) {
     console.error('Error fetching vendors by category:', error);
     return [];
@@ -634,7 +662,7 @@ export const getHighlightedCatalogImages = async (vendorId: number): Promise<any
         if (vendorSpecificImages.length > 0) {
           allStorageImages = vendorSpecificImages;
           console.log(`✅ Found ${vendorSpecificImages.length} vendor-specific catalog images in bucket ${bucket}`);
-          break;
+        break;
         } else {
           console.warn(`⚠️ No vendor-specific images found in bucket ${bucket}, trying next bucket...`);
         }
@@ -727,7 +755,7 @@ export const getAllCatalogImages = async (vendorId: number): Promise<any[]> => {
         if (vendorSpecificImages.length > 0) {
           allStorageImages = vendorSpecificImages;
           console.log(`✅ Found ${vendorSpecificImages.length} vendor-specific catalog images in bucket ${bucket}`);
-          break;
+        break;
         } else {
           console.warn(`⚠️ No vendor-specific images found in bucket ${bucket}, trying next bucket...`);
         }

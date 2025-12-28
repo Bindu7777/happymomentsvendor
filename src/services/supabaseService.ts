@@ -408,99 +408,83 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
 // Get vendor counts by category for homepage
 export const getVendorCounts = async (): Promise<Record<string, number>> => {
   try {
-    // Remove strict filters to count all vendors
+    // Fetch all vendors with category and categories fields
     const { data, error } = await supabase
       .from('vendors')
-      .select('category');
-      // Temporarily remove verified and currently_available filters
-      // .eq('verified', true)
-      // .eq('currently_available', true)
+      .select('category, categories');
 
     if (error) {
       console.error('Error fetching vendor counts:', error);
       return {};
     }
 
-    // Helper to normalize raw DB category to our canonical CATEGORY_NAMES
-    const normalizeCategory = (raw: string): string => {
-      if (!raw) return '';
-      const c = raw.toLowerCase().trim();
+    if (!data || data.length === 0) {
+      console.log('No vendors found');
+      return {};
+    }
 
-      // Photography/Videography
-      if (
-        c.includes('photograph') ||
-        c.includes('photo') ||
-        c.includes('videograph') ||
-        c.includes('video')
-      ) {
-        return CATEGORY_NAMES[CATEGORY_CODES.PHOTOGRAPHERS]; // 'Photography/Videography'
-      }
-
-      // Event Planners
-      if (c.includes('planner') || c.includes('event planner')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.EVENT_PLANNERS];
-      }
-
-      // Venues
-      if (c.includes('venue') || c.includes('banquet') || c.includes('hall')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.VENUES];
-      }
-
-      // Decorators
-      if (c.includes('decor')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.DECORATORS];
-      }
-
-      // Caterers
-      if (c.includes('cater')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.CATERERS];
-      }
-
-      // Makeup Artists
-      if (c.includes('makeup') || c.includes('mua')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.MAKEUP_ARTISTS];
-      }
-
-      // DJs, Lighting, and Entertainment
-      if (c.includes('dj') || c.includes('music') || c.includes('lighting') || c.includes('entertain')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.DJS_LIGHTING_ENTERTAINMENT];
-      }
-
-      // Anchors
-      if (c.includes('anchor') || c.includes('emcee') || c.includes('mc ')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.ANCHORS];
-      }
-
-      // Transportation Services
-      if (c.includes('transport') || c.includes('car') || c.includes('cab')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.TRANSPORTATION_SERVICES];
-      }
-
-      // Fashion/Costume Designers
-      if (c.includes('fashion') || c.includes('costume') || c.includes('designer')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.FASHION_COSTUME_DESIGNERS];
-      }
-
-      // Tent & Equipment Rentals
-      if (c.includes('tent') || c.includes('rental') || c.includes('equipment')) {
-        return CATEGORY_NAMES[CATEGORY_CODES.TENT_EQUIPMENT_RENTALS];
-      }
-
-      // Fallback to original if nothing matched
-      return raw;
-    };
-
-    // Count vendors by normalized category
+    // Get all valid category names from constants
+    const validCategoryNames = Object.values(CATEGORY_NAMES);
+    
+    // Initialize counts for all categories
     const counts: Record<string, number> = {};
-    data.forEach(vendor => {
-      const canonical = normalizeCategory(vendor.category);
-      if (canonical) {
-        counts[canonical] = (counts[canonical] || 0) + 1;
-      }
+    validCategoryNames.forEach(catName => {
+      counts[catName] = 0;
     });
 
-    console.log('Normalized vendor counts:', counts);
-    console.log('Raw vendor categories:', data.map(v => ({ category: v.category, normalized: normalizeCategory(v.category) })));
+    // Helper to check if a category string matches any valid category name
+    const matchesCategory = (categoryValue: string | string[] | null | undefined): string[] => {
+      const matchedCategories: string[] = [];
+      
+      if (!categoryValue) return matchedCategories;
+      
+      // Handle array format
+      if (Array.isArray(categoryValue)) {
+        categoryValue.forEach(cat => {
+          if (typeof cat === 'string' && validCategoryNames.includes(cat)) {
+            matchedCategories.push(cat);
+          }
+        });
+        return matchedCategories;
+      }
+      
+      // Handle string format
+      if (typeof categoryValue === 'string') {
+        // Check for exact match first
+        if (validCategoryNames.includes(categoryValue)) {
+          matchedCategories.push(categoryValue);
+          return matchedCategories;
+        }
+        
+        // Try case-insensitive match
+        const lowerValue = categoryValue.toLowerCase().trim();
+        validCategoryNames.forEach(validName => {
+          if (validName.toLowerCase() === lowerValue) {
+            matchedCategories.push(validName);
+          }
+        });
+      }
+      
+      return matchedCategories;
+    };
+
+    // Count vendors by category
+    data.forEach(vendor => {
+      // Check both category and categories fields
+      const categoryMatches = matchesCategory(vendor.category);
+      const categoriesMatches = matchesCategory(vendor.categories);
+      
+      // Combine and deduplicate matches
+      const allMatches = [...new Set([...categoryMatches, ...categoriesMatches])];
+      
+      // Increment count for each matched category
+      allMatches.forEach(catName => {
+        counts[catName] = (counts[catName] || 0) + 1;
+      });
+    });
+
+    console.log('Vendor counts by category:', counts);
+    console.log('Total vendors processed:', data.length);
 
     return counts;
   } catch (error) {
@@ -630,15 +614,30 @@ export const getHighlightedCatalogImages = async (vendorId: number): Promise<any
 
     console.log('Vendor catalog metadata:', vendorData.catalog_images_metadata);
 
-    // Get all catalog images from storage buckets
+    // Get all catalog images from storage buckets - ONLY from vendor-specific folder
     const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
     let allStorageImages: any[] = [];
+    const vendorIdStr = vendorId.toString();
     
     for (const bucket of possibleBuckets) {
       const storageImages = await getVendorCatalogImagesFromStorage(vendorId, bucket);
       if (storageImages.length > 0) {
-        allStorageImages = storageImages;
-        break;
+        // Double-check that all images belong to this vendor by verifying URL contains vendor ID
+        const vendorSpecificImages = storageImages.filter(img => {
+          const urlContainsVendorId = img.url && img.url.includes(`/${vendorIdStr}/`);
+          if (!urlContainsVendorId) {
+            console.warn(`⚠️ Image URL does not contain vendor ID ${vendorIdStr}:`, img.url);
+          }
+          return urlContainsVendorId;
+        });
+        
+        if (vendorSpecificImages.length > 0) {
+          allStorageImages = vendorSpecificImages;
+          console.log(`✅ Found ${vendorSpecificImages.length} vendor-specific catalog images in bucket ${bucket}`);
+          break;
+        } else {
+          console.warn(`⚠️ No vendor-specific images found in bucket ${bucket}, trying next bucket...`);
+        }
       }
     }
 
@@ -708,19 +707,34 @@ export const getAllCatalogImages = async (vendorId: number): Promise<any[]> => {
     // Import the storage service functions
     const { getVendorCatalogImagesFromStorage } = await import('./supabaseStorageService');
     
-    // Get all catalog images from storage buckets
+    // Get all catalog images from storage buckets - ONLY from vendor-specific folder
     const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
     let allStorageImages: any[] = [];
     
     for (const bucket of possibleBuckets) {
       const storageImages = await getVendorCatalogImagesFromStorage(vendorId, bucket);
       if (storageImages.length > 0) {
-        allStorageImages = storageImages;
-        break;
+        // Double-check that all images belong to this vendor by verifying URL contains vendor ID
+        const vendorIdStr = vendorId.toString();
+        const vendorSpecificImages = storageImages.filter(img => {
+          const urlContainsVendorId = img.url && img.url.includes(`/${vendorIdStr}/`);
+          if (!urlContainsVendorId) {
+            console.warn(`⚠️ Image URL does not contain vendor ID ${vendorIdStr}:`, img.url);
+          }
+          return urlContainsVendorId;
+        });
+        
+        if (vendorSpecificImages.length > 0) {
+          allStorageImages = vendorSpecificImages;
+          console.log(`✅ Found ${vendorSpecificImages.length} vendor-specific catalog images in bucket ${bucket}`);
+          break;
+        } else {
+          console.warn(`⚠️ No vendor-specific images found in bucket ${bucket}, trying next bucket...`);
+        }
       }
     }
 
-    console.log('All storage catalog images found:', allStorageImages.length);
+    console.log('All storage catalog images found (vendor-specific):', allStorageImages.length);
 
     // Transform storage images to the format expected by VendorProfile
     const transformedImages = allStorageImages.map(img => ({
@@ -939,6 +953,7 @@ export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>
       'phone_number', 'alternate_number', 'whatsapp_number', 'email', 'instagram', 'address', 'google_maps_link',
       'experience', 'events_completed', 'quick_intro', 'caption', 'detailed_intro', 'highlight_features',
       'starting_price', 'languages', 'languages_spoken', 'verified', 'currently_available',
+      'rating', 'review_count',  // Rating fields
       'services', 'packages', 'deliverables', 'booking_policies', 'additional_info'
     ];
     
@@ -2074,7 +2089,7 @@ export const reviewVendorProfileChange = async (
                   const bucketIndex = pathParts.findIndex(part => possibleBuckets.includes(part));
                   if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
                     filePath = pathParts.slice(bucketIndex + 1).join('/');
-                  } else {
+            } else {
                     const filename = pathParts[pathParts.length - 1];
                     filePath = `${vendorIdStr}/catalog/${filename}`;
                   }

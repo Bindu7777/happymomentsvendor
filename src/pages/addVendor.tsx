@@ -56,7 +56,7 @@ type VendorFormInputs = {
   // Basic Information
   brand_name?: string;
   spoc_name?: string;
-  category?: string;
+  category?: string[];  // Changed to array for multiple categories
   subcategory?: string;
   
   // Contact Information
@@ -76,6 +76,8 @@ type VendorFormInputs = {
   // highlight_features column was deleted from database
   service_areas?: string[];
   starting_price?: number;
+  rating?: number;
+  review_count?: number;
   
   // JSON Fields (will be stored as JSON)
   services?: Array<{
@@ -119,6 +121,7 @@ export default function AddVendor() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [showStatesDropdown, setShowStatesDropdown] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Handle state selection
   const handleStateToggle = (stateValue: string) => {
@@ -170,7 +173,7 @@ export default function AddVendor() {
       // Basic Information
       brand_name: "",
       spoc_name: "",
-      category: "",
+      category: [],
       subcategory: "",
       
       // Contact Information
@@ -241,6 +244,17 @@ export default function AddVendor() {
 
 
   const onSubmit = async (data: VendorFormInputs) => {
+    // Validate categories
+    if (!data.category || !Array.isArray(data.category) || data.category.length === 0) {
+      toast.current?.show({
+        severity: "error",
+        summary: "Error",
+        detail: "Please select at least one category.",
+        life: 3000,
+      });
+      return;
+    }
+
     // Validate service areas
     if (!selectedStates || selectedStates.length === 0) {
       toast.current?.show({
@@ -355,6 +369,11 @@ export default function AddVendor() {
 
       const processedData = processJsonFields(data);
 
+      // Process category - ensure it's an array
+      const categoryArray = Array.isArray(processedData.category) 
+        ? processedData.category 
+        : (processedData.category ? [processedData.category] : []);
+
       // Process service_areas into additional_info
       const { service_areas, ...dataWithoutServiceAreas } = processedData;
       const additional_info = {
@@ -364,10 +383,12 @@ export default function AddVendor() {
 
       const vendorData = {
         ...dataWithoutServiceAreas,
+        category: categoryArray,  // Ensure category is always an array
         additional_info,
         verified: processedData.verified || false,
         currently_available: processedData.currently_available !== false,
-        // rating and review_count columns were deleted from database
+        rating: processedData.rating || 0,
+        review_count: processedData.review_count || 0,
         // customer_reviews column was deleted from database
       };
 
@@ -450,21 +471,78 @@ export default function AddVendor() {
 
               <div>
                 <label className="block font-medium mb-2 text-gray-700">Category *</label>
-                <select
-                  {...register("category", { 
-                    required: "Category is required"
+                {/* Hidden input for form validation */}
+                <input
+                  type="hidden"
+                  {...register("category", {
+                    validate: (value) => {
+                      if (!value || !Array.isArray(value) || value.length === 0) {
+                        return "Please select at least one category";
+                      }
+                      return true;
+                    }
                   })}
-                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Select Category</option>
-                  {CATEGORY_LIST.map((category) => (
-                    <option key={category.code} value={category.name}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                />
+                <div className="border border-gray-300 rounded-lg p-4 bg-white min-h-[200px] max-h-[300px] overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {CATEGORY_LIST.map((category) => {
+                      const isSelected = selectedCategories.includes(category.name);
+                      return (
+                        <div key={category.code} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`category-${category.code}`}
+                            checked={isSelected}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                const newCategories = [...selectedCategories, category.name];
+                                setSelectedCategories(newCategories);
+                                setValue('category', newCategories, { shouldValidate: true });
+                              } else {
+                                const newCategories = selectedCategories.filter(cat => cat !== category.name);
+                                setSelectedCategories(newCategories);
+                                setValue('category', newCategories, { shouldValidate: true });
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`category-${category.code}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                          >
+                            {category.name}
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                {selectedCategories.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedCategories.map((cat) => (
+                      <span
+                        key={cat}
+                        className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
+                      >
+                        {cat}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newCategories = selectedCategories.filter(c => c !== cat);
+                            setSelectedCategories(newCategories);
+                            setValue('category', newCategories, { shouldValidate: true });
+                          }}
+                          className="hover:text-blue-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {errors.category && (
                   <p className="text-red-500 text-sm mt-1">{errors.category.message}</p>
+                )}
+                {selectedCategories.length === 0 && !errors.category && (
+                  <p className="text-gray-500 text-sm mt-1">Please select at least one category</p>
                 )}
               </div>
 
@@ -516,6 +594,46 @@ export default function AddVendor() {
                 <p className="text-sm text-gray-500 mt-1">Enter your starting price in rupees</p>
                 {errors.starting_price && (
                   <p className="text-red-500 text-sm mt-1">{errors.starting_price.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Rating (0-5) *</label>
+                <input
+                  {...register("rating", { 
+                    required: "Rating is required",
+                    min: { value: 0, message: "Rating must be at least 0" },
+                    max: { value: 5, message: "Rating must be at most 5" },
+                    valueAsNumber: true
+                  })}
+                  type="number"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 4.5"
+                />
+                <p className="text-sm text-gray-500 mt-1">Enter vendor rating (0.0 to 5.0)</p>
+                {errors.rating && (
+                  <p className="text-red-500 text-sm mt-1">{errors.rating.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block font-medium mb-2 text-gray-700">Review Count</label>
+                <input
+                  {...register("review_count", { 
+                    min: { value: 0, message: "Review count must be at least 0" },
+                    valueAsNumber: true
+                  })}
+                  type="number"
+                  min="0"
+                  className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 25"
+                />
+                <p className="text-sm text-gray-500 mt-1">Number of reviews received (optional)</p>
+                {errors.review_count && (
+                  <p className="text-red-500 text-sm mt-1">{errors.review_count.message}</p>
                 )}
               </div>
             </div>

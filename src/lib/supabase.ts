@@ -45,7 +45,8 @@ export interface Vendor {
   detailed_intro?: string
   // highlight_features column was deleted from database
   events_completed?: number
-  // rating and review_count columns were deleted from database
+  rating?: number
+  review_count?: number
   verified?: boolean
   currently_available?: boolean
   starting_price?: number

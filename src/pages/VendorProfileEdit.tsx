@@ -96,7 +96,6 @@ type VendorEditForm = {
     description: string;
     features: string[];
   }>;
-  deliverables?: string[];
   catalog_images?: string[];
   catalog_images_metadata?: any[];
   booking_policies?: {
@@ -216,7 +215,6 @@ const VendorProfileEdit: React.FC = () => {
       languages: [],
       services: [],
       packages: [],
-      deliverables: [],
         catalog_images: [],
         catalog_images_metadata: [],
       booking_policies: {
@@ -248,10 +246,6 @@ const VendorProfileEdit: React.FC = () => {
     name: "packages" as any
   });
 
-  const { fields: deliverableFields, append: appendDeliverable, remove: removeDeliverable } = useFieldArray({
-    control,
-    name: "deliverables" as any
-  });
 
   const { fields: catalogImageFields, append: appendCatalogImage, remove: removeCatalogImage } = useFieldArray({
     control,
@@ -563,7 +557,6 @@ const VendorProfileEdit: React.FC = () => {
       // Array fields
       services: uniqueServices,
       packages: vendorData.packages || [],
-      deliverables: vendorData.deliverables || [],
         catalog_images: catalogImagesData || [],
         catalog_images_metadata: vendorData.catalog_images_metadata || catalogImagesWithMeta || [],
       
@@ -751,14 +744,6 @@ const VendorProfileEdit: React.FC = () => {
         console.log('Error clearing packages:', e);
     }
     
-      try {
-    while (deliverableFields.length > 0) {
-      removeDeliverable(0);
-    }
-      } catch (e) {
-        console.log('Error clearing deliverables:', e);
-      }
-      
     
       try {
     while (customFields.length > 0) {
@@ -838,18 +823,6 @@ const VendorProfileEdit: React.FC = () => {
         appendPackage(pkg);
       });
 
-    // Add sample deliverables
-    const sampleDeliverables = [
-      "High-resolution edited photos",
-      "Online gallery access",
-      "USB drive with all photos",
-      "Same-day highlight reel",
-      "Professional photo album",
-      "Social media ready images"
-    ];
-    sampleDeliverables.forEach(deliverable => {
-        appendDeliverable(deliverable);
-      });
 
     // Add sample catalog images
     const sampleCatalogImages = [
@@ -1173,18 +1146,32 @@ const VendorProfileEdit: React.FC = () => {
       let bucketUsed = '';
       let folderUsed = '';
       
-      // Try to find catalog images in different buckets
+      // Try to find catalog images in different buckets - ONLY vendor-specific
+      const vendorIdStr = vendorId.toString();
       for (const bucket of possibleBuckets) {
-        console.log(`Trying bucket: ${bucket} for catalog images`);
+        console.log(`Trying bucket: ${bucket} for catalog images (vendor: ${vendorIdStr})`);
         
         // Use the catalog-specific function that filters properly
         const catalogImages = await getVendorCatalogImagesFromStorage(vendorId, bucket);
         if (catalogImages.length > 0) {
-          storageImages = catalogImages;
-          bucketUsed = bucket;
-          folderUsed = 'catalog';
-          console.log(`Found ${catalogImages.length} catalog images in bucket ${bucket}`);
-          break;
+          // Double-check that all images belong to this vendor by verifying URL contains vendor ID
+          const vendorSpecificImages = catalogImages.filter(img => {
+            const urlContainsVendorId = img.url && img.url.includes(`/${vendorIdStr}/`);
+            if (!urlContainsVendorId) {
+              console.warn(`⚠️ Image URL does not contain vendor ID ${vendorIdStr}:`, img.url);
+            }
+            return urlContainsVendorId;
+          });
+          
+          if (vendorSpecificImages.length > 0) {
+            storageImages = vendorSpecificImages;
+            bucketUsed = bucket;
+            folderUsed = 'catalog';
+            console.log(`✅ Found ${vendorSpecificImages.length} vendor-specific catalog images in bucket ${bucket}`);
+            break;
+          } else {
+            console.warn(`⚠️ No vendor-specific images found in bucket ${bucket}, trying next bucket...`);
+          }
         }
       }
       
@@ -1394,7 +1381,6 @@ const VendorProfileEdit: React.FC = () => {
         languages: vendor.languages || vendor.languages_spoken || [],  // Include languages field
         services: vendor.services || [],
         packages: vendor.packages || [],
-        deliverables: vendor.deliverables || [],
         catalog_images: originalCatalogImages || [],
         catalog_images_metadata: vendor.catalog_images_metadata || [],
         booking_policies: vendor.booking_policies || undefined,
@@ -1485,7 +1471,6 @@ const VendorProfileEdit: React.FC = () => {
             ? ((pkg.features as unknown) as string).split(',').map(f => f.trim()).filter(f => f !== '')
             : pkg.features || []
         })) || [],
-        deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
         catalog_images: [...(data.catalog_images?.filter(img => img && img.trim() !== '') || []), ...uploadedImageUrls],
         catalog_images_metadata: data.catalog_images_metadata || [],
         booking_policies: data.booking_policies ? {
@@ -1987,7 +1972,6 @@ const VendorProfileEdit: React.FC = () => {
                           'languages': 'Languages',
                           'services': 'Services',
                           'packages': 'Packages',
-                          'deliverables': 'Deliverables',
                           'booking_policies': 'Booking Policies',
                           'additional_info': 'Additional Information',
                           'currently_available': 'Currently Available',
@@ -2765,44 +2749,6 @@ const VendorProfileEdit: React.FC = () => {
                     No services added yet. Click "Add Service" to get started.
                   </p>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Deliverables */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Deliverables</span>
-                <Button
-                  type="button"
-                  onClick={() => appendDeliverable("")}
-                  variant="outline"
-                  size="sm"
-                >
-                  Add Deliverable
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {deliverableFields.map((field, index) => (
-                  <div key={field.id} className="flex gap-2">
-                    <Input
-                      {...register(`deliverables.${index}` as const)}
-                      placeholder="Enter what you will deliver"
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      onClick={() => removeDeliverable(index)}
-                      variant="outline"
-                      size="sm"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>

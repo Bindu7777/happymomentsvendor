@@ -21,7 +21,8 @@ import {
   Crown,
   RefreshCw,
   Archive,
-  Send
+  Send,
+  Bot
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Vendor } from "@/lib/supabase";
@@ -31,6 +32,7 @@ import ConfirmationModal from "@/components/ConfirmationModal";
 import SuccessModal from "@/components/SuccessModal";
 import InputModal from "@/components/InputModal";
 import AdminSendCustomerModal from "@/components/AdminSendCustomerModal";
+import MomoChat from "@/components/MomoChat";
 
 interface DashboardStats {
   totalVendors: number;
@@ -778,6 +780,17 @@ const AdminDashboard = () => {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab("momo")}
+                className={`py-6 px-4 border-b-3 font-semibold text-sm transition-all duration-300 rounded-t-2xl ${
+                  activeTab === "momo"
+                    ? "border-purple-500 text-slate-800 bg-gradient-to-b from-purple-50 to-transparent"
+                    : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+                }`}
+              >
+                <Bot className="w-5 h-5 inline-block mr-3" />
+                Momo AI Advisor
+              </button>
             </nav>
           </div>
         </div>
@@ -1496,6 +1509,13 @@ const AdminDashboard = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Momo AI Advisor Tab */}
+        {activeTab === "momo" && (
+          <div className="h-[calc(100vh-250px)]">
+            <MomoChat vendors={vendors} />
           </div>
         )}
           </div>

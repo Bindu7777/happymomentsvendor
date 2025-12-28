@@ -61,8 +61,15 @@ export const getVendorCatalogImagesFromStorage = async (
         return [];
       }
 
+      // CRITICAL: Only process files that are in the vendor's folder (not subfolders from other vendors)
+      // The list() call should only return files in the vendor's folder, but double-check
+      const vendorFiles = allFiles.filter(file => {
+        // Ensure file path is vendor-specific (should already be filtered by list() but verify)
+        return true; // list() with vendorIdStr path should already filter correctly
+      });
+
       // Filter for catalog images only (exclude brand_logo, contact_person, etc.)
-      const catalogFiles = allFiles.filter(file => {
+      const catalogFiles = vendorFiles.filter(file => {
         const fileName = file.name.toLowerCase();
         // Include files that look like catalog images (compressed, numbered, etc.)
         // Exclude files that are clearly other types

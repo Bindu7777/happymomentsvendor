@@ -437,7 +437,7 @@ const Hero = () => {
           {!showSmartRequest && (
             <>
               {/* OR Separator - Redesigned */}
-              <div className="flex items-center justify-center my-16 md:my-20 lg:my-24 w-full">
+              <div className="flex items-center justify-center my-6 md:my-8 w-full">
                 <div className="flex items-center relative w-full max-w-md">
                   {/* Decorative elements */}
                   <div className="absolute -left-3 md:-left-4 top-1/2 transform -translate-y-1/2">
@@ -463,7 +463,7 @@ const Hero = () => {
               </div>
 
               {/* Traditional Search - Secondary */}
-              <div className="w-full max-w-6xl mx-auto mt-16 md:mt-20 lg:mt-24 bg-white/95 backdrop-blur-md p-6 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl shadow-xl border border-white/30">
+              <div className="w-full max-w-6xl mx-auto mt-4 md:mt-6 bg-white/95 backdrop-blur-md p-6 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl shadow-xl border border-white/30">
                 <div className="text-center mb-6 md:mb-8">
                   <h3 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-800 mb-3">Or search the traditional way</h3>
                   <p className="text-base md:text-lg text-gray-600">Use our filters to browse vendors by category and location</p>

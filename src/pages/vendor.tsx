@@ -1148,10 +1148,10 @@ const VendorProfile = () => {
         <div className="hidden lg:block min-h-[80vh]">
         <div className="relative z-10 container mx-auto px-6 py-4">
           <div className="max-w-8xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch min-h-[60vh]">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start min-h-[60vh]">
               
               {/* Left Side - Main Content Card */}
-              <div className="flex justify-center lg:justify-start lg:col-span-7 relative">
+              <div className="flex justify-center lg:justify-start lg:col-span-7 relative items-start">
                 {/* Subtle divider line */}
                 <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent"></div>
                 <div className="w-full max-w-[800px] animate-card-slide-up">
@@ -1329,9 +1329,9 @@ const VendorProfile = () => {
               </div>
 
               {/* Right Side - Gallery Carousel */}
-              <div className="flex justify-center lg:justify-end lg:col-span-5 h-full">
-                <div className="w-full max-w-[600px] h-full flex flex-col animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-                  <div className="relative rounded-3xl overflow-hidden shadow-2xl flex-1 bg-gradient-to-br from-gray-100 to-gray-200">
+              <div className="flex justify-center lg:justify-end lg:col-span-5 items-start">
+                <div className="w-full max-w-[600px] flex flex-col animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                  <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-gray-100 to-gray-200" style={{ minHeight: '500px' }}>
                     <img 
                       src={highlightedCatalogImages.length > 0 ? highlightedCatalogImages[currentSlide]?.media_url : vendor.avatar_url || "/images/vendor.jpeg"} 
                       alt={vendor.brand_name}

@@ -60,7 +60,7 @@ type VendorEditForm = {
   // Basic Information
   brand_name: string;
   spoc_name: string;
-  category: string;
+  category: string[];  // Changed to array for multiple categories
   subcategory?: string;
   brand_logo_url?: string;  // Brand logo URL from vendor_media
   contact_person_image_url?: string;  // Contact person image URL from vendor_media
@@ -103,6 +103,7 @@ type VendorEditForm = {
     cancellation_policy?: string;
     payment_terms?: string;
     booking_requirements?: string;
+    advance?: string;
   };
   additional_info?: {
     working_hours?: string;
@@ -147,6 +148,7 @@ const VendorProfileEdit: React.FC = () => {
   const [originalCatalogImages, setOriginalCatalogImages] = useState<string[]>([]);
   const [originalBrandLogoUrl, setOriginalBrandLogoUrl] = useState<string>('');
   const [originalContactPersonImageUrl, setOriginalContactPersonImageUrl] = useState<string>('');
+  const [originalCategories, setOriginalCategories] = useState<string[]>([]); // Store original categories from form load
   const [catalogImagesWithMeta, setCatalogImagesWithMeta] = useState<any[]>([]);
   const [isLoadingFormData, setIsLoadingFormData] = useState(false);
   const [highlightMessage, setHighlightMessage] = useState<string>('');
@@ -157,6 +159,21 @@ const VendorProfileEdit: React.FC = () => {
   const [deleteConfirmData, setDeleteConfirmData] = useState<any>(null);
   const [selectedStates, setSelectedStates] = useState<string[]>([]);
   const [showStatesDropdown, setShowStatesDropdown] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+
+  // Close category dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showCategoryDropdown && !(event.target as Element).closest('.category-dropdown-container')) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    if (showCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showCategoryDropdown]);
 
   // Debug useEffect to monitor catalogImagesWithMeta changes
   useEffect(() => {
@@ -180,7 +197,7 @@ const VendorProfileEdit: React.FC = () => {
     defaultValues: {
       brand_name: '',
       spoc_name: '',
-      category: '',
+      category: [],  // Changed to array - validation will be done in onSubmit
       subcategory: '',
       phone_number: '',
       alternate_number: '',
@@ -205,7 +222,8 @@ const VendorProfileEdit: React.FC = () => {
       booking_policies: {
         cancellation_policy: '',
         payment_terms: '',
-        booking_requirements: ''
+        booking_requirements: '',
+        advance: ''
       },
       additional_info: {
         working_hours: '',
@@ -474,7 +492,48 @@ const VendorProfileEdit: React.FC = () => {
       // Basic Information
       brand_name: vendorData.brand_name || '',
       spoc_name: vendorData.spoc_name || '',
-      category: vendorData.category || '',
+      // PRIORITIZE categories field (new field) over category (old field)
+      // Also clean malformed entries like ["{Caterers}"] or ["{\"Event Planners\"}"]
+      category: (() => {
+        const normalizeCategories = (cats: any): string[] => {
+          if (!cats) return [];
+          if (Array.isArray(cats)) {
+            return cats
+              .map((cat: any) => {
+                if (typeof cat === 'string') {
+                  // Remove curly braces, escaped quotes, and trim
+                  let cleaned = cat.replace(/^\{+|\}+$/g, '').replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+                  return cleaned;
+                }
+                return String(cat).trim();
+              })
+              .filter((cat: string) => cat && cat !== '');
+          }
+          if (typeof cats === 'string') {
+            return [cats.trim()].filter(c => c !== '');
+          }
+          return [];
+        };
+
+        // First check categories field (the new array field) - PRIORITIZE THIS
+        if (vendorData.categories !== undefined && vendorData.categories !== null) {
+          const normalized = normalizeCategories(vendorData.categories);
+          console.log('Loading categories from categories field:', vendorData.categories, '-> normalized:', normalized);
+          if (normalized.length > 0) {
+            return normalized;
+          }
+        }
+        // Fallback to category field (legacy support)
+        if (vendorData.category !== undefined && vendorData.category !== null) {
+          const normalized = normalizeCategories(vendorData.category);
+          console.log('Loading categories from category field (fallback):', vendorData.category, '-> normalized:', normalized);
+          if (normalized.length > 0) {
+            return normalized;
+          }
+        }
+        console.log('No categories found, returning empty array');
+        return [];
+      })(),
       subcategory: vendorData.subcategory || '',
       brand_logo_url: brandLogoUrl || '',
       contact_person_image_url: contactPersonImageUrl || '',
@@ -500,7 +559,6 @@ const VendorProfileEdit: React.FC = () => {
       catalog_highlights_updated: '',
       
       // Array fields
-      highlight_features: vendorData.highlight_features || [],
       services: uniqueServices,
       packages: vendorData.packages || [],
       deliverables: vendorData.deliverables || [],
@@ -511,22 +569,32 @@ const VendorProfileEdit: React.FC = () => {
       booking_policies: {
         cancellation_policy: vendorData.booking_policies?.cancellation_policy || '',
         payment_terms: vendorData.booking_policies?.payment_terms || '',
-        booking_requirements: vendorData.booking_policies?.booking_requirements || ''
+        booking_requirements: vendorData.booking_policies?.booking_requirements || '',
+        advance: vendorData.booking_policies?.advance || ''
       },
       additional_info: {
         working_hours: vendorData.additional_info?.working_hours || '',
-        languages: Array.isArray(vendorData.additional_info?.languages) 
-          ? vendorData.additional_info.languages.join(', ')
-          : (vendorData.additional_info?.languages || ''),
+        languages: (() => {
+          const lang = vendorData.additional_info?.languages;
+          if (Array.isArray(lang)) return lang as string[];
+          if (typeof lang === 'string') return (lang as string).split(',').map(l => l.trim()).filter(l => l !== '') as string[];
+          return [] as string[];
+        })(),
         service_areas: Array.isArray(vendorData.additional_info?.service_areas) 
           ? vendorData.additional_info.service_areas
           : [],
-        awards: Array.isArray(vendorData.additional_info?.awards)
-          ? vendorData.additional_info.awards.join(', ')
-          : (vendorData.additional_info?.awards || ''),
-        certifications: Array.isArray(vendorData.additional_info?.certifications)
-          ? vendorData.additional_info.certifications.join(', ')
-          : (vendorData.additional_info?.certifications || ''),
+        awards: (() => {
+          const awards = vendorData.additional_info?.awards;
+          if (Array.isArray(awards)) return awards as string[];
+          if (typeof awards === 'string') return (awards as string).split(',').map(a => a.trim()).filter(a => a !== '') as string[];
+          return [] as string[];
+        })(),
+        certifications: (() => {
+          const certs = vendorData.additional_info?.certifications;
+          if (Array.isArray(certs)) return certs as string[];
+          if (typeof certs === 'string') return (certs as string).split(',').map(c => c.trim()).filter(c => c !== '') as string[];
+          return [] as string[];
+        })(),
         custom_fields: vendorData.additional_info?.custom_fields || []
       }
     };
@@ -534,6 +602,11 @@ const VendorProfileEdit: React.FC = () => {
     console.log('Resetting form with complete data:', formData);
     console.log('Brand logo URL being set:', brandLogoUrl);
     console.log('Contact person image URL being set:', contactPersonImageUrl);
+    
+    // Store original categories for comparison later (before reset)
+    const normalizedCategories = formData.category || [];
+    setOriginalCategories(normalizedCategories);
+    console.log('Storing original categories for comparison:', normalizedCategories);
     
     // Reset the entire form with new data - this clears everything and sets new values
     reset(formData);
@@ -556,6 +629,37 @@ const VendorProfileEdit: React.FC = () => {
       console.log('✅ contact_person_image_url set in form');
     } else {
       console.log('⚠️ No contactPersonImageUrl to set');
+    }
+    
+    // CRITICAL: Explicitly set categories to ensure they're populated in the form
+    // This is needed because sometimes reset() doesn't properly set array fields
+    console.log('Setting categories in form - formData.category:', formData.category, 'Type:', typeof formData.category, 'IsArray:', Array.isArray(formData.category));
+    
+    // Ensure originalCategories is set (it should already be set above, but double-check)
+    if (normalizedCategories && normalizedCategories.length > 0) {
+      console.log('✅ originalCategories already set:', normalizedCategories);
+    } else if (formData.category && Array.isArray(formData.category) && formData.category.length > 0) {
+      // Fallback: set it here if it wasn't set above
+      setOriginalCategories(formData.category);
+      console.log('Setting originalCategories as fallback:', formData.category);
+    }
+    
+    if (formData.category && Array.isArray(formData.category) && formData.category.length > 0) {
+      console.log('Explicitly setting categories via setValue:', formData.category);
+      setValue('category', formData.category, { shouldValidate: false, shouldDirty: false });
+      // Verify it was set after a short delay
+      setTimeout(() => {
+        const currentValue = watch('category');
+        console.log('Categories after setValue - current value:', currentValue, 'IsArray:', Array.isArray(currentValue), 'Length:', Array.isArray(currentValue) ? currentValue.length : 'N/A');
+        if (!Array.isArray(currentValue) || currentValue.length === 0) {
+          console.error('WARNING: Categories were not set correctly! Attempting to set again...');
+          setValue('category', formData.category, { shouldValidate: false, shouldDirty: false });
+        } else {
+          console.log('✅ Categories successfully set in form');
+        }
+      }, 200);
+    } else {
+      console.warn('⚠️ No categories to set or categories is not an array:', formData.category);
     }
     
     // Verify the values were set
@@ -833,7 +937,7 @@ const VendorProfileEdit: React.FC = () => {
         setOriginalBrandLogoUrl('');
         
         if (success) {
-          setHighlightMessage('✅ Brand logo removed successfully!');
+        setHighlightMessage('✅ Brand logo removed successfully!');
         } else {
           setHighlightMessage('⚠️ Brand logo removed from form, but file may still exist in storage.');
         }
@@ -876,7 +980,7 @@ const VendorProfileEdit: React.FC = () => {
         setOriginalContactPersonImageUrl('');
         
         if (success) {
-          setHighlightMessage('✅ Contact person image removed successfully!');
+        setHighlightMessage('✅ Contact person image removed successfully!');
         } else {
           setHighlightMessage('⚠️ Contact person image removed from form, but file may still exist in storage.');
         }
@@ -1109,7 +1213,36 @@ const VendorProfileEdit: React.FC = () => {
       const currentData = {
         brand_name: vendor.brand_name || '',
         spoc_name: vendor.spoc_name || '',
-        category: vendor.category || '',
+        // CRITICAL FIX: Use the EXACT SAME normalization as processedFormData
+        // This ensures they match if categories weren't changed
+        category: (() => {
+          // Use the SAME normalization function as processedFormData.category
+          const normalizeCategories = (cats: any): string[] => {
+            if (!cats) return [];
+            if (Array.isArray(cats)) {
+              return cats
+                .map((cat: any) => {
+                  if (typeof cat === 'string') {
+                    // Remove curly braces, escaped quotes, and trim
+                    let cleaned = cat.replace(/^\{+|\}+$/g, '').replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+                    return cleaned;
+                  }
+                  return String(cat).trim();
+                })
+                .filter((cat: string) => cat && cat !== '')
+                .sort(); // Sort for consistent comparison
+            }
+            if (typeof cats === 'string') {
+              return [cats.trim()].filter(c => c !== '').sort();
+            }
+            return [];
+          };
+          
+          // ALWAYS use the form's current value with the SAME normalization
+          const normalized = normalizeCategories(data.category);
+          console.log('currentData.category - Using form data.category with same normalization:', data.category, '->', normalized);
+          return normalized;
+        })(),
         subcategory: vendor.subcategory || '',
         brand_logo_url: originalBrandLogoUrl || '', // Use original value for comparison
         contact_person_image_url: originalContactPersonImageUrl || '', // Use original value for comparison
@@ -1125,7 +1258,6 @@ const VendorProfileEdit: React.FC = () => {
         quick_intro: vendor.quick_intro || '',
         caption: vendor.caption || '',
         detailed_intro: vendor.detailed_intro || '',
-        highlight_features: vendor.highlight_features || [],
         starting_price: vendor.starting_price || 0,
         languages: vendor.languages || vendor.languages_spoken || [],  // Include languages field
         services: vendor.services || [],
@@ -1145,7 +1277,57 @@ const VendorProfileEdit: React.FC = () => {
       const processedFormData = {
         brand_name: data.brand_name || '',
         spoc_name: data.spoc_name || '',
-        category: data.category || '',
+        // Normalize categories - ensure it's a sorted array for consistent comparison with currentData
+        category: (() => {
+          const normalizeCategories = (cats: any): string[] => {
+            if (!cats) return [];
+            if (Array.isArray(cats)) {
+              return cats
+                .map((cat: any) => {
+                  if (typeof cat === 'string') {
+                    // Remove curly braces, escaped quotes, and trim
+                    let cleaned = cat.replace(/^\{+|\}+$/g, '').replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+                    return cleaned;
+                  }
+                  return String(cat).trim();
+                })
+                .filter((cat: string) => cat && cat !== '')
+                .sort(); // Sort for consistent comparison
+            }
+            if (typeof cats === 'string') {
+              return [cats.trim()].filter(c => c !== '').sort();
+            }
+            return [];
+          };
+          
+          const normalized = normalizeCategories(data.category);
+          console.log('processedFormData - Normalizing category:', data.category, '-> normalized:', normalized);
+          return normalized;
+        })(),
+        categories: (() => {
+          // Use the same normalization as category
+          const normalizeCategories = (cats: any): string[] => {
+            if (!cats) return [];
+            if (Array.isArray(cats)) {
+              return cats
+                .map((cat: any) => {
+                  if (typeof cat === 'string') {
+                    let cleaned = cat.replace(/^\{+|\}+$/g, '').replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+                    return cleaned;
+                  }
+                  return String(cat).trim();
+                })
+                .filter((cat: string) => cat && cat !== '')
+                .sort(); // Sort for consistent comparison
+            }
+            if (typeof cats === 'string') {
+              return [cats.trim()].filter(c => c !== '').sort();
+            }
+            return [];
+          };
+          
+          return normalizeCategories(data.category);
+        })(),
         subcategory: data.subcategory || '',
         brand_logo_url: data.brand_logo_url || '', // Added brand logo
         contact_person_image_url: data.contact_person_image_url || '', // Added contact person image
@@ -1161,7 +1343,7 @@ const VendorProfileEdit: React.FC = () => {
         quick_intro: data.quick_intro || '',
         caption: data.caption || '',
         detailed_intro: data.detailed_intro || '',
-        highlight_features: data.highlight_features?.filter(h => h && h.trim() !== '') || [],
+        highlight_features: data.highlight_features?.filter(h => h && h.trim() !== '').slice(0, 4) || [],
         starting_price: data.starting_price || 0,
         languages: data.languages?.filter(l => l && l.trim() !== '') || [],  // Save to new languages field
         services: data.services?.filter(s => s.name && s.name.trim() !== '') || [],
@@ -1177,22 +1359,32 @@ const VendorProfileEdit: React.FC = () => {
         booking_policies: data.booking_policies ? {
           cancellation_policy: data.booking_policies.cancellation_policy || '',
           payment_terms: data.booking_policies.payment_terms || '',
-          booking_requirements: data.booking_policies.booking_requirements || ''
+          booking_requirements: data.booking_policies.booking_requirements || '',
+          advance: data.booking_policies.advance || ''
         } : undefined,
         additional_info: data.additional_info ? {
           working_hours: data.additional_info.working_hours || '',
-          languages: typeof data.additional_info.languages === 'string' 
-            ? data.additional_info.languages.split(',').map(l => l.trim()).filter(l => l !== '')
-            : (data.additional_info.languages || []),
+          languages: (() => {
+            const lang: any = data.additional_info.languages;
+            if (Array.isArray(lang)) return lang as string[];
+            if (typeof lang === 'string') return lang.split(',').map((l: string) => l.trim()).filter((l: string) => l !== '') as string[];
+            return [] as string[];
+          })(),
           service_areas: Array.isArray(data.additional_info.service_areas) 
             ? data.additional_info.service_areas
-            : (data.additional_info.service_areas || []),
-          awards: typeof data.additional_info.awards === 'string'
-            ? data.additional_info.awards.split(',').map(a => a.trim()).filter(a => a !== '')
-            : (data.additional_info.awards || []),
-          certifications: typeof data.additional_info.certifications === 'string'
-            ? data.additional_info.certifications.split(',').map(c => c.trim()).filter(c => c !== '')
-            : (data.additional_info.certifications || []),
+            : [],
+          awards: (() => {
+            const awards = data.additional_info.awards;
+            if (Array.isArray(awards)) return awards as string[];
+            if (typeof awards === 'string') return (awards as string).split(',').map(a => a.trim()).filter(a => a !== '') as string[];
+            return [] as string[];
+          })(),
+          certifications: (() => {
+            const certs = data.additional_info.certifications;
+            if (Array.isArray(certs)) return certs as string[];
+            if (typeof certs === 'string') return (certs as string).split(',').map(c => c.trim()).filter(c => c !== '') as string[];
+            return [] as string[];
+          })(),
           custom_fields: data.additional_info.custom_fields?.filter(f => 
             f.field_name && f.field_name.trim() !== '' && f.field_value && f.field_value.trim() !== ''
           ) || []
@@ -1283,10 +1475,19 @@ const VendorProfileEdit: React.FC = () => {
         }
         
         // Skip if both values are effectively empty or both are undefined
+        // Exception: Always include email and alternate_number if newValue is not empty (even if currentValue is empty)
+        if (key !== 'email' && key !== 'alternate_number') {
         if ((isEffectivelyEmpty(currentValue) && isEffectivelyEmpty(newValue)) ||
             (currentValue === undefined && newValue === undefined)) {
           console.log(`Skipping ${key} - both effectively empty or undefined`);
           return;
+          }
+        } else {
+          // For email and alternate_number, only skip if newValue is also empty
+          if (isEffectivelyEmpty(newValue) && isEffectivelyEmpty(currentValue)) {
+            console.log(`Skipping ${key} - both effectively empty`);
+            return;
+          }
         }
         
         // Normalize values for comparison (sort object keys, handle null/undefined)
@@ -1336,6 +1537,63 @@ const VendorProfileEdit: React.FC = () => {
           
           console.log('Normalized current services:', normalizedCurrent);
           console.log('Normalized new services:', normalizedNew);
+        }
+        
+        // Special handling for category/categories - normalize and sort arrays before comparison
+        if (key === 'category' || key === 'categories') {
+          const normalizeCategories = (cats: any): string[] => {
+            if (!cats) return [];
+            if (Array.isArray(cats)) {
+              return cats
+                .map((cat: any) => {
+                  if (typeof cat === 'string') {
+                    // Remove curly braces, escaped quotes, and trim
+                    let cleaned = cat.replace(/^\{+|\}+$/g, '').replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+                    return cleaned;
+                  }
+                  return String(cat).trim();
+                })
+                .filter((cat: string) => cat && cat !== '')
+                .sort(); // Sort for consistent comparison
+            }
+            if (typeof cats === 'string') {
+              return [cats.trim()].filter(c => c !== '').sort();
+            }
+            return [];
+          };
+          
+          const currentArray = normalizeCategories(currentValue);
+          const newArray = normalizeCategories(newValue);
+          
+          // If both are empty, skip (no change)
+          if (currentArray.length === 0 && newArray.length === 0) {
+            console.log(`✅ Skipping ${key} - both are empty arrays`);
+            return;
+          }
+          
+          // Compare sorted arrays
+          const currentStr = JSON.stringify(currentArray);
+          const newStr = JSON.stringify(newArray);
+          
+          console.log(`=== CATEGORY COMPARISON DEBUG ===`);
+          console.log(`Field: ${key}`);
+          console.log(`Current value (raw):`, currentValue);
+          console.log(`New value (raw):`, newValue);
+          console.log(`Current (normalized & sorted):`, currentArray);
+          console.log(`New (normalized & sorted):`, newArray);
+          console.log(`Current string:`, currentStr);
+          console.log(`New string:`, newStr);
+          console.log(`Are equal:`, currentStr === newStr);
+          console.log(`Current length:`, currentArray.length);
+          console.log(`New length:`, newArray.length);
+          
+          if (currentStr !== newStr) {
+            console.log(`❌ Adding ${key} to changes - categories differ`);
+            proposedChanges[key] = newValue;
+          } else {
+            console.log(`✅ Skipping ${key} - categories are identical (ignoring order and format)`);
+          }
+          return; // Skip the general comparison for categories
         }
         
         // Deep comparison for objects and arrays
@@ -1755,19 +2013,78 @@ const VendorProfileEdit: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category *
+                    Categories * <span className="text-xs text-gray-500">(Select multiple)</span>
                   </label>
-                  <select
-                    {...register("category", { required: "Category is required" })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select Category</option>
-                    {CATEGORY_LIST.map((category) => (
-                      <option key={category.code} value={category.name}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative category-dropdown-container">
+                    <button
+                      type="button"
+                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white text-left flex items-center justify-between"
+                    >
+                      <span className={watch("category")?.length > 0 ? "text-gray-900" : "text-gray-500"}>
+                        {watch("category")?.length > 0 
+                          ? `${watch("category").length} categor${watch("category").length === 1 ? 'y' : 'ies'} selected`
+                          : "Select Categories"}
+                      </span>
+                      <svg 
+                        className={`w-4 h-4 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {showCategoryDropdown && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                        <div className="p-2 space-y-1">
+                          {CATEGORY_LIST.map((category) => {
+                            const currentCategories = watch("category") || [];
+                            const isSelected = Array.isArray(currentCategories) && currentCategories.includes(category.name);
+                            return (
+                              <label
+                                key={category.code}
+                                className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                              >
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => {
+                                    const currentCats = watch("category") || [];
+                                    if (checked) {
+                                      setValue("category", [...currentCats, category.name], { shouldValidate: true });
+                                    } else {
+                                      setValue("category", currentCats.filter((c: string) => c !== category.name), { shouldValidate: true });
+                                    }
+                                  }}
+                                />
+                                <span className="text-sm text-gray-700">{category.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {watch("category")?.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {watch("category").map((cat: string, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="px-2 py-1">
+                          {cat}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentCategories = watch("category") || [];
+                              setValue("category", currentCategories.filter((c: string) => c !== cat), { shouldValidate: true });
+                            }}
+                            className="ml-2 hover:text-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                   {errors.category && (
                     <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
                   )}
@@ -2761,6 +3078,18 @@ const VendorProfileEdit: React.FC = () => {
                   placeholder="Any special requirements for booking"
                   rows={3}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Advance Payment
+                </label>
+                <Input
+                  {...register("booking_policies.advance")}
+                  type="text"
+                  placeholder="e.g., 30% advance, ₹5000 advance, 50% upfront"
+                />
+                <p className="text-xs text-gray-500 mt-1">Enter the advance payment amount or percentage required</p>
               </div>
             </CardContent>
           </Card>

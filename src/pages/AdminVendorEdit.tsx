@@ -105,6 +105,7 @@ type VendorEditForm = {
     cancellation_policy?: string;
     payment_terms?: string;
     booking_requirements?: string;
+    advance?: string;
   };
   additional_info?: {
     working_hours?: string;
@@ -284,7 +285,8 @@ const AdminVendorEdit: React.FC = () => {
         booking_policies: vendorData.booking_policies || {
           cancellation_policy: '',
           payment_terms: '',
-          booking_requirements: ''
+          booking_requirements: '',
+          advance: ''
         },
         additional_info: vendorData.additional_info || {
           working_hours: '',
@@ -379,7 +381,7 @@ const AdminVendorEdit: React.FC = () => {
       // Process the form data
       const processedData = {
         ...data,
-        highlight_features: data.highlight_features?.filter(f => f && f.trim() !== '') || [],
+        highlight_features: data.highlight_features?.filter(f => f && f.trim() !== '').slice(0, 4) || [],
         deliverables: data.deliverables?.filter(d => d && d.trim() !== '') || [],
         services: data.services?.filter(s => s && s.name && s.name.trim() !== '') || [],
         packages: data.packages?.filter(p => p && p.name && p.name.trim() !== '') || [],

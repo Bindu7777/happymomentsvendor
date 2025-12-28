@@ -341,9 +341,13 @@ const VendorsPage = () => {
       
       // Service type filter - more flexible matching
       const matchesServiceType = serviceType === 'all' || (() => {
-        if (!vendor.category) return false;
+        const vendorCategories = Array.isArray(vendor.category) 
+          ? vendor.category 
+          : (vendor.categories || (vendor.category ? [vendor.category] : []));
         
-        const vendorCategory = vendor.category.toLowerCase();
+        if (vendorCategories.length === 0) return false;
+        
+        const vendorCategory = String(vendorCategories[0]).toLowerCase();
         
         switch (serviceType) {
           case 'photography':
@@ -398,9 +402,11 @@ const VendorsPage = () => {
 
       // Debug logging for service type filtering
       if (serviceType !== 'all') {
+        const vendorCategories = Array.isArray(vendor.category) 
+          ? vendor.category 
+          : (vendor.categories || (vendor.category ? [vendor.category] : []));
         console.log(`🔍 Checking vendor ${vendor.brand_name} for service type "${serviceType}":`, {
-          vendor_category: vendor.category,
-          vendor_category_lower: vendor.category?.toLowerCase(),
+          vendor_category: vendorCategories,
           matches_service_type: matchesServiceType
         });
       }

@@ -1370,7 +1370,6 @@ I'm really excited to connect and explore working with you soon! ✨`;
                         onClick={() => window.open('https://maps.google.com/?q=123+Celebration+Street+Hyderabad+Telangana+500001', '_blank')}
                         className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors duration-200 flex items-center gap-1"
                       >
-                        <MapPin className="w-4 h-4" />
                         View on Google Maps
                       </button>
                     </div>
@@ -1439,8 +1438,25 @@ I'm really excited to connect and explore working with you soon! ✨`;
                     </div>
                   )}
 
+                  {/* Advance Payment */}
+                  {vendor.booking_policies?.advance && (
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-white text-sm font-bold">₹</span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-purple-800 mb-2">Advance Payment</h4>
+                          <p className="text-sm text-purple-700 leading-relaxed">
+                            {vendor.booking_policies.advance}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Show message if no policies are available */}
-                  {!vendor.booking_policies?.payment_terms && !vendor.booking_policies?.cancellation_policy && !vendor.booking_policies?.booking_requirements && (
+                  {!vendor.booking_policies?.payment_terms && !vendor.booking_policies?.cancellation_policy && !vendor.booking_policies?.booking_requirements && !vendor.booking_policies?.advance && (
                     <div className="text-center py-8 text-gray-500">
                       <p>No booking policies available for this vendor.</p>
                     </div>

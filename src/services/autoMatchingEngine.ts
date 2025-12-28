@@ -189,7 +189,10 @@ export class AutoMatchingEngine {
     if (this.parsedRequest.eventType) {
       // Check if vendor's services or specialties match the event type
       const eventKeywords = this.getEventKeywords(this.parsedRequest.eventType);
-      const vendorText = `${vendor.category} ${vendor.quick_intro || ''} ${vendor.detailed_intro || ''}`.toLowerCase();
+      const vendorCategories = Array.isArray(vendor.category) 
+        ? vendor.category 
+        : (vendor.categories || (vendor.category ? [vendor.category] : []));
+      const vendorText = `${vendorCategories.join(' ')} ${vendor.quick_intro || ''} ${vendor.detailed_intro || ''}`.toLowerCase();
       
       const hasEventMatch = eventKeywords.some(keyword => 
         vendorText.includes(keyword.toLowerCase())

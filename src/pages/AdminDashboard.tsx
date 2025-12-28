@@ -198,8 +198,13 @@ const AdminDashboard = () => {
         vendor.brand_name.toLowerCase().includes(searchLower) ||
         // Search by contact person name (spoc_name)
         (vendor.spoc_name && vendor.spoc_name.toLowerCase().includes(searchLower)) ||
-        // Search by category
-        vendor.category.toLowerCase().includes(searchLower) ||
+        // Search by category (handle both string and array)
+        (Array.isArray(vendor.category) 
+          ? vendor.category.some(cat => cat.toLowerCase().includes(searchLower))
+          : (vendor.category?.toLowerCase().includes(searchLower) || false)) ||
+        (Array.isArray(vendor.categories) 
+          ? vendor.categories.some(cat => cat.toLowerCase().includes(searchLower))
+          : (vendor.categories?.toLowerCase().includes(searchLower) || false)) ||
         // Search by email
         (vendor.email && vendor.email.toLowerCase().includes(searchLower)) ||
         // Search by phone number

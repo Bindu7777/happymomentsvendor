@@ -267,9 +267,13 @@ const VendorProfile = () => {
   console.log('Final services to display:', services);
   console.log('Services count:', services.length);
 
-  // Get category icon
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
+  // Get category icon - handle both string and array
+  const getCategoryIcon = (category: string | string[]) => {
+    const categoryStr = Array.isArray(category) ? (category[0] || '') : category;
+    if (!categoryStr) return Users;
+    
+    switch (categoryStr.toLowerCase()) {
+      case 'photography/videography':
       case 'photographers': return Camera;
       case 'event planners': return Users;
       case 'venues': return Building2;
@@ -285,7 +289,33 @@ const VendorProfile = () => {
     }
   };
 
-  const CategoryIcon = getCategoryIcon(vendor.category);
+  // Get categories array - PRIORITIZE categories field from database
+  // Clean and normalize the categories array
+  const normalizeCategories = (cats: any): string[] => {
+    if (!cats) return [];
+    if (Array.isArray(cats)) {
+      return cats
+        .map((cat: any) => {
+          // Handle malformed entries like ["{Caterers}"] or ["{\"Event Planners\"}"]
+          if (typeof cat === 'string') {
+            // Remove curly braces and escaped quotes
+            let cleaned = cat.replace(/^\{+|\}+$/g, '').replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+            return cleaned;
+          }
+          return String(cat).trim();
+        })
+        .filter((cat: string) => cat && cat !== '');
+    }
+    if (typeof cats === 'string') {
+      return [cats.trim()].filter(c => c !== '');
+    }
+    return [];
+  };
+
+  // PRIORITIZE categories field (new field), fallback to category (old field)
+  const vendorCategories = normalizeCategories(vendor.categories || vendor.category);
+  
+  const CategoryIcon = getCategoryIcon(vendorCategories);
 
   return (
     <>
@@ -550,16 +580,31 @@ const VendorProfile = () => {
                 )}
                 <p className="text-gray-600 text-xs mb-1 px-2">{vendor.description || vendor.quick_intro || "Professional services for your special day"}</p>
                 
-                {/* Category Badges */}
+                {/* Category Badges - Clean mobile layout */}
                 <div className="flex justify-center gap-2 flex-wrap">
-                  <Badge className="px-3 py-1 text-xs bg-wedding-orange text-white rounded-full font-medium">
-                    <CategoryIcon className="w-3 h-3 mr-1" />
-                    {vendor.category}
-                  </Badge>
-                  <Badge className="px-3 py-1 text-xs bg-pink-500 text-white rounded-full font-medium">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    All Events
-                  </Badge>
+                  {vendorCategories.length > 0 && (
+                    <>
+                      {/* Show first 2 categories on mobile, then "+X more" if more exist */}
+                      {vendorCategories.slice(0, 2).map((cat, idx) => (
+                        <Badge key={idx} className="px-2.5 py-1 text-xs bg-wedding-orange text-white rounded-full font-medium">
+                          <CategoryIcon className="w-3 h-3 mr-1" />
+                          {cat}
+                        </Badge>
+                      ))}
+                      {vendorCategories.length > 2 && (
+                        <Badge className="px-2.5 py-1 text-xs bg-purple-500 text-white rounded-full font-medium">
+                          <Calendar className="w-3 h-3 mr-1" />
+                          +{vendorCategories.length - 2} more
+                        </Badge>
+                      )}
+                    </>
+                  )}
+                  {vendorCategories.length === 0 && (
+                    <Badge className="px-2.5 py-1 text-xs bg-gray-500 text-white rounded-full font-medium">
+                      <CategoryIcon className="w-3 h-3 mr-1" />
+                      Service Provider
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -739,16 +784,31 @@ const VendorProfile = () => {
                     </div>
 
 
-                    {/* Category Badges Row */}
-                    <div className="flex items-center gap-4 mb-10 -mt-10">
-                      <Badge className="px-6 py-3 text-base font-semibold bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
-                        <CategoryIcon className="w-4 h-4" />
-                        {vendor.category}
-                      </Badge>
-                      <Badge className="px-6 py-3 text-base font-semibold bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        All Events
-                      </Badge>
+                    {/* Category Badges Row - Clean layout for multiple categories */}
+                    <div className="flex flex-wrap items-center gap-3 mb-10 -mt-10">
+                      {/* Display categories - show first 3, then "+X more" if more exist */}
+                      {vendorCategories.length > 0 && (
+                        <>
+                          {vendorCategories.slice(0, 3).map((cat, idx) => (
+                            <Badge key={idx} className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2">
+                              <CategoryIcon className="w-4 h-4" />
+                              {cat}
+                            </Badge>
+                          ))}
+                          {vendorCategories.length > 3 && (
+                            <Badge className="px-5 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center gap-2">
+                              <Calendar className="w-4 h-4" />
+                              +{vendorCategories.length - 3} more
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                      {vendorCategories.length === 0 && (
+                        <Badge className="px-5 py-2.5 text-sm font-semibold bg-gray-500 text-white rounded-xl shadow-md flex items-center gap-2">
+                          <CategoryIcon className="w-4 h-4" />
+                          Service Provider
+                        </Badge>
+                      )}
                     </div>
 
                     {/* Tagline */}
@@ -766,7 +826,7 @@ const VendorProfile = () => {
 
                     {/* Bio */}
                     <p className="text-xl text-gray-700 mb-12 leading-relaxed">
-                      {vendor.detailed_intro || `Professional ${vendor.category.toLowerCase()} services${vendor.experience ? ` with ${vendor.experience} of experience` : ''}. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.`}
+                      {vendor.detailed_intro || `Professional ${vendorCategories.length > 0 ? vendorCategories.join(', ') : 'services'} services${vendor.experience ? ` with ${vendor.experience} of experience` : ''}. We specialize in creating memorable experiences for your special occasions with attention to detail and quality service.`}
                     </p>
 
                     {/* Details Icons Row */}
@@ -802,7 +862,6 @@ const VendorProfile = () => {
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-2 text-base text-amber-700 hover:text-amber-800 font-semibold mt-2 transition-colors"
                             >
-                              <MapPin className="w-5 h-5" />
                               View on Google Maps
                             </a>
                           )}
@@ -815,7 +874,12 @@ const VendorProfile = () => {
                         </div>
               <div>
                           <span className="font-bold text-2xl text-gray-800">{vendor.experience || "Experience"}</span>
-                          <p className="text-lg text-gray-600">Professional Experience</p>
+                          <p className="text-lg text-gray-600">
+                            {vendor.events_completed !== undefined && vendor.events_completed > 0 
+                              ? `${vendor.events_completed}+ Events Completed`
+                              : "Professional Experience"
+                            }
+                          </p>
                         </div>
               </div>
 
@@ -909,58 +973,28 @@ const VendorProfile = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-12">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-2 sm:space-y-4 lg:space-y-6">
-            {/* Additional Info Badges - Mobile Optimized */}
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-2 sm:mb-3 lg:mb-4">
-              {[
-                { text: "Professional Service", icon: Award, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50", textColor: "text-blue-800" },
-                { text: "Quality Guarantee", icon: CheckCircle, color: "from-purple-500 to-pink-500", bg: "from-purple-50 to-pink-50", textColor: "text-purple-800" },
-                { text: "On-Time Delivery", icon: Clock, color: "from-green-500 to-emerald-500", bg: "from-green-50 to-emerald-50", textColor: "text-green-800" },
-                { text: "Expert Team", icon: Users, color: "from-amber-500 to-orange-500", bg: "from-amber-50 to-orange-50", textColor: "text-amber-800" }
-              ].map((item, index) => (
-                <div 
-                  key={index} 
-                  className={`px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r ${item.bg} border border-gray-200 hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg group`}
-                >
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0`}>
-                      <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-              </div>
-                    <span className={item.textColor}>{item.text}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Highlights of Vendor Section - Mobile Optimized */}
+            {/* Highlight Features Badges - Mobile Optimized */}
             {vendor.highlight_features && vendor.highlight_features.length > 0 && (
-              <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border border-purple-200">
-                <CardContent className="p-3 sm:p-4 lg:p-6">
-                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 lg:mb-4 flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-purple-600" />
-                    Highlights of Vendor
-                  </h2>
-                  <p className="text-gray-600 mb-3 sm:mb-4 lg:mb-6 text-xs sm:text-sm lg:text-base">What makes us stand out from the rest</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                    {vendor.highlight_features.map((feature, index) => (
-                      <div 
-                        key={index}
-                        className="group p-3 sm:p-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg sm:rounded-xl hover:shadow-lg transition-all duration-300 border border-purple-100"
-                      >
-                        <div className="flex items-center gap-2 sm:gap-3">
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
-                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-800 group-hover:text-purple-800 transition-colors duration-300">
-                              {feature}
-                            </h3>
-                          </div>
-                        </div>
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-2 sm:mb-3 lg:mb-4">
+                {[
+                  { icon: Award, color: "from-blue-500 to-cyan-500", bg: "from-blue-50 to-cyan-50", textColor: "text-blue-800" },
+                  { icon: CheckCircle, color: "from-purple-500 to-pink-500", bg: "from-purple-50 to-pink-50", textColor: "text-purple-800" },
+                  { icon: Clock, color: "from-green-500 to-emerald-500", bg: "from-green-50 to-emerald-50", textColor: "text-green-800" },
+                  { icon: Users, color: "from-amber-500 to-orange-500", bg: "from-amber-50 to-orange-50", textColor: "text-amber-800" }
+                ].slice(0, vendor.highlight_features.length).map((item, index) => (
+                  <div 
+                    key={index} 
+                    className={`px-3 sm:px-6 py-2 sm:py-3 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r ${item.bg} border border-gray-200 hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg group`}
+                  >
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      <div className={`w-4 h-4 sm:w-6 sm:h-6 rounded-full bg-gradient-to-r ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200 flex-shrink-0`}>
+                        <item.icon className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                       </div>
-                    ))}
+                      <span className={item.textColor}>{vendor.highlight_features[index]}</span>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
             )}
 
             {/* Services Section - Mobile Optimized */}
@@ -971,7 +1005,9 @@ const VendorProfile = () => {
                     <CategoryIcon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-8 lg:h-8 text-amber-600" />
                     Our Services
                   </h2>
-                  <p className="text-gray-600 mb-3 sm:mb-4 lg:mb-6 text-xs sm:text-sm lg:text-base">Specialized in professional {vendor.category.toLowerCase()} services</p>
+                    <p className="text-gray-600 mb-3 sm:mb-4 lg:mb-6 text-xs sm:text-sm lg:text-base">
+                      Specialized in professional {vendorCategories.length > 0 ? vendorCategories.join(', ') : 'services'} services
+                    </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                     {services.slice(0, 6).map((service, index) => (
                       <div 
@@ -1035,10 +1071,10 @@ const VendorProfile = () => {
             {vendor.packages && vendor.packages.length > 0 && (
               <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-red-100">
                 <CardContent className="p-8">
-                  <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
-                    <Award className="w-8 h-8 text-red-600" />
-                    {vendor.category} Packages
-                  </h2>
+                    <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
+                      <Award className="w-8 h-8 text-red-600" />
+                      {vendorCategories.length > 0 ? vendorCategories.join(' & ') : 'Service'} Packages
+                    </h2>
                   <p className="text-gray-600 mb-8 text-lg">Complete packages designed for your special events</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {vendor.packages.map((pkg, index) => (
@@ -1061,7 +1097,7 @@ const VendorProfile = () => {
                             <div className="text-lg font-bold text-blue-600 mb-2">{pkg.price}</div>
                           )}
                           <div className="text-sm text-gray-500">
-                            {pkg.description || `Complete ${vendor.category.toLowerCase()} package`}
+                            {pkg.description || `Complete ${vendorCategories.length > 0 ? vendorCategories[0] : 'service'} package`}
                           </div>
                         </div>
                         <ul className="space-y-3 mb-8">
@@ -1181,7 +1217,7 @@ const VendorProfile = () => {
               <CardContent className="p-4 relative z-10">
                 {/* Headline Hook */}
                 <div className="text-center mb-3">
-                  <h3 className="text-base font-bold text-gray-800">Best {vendor.category} Service – Limited Spot!</h3>
+                  <h3 className="text-base font-bold text-gray-800">Best {vendorCategories.length > 0 ? vendorCategories.join(' & ') : 'Service'} Service – Limited Spot!</h3>
                 </div>
 
                 {/* Social Proof Badge */}
@@ -1214,7 +1250,7 @@ const VendorProfile = () => {
                           : 'Contact for Pricing'
                         }
                       </div>
-                      <div className="text-xs text-blue-600 font-semibold">Professional {vendor.category}</div>
+                      <div className="text-xs text-blue-600 font-semibold">Professional {vendorCategories.length > 0 ? vendorCategories.join(' & ') : 'Service'}</div>
                     </div>
                     <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-xs font-bold">✓</span>
@@ -1500,7 +1536,7 @@ const VendorProfile = () => {
               <CardContent className="p-6 relative z-10">
                 {/* Headline Hook */}
                 <div className="text-center mb-4">
-                  <h3 className="text-lg font-bold text-gray-800">Best {vendor.category} Service – Limited Spot!</h3>
+                  <h3 className="text-lg font-bold text-gray-800">Best {vendorCategories.length > 0 ? vendorCategories.join(' & ') : 'Service'} Service – Limited Spot!</h3>
                   </div>
 
                 {/* Social Proof Badge */}
@@ -1533,7 +1569,7 @@ const VendorProfile = () => {
                           : 'Contact for Pricing'
                         }
                       </div>
-                      <div className="text-sm text-blue-600 font-semibold">Professional {vendor.category}</div>
+                      <div className="text-sm text-blue-600 font-semibold">Professional {vendorCategories.length > 0 ? vendorCategories.join(' & ') : 'Service'}</div>
                     </div>
                     <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-bold">✓</span>
@@ -1703,7 +1739,6 @@ const VendorProfile = () => {
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 font-medium mt-2 transition-colors"
                         >
-                          <MapPin className="w-4 h-4" />
                           View on Google Maps
                         </a>
                       )}
@@ -1773,8 +1808,25 @@ const VendorProfile = () => {
                     </div>
                   )}
 
+                  {/* Advance Payment */}
+                  {vendor.booking_policies?.advance && (
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                          <span className="text-white text-sm font-bold">₹</span>
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-purple-800 mb-2">Advance Payment</h4>
+                          <p className="text-sm text-purple-700 leading-relaxed">
+                            {vendor.booking_policies.advance}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Show message if no policies are available */}
-                  {!vendor.booking_policies?.payment_terms && !vendor.booking_policies?.cancellation_policy && !vendor.booking_policies?.booking_requirements && (
+                  {!vendor.booking_policies?.payment_terms && !vendor.booking_policies?.cancellation_policy && !vendor.booking_policies?.booking_requirements && !vendor.booking_policies?.advance && (
                     <div className="text-center py-8 text-gray-500">
                       <p>No booking policies available for this vendor.</p>
                     </div>

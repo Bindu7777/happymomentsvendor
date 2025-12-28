@@ -1075,7 +1075,6 @@ I'm really excited to connect and explore working with you soon! ✨`;
                         onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(decorator.contact.address)}`, '_blank')}
                         className="text-sm font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors duration-200 flex items-center gap-1"
                       >
-                        <MapPin className="w-4 h-4" />
                         View on Google Maps
                       </button>
                     </div>

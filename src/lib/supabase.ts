@@ -25,7 +25,8 @@ export interface Vendor {
   // Basic Brand Information
   brand_name: string
   spoc_name: string
-  category: string
+  category: string | string[]  // Support both string (legacy) and array (new)
+  categories?: string[]  // New array field for multiple categories
   subcategory?: string
   
   // Contact Information

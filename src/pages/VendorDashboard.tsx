@@ -878,13 +878,28 @@ const VendorDashboard: React.FC = () => {
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-3 mb-3">
                   {/* Category Icon */}
                   <div className="flex items-center gap-2">
-                    {vendor.category?.toLowerCase().includes('photo') && <Camera className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
-                    {vendor.category?.toLowerCase().includes('event') && <Calendar className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
-                    {vendor.category?.toLowerCase().includes('decor') && <Star className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
-                    {!vendor.category?.toLowerCase().includes('photo') && !vendor.category?.toLowerCase().includes('event') && !vendor.category?.toLowerCase().includes('decor') && <Award className="w-4 h-4 md:w-5 md:h-5 text-white/80" />}
+                    {(() => {
+                      const categories = Array.isArray(vendor.category) 
+                        ? vendor.category 
+                        : (vendor.categories || (vendor.category ? [vendor.category] : []));
+                      const categoryStr = categories[0] || '';
+                      const hasPhoto = categoryStr.toLowerCase().includes('photo');
+                      const hasEvent = categoryStr.toLowerCase().includes('event');
+                      const hasDecor = categoryStr.toLowerCase().includes('decor');
+                      
+                      if (hasPhoto) return <Camera className="w-4 h-4 md:w-5 md:h-5 text-white/80" />;
+                      if (hasEvent) return <Calendar className="w-4 h-4 md:w-5 md:h-5 text-white/80" />;
+                      if (hasDecor) return <Star className="w-4 h-4 md:w-5 md:h-5 text-white/80" />;
+                      return <Award className="w-4 h-4 md:w-5 md:h-5 text-white/80" />;
+                    })()}
                     
                     <p className="text-white/90 text-sm md:text-lg font-medium">
-                      {vendor.category} | {vendor.brand_name}
+                      {(() => {
+                        const categories = Array.isArray(vendor.category) 
+                          ? vendor.category 
+                          : (vendor.categories || (vendor.category ? [vendor.category] : []));
+                        return categories.length > 0 ? categories.join(', ') : 'No Category';
+                      })()} | {vendor.brand_name}
                     </p>
                   </div>
                 </div>

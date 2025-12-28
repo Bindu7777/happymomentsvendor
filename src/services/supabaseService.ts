@@ -48,6 +48,43 @@ const parseVendorJsonFields = (vendorData: any): Vendor => {
     }
   }
 
+  // CRITICAL: Normalize and clean categories field - PRIORITIZE categories over category
+  // Clean malformed entries like ["{Caterers}"] or ["{\"Event Planners\"}"]
+  const normalizeCategories = (cats: any): string[] => {
+    if (!cats) return [];
+    if (Array.isArray(cats)) {
+      return cats
+        .map((cat: any) => {
+          if (typeof cat === 'string') {
+            // Remove curly braces, escaped quotes, and trim
+            let cleaned = cat.replace(/^\{+|\}+$/g, '').replace(/\\"/g, '"').replace(/^"+|"+$/g, '').trim();
+            return cleaned;
+          }
+          return String(cat).trim();
+        })
+        .filter((cat: string) => cat && cat !== '');
+    }
+    if (typeof cats === 'string') {
+      return [cats.trim()].filter(c => c !== '');
+    }
+    return [];
+  };
+
+  // PRIORITIZE categories field (new field), fallback to category (old field)
+  if (vendorData.categories !== undefined && vendorData.categories !== null) {
+    vendorData.categories = normalizeCategories(vendorData.categories);
+  } else if (vendorData.category !== undefined && vendorData.category !== null) {
+    // If categories doesn't exist, normalize category and set it as categories
+    vendorData.categories = normalizeCategories(vendorData.category);
+  } else {
+    vendorData.categories = [];
+  }
+
+  // Ensure categories is always an array
+  if (!Array.isArray(vendorData.categories)) {
+    vendorData.categories = normalizeCategories(vendorData.categories);
+  }
+
   return vendorData as Vendor;
 };
 
@@ -273,61 +310,72 @@ export const getVendorsByCategory = async (category: string): Promise<Vendor[]> 
       
       // Filter vendors by category (case-insensitive partial match to handle variations)
       const filteredVendors = allVendors.filter(vendor => {
-        if (!vendor.category) return false;
+        // Handle both string and array for category
+        const vendorCategories = Array.isArray(vendor.category) 
+          ? vendor.category 
+          : (vendor.categories || (vendor.category ? [vendor.category] : []));
         
-        const vendorCategory = vendor.category.toLowerCase().trim();
+        if (vendorCategories.length === 0) return false;
+        
         const searchCategory = category.toLowerCase().trim();
         
-        // Exact match (case-insensitive)
-        if (vendorCategory === searchCategory) {
-          return true;
-        }
-        
-        // Handle slash variations: "Photography/Videography" vs "PhotographyVideography" vs "Photography Videography"
-        const normalizedVendor = vendorCategory.replace(/[\/\s]/g, '');
-        const normalizedSearch = searchCategory.replace(/[\/\s]/g, '');
-        
-        if (normalizedVendor === normalizedSearch) {
-          return true;
-        }
-        
-        // Keyword matching for common variations
-        if (searchCategory.includes('photograph')) {
-          if (vendorCategory.includes('photograph') || vendorCategory.includes('photo') || vendorCategory.includes('video')) {
+        // Check if any category matches (case-insensitive)
+        const hasMatch = vendorCategories.some(cat => {
+          const vendorCategory = String(cat).toLowerCase().trim();
+          
+          // Exact match (case-insensitive)
+          if (vendorCategory === searchCategory) {
             return true;
           }
-        }
-        
-        if (searchCategory.includes('planner')) {
-          if (vendorCategory.includes('planner') || vendorCategory.includes('event')) {
+          
+          // Handle slash variations: "Photography/Videography" vs "PhotographyVideography" vs "Photography Videography"
+          const normalizedVendor = vendorCategory.replace(/[\/\s]/g, '');
+          const normalizedSearch = searchCategory.replace(/[\/\s]/g, '');
+          
+          if (normalizedVendor === normalizedSearch) {
             return true;
           }
-        }
-        
-        if (searchCategory.includes('cater')) {
-          if (vendorCategory.includes('cater')) {
+          
+          // Keyword matching for common variations
+          if (searchCategory.includes('photograph')) {
+            if (vendorCategory.includes('photograph') || vendorCategory.includes('photo') || vendorCategory.includes('video')) {
+              return true;
+            }
+          }
+          
+          if (searchCategory.includes('planner')) {
+            if (vendorCategory.includes('planner') || vendorCategory.includes('event')) {
+              return true;
+            }
+          }
+          
+          if (searchCategory.includes('cater')) {
+            if (vendorCategory.includes('cater')) {
+              return true;
+            }
+          }
+          
+          if (searchCategory.includes('decor')) {
+            if (vendorCategory.includes('decor')) {
+              return true;
+            }
+          }
+          
+          if (searchCategory.includes('makeup')) {
+            if (vendorCategory.includes('makeup')) {
+              return true;
+            }
+          }
+          
+          // General partial match (as last resort)
+          if (vendorCategory.includes(searchCategory) || searchCategory.includes(vendorCategory)) {
             return true;
           }
-        }
+          
+          return false;
+        });
         
-        if (searchCategory.includes('decor')) {
-          if (vendorCategory.includes('decor')) {
-            return true;
-          }
-        }
-        
-        if (searchCategory.includes('makeup')) {
-          if (vendorCategory.includes('makeup')) {
-            return true;
-          }
-        }
-        
-        // General partial match (as last resort)
-        if (vendorCategory.includes(searchCategory) || searchCategory.includes(vendorCategory)) {
-          return true;
-        }
-        
-        return false;
+        return hasMatch;
       });
       
       console.log(`Filtered ${filteredVendors.length} vendors for category "${category}"`);
@@ -879,21 +927,25 @@ export const updateVendor = async (vendorId: string, vendorData: Partial<Vendor>
     
     // Define allowed fields for update (based on actual database schema)
     const allowedFields = [
-      'brand_name', 'spoc_name', 'category', 'subcategory',
+      'brand_name', 'spoc_name', 'category', 'categories', 'subcategory',  // categories is now supported
       'phone_number', 'alternate_number', 'whatsapp_number', 'email', 'instagram', 'address', 'google_maps_link',
-      'experience', 'events_completed', 'quick_intro', 'caption', 'detailed_intro',
+      'experience', 'events_completed', 'quick_intro', 'caption', 'detailed_intro', 'highlight_features',
       'starting_price', 'languages', 'languages_spoken', 'verified', 'currently_available',
       'services', 'packages', 'deliverables', 'booking_policies', 'additional_info'
     ];
     
-    // Filter data to only include allowed fields and non-empty values
+    // Filter data to only include allowed fields
+    // Note: email and alternate_number can be empty strings (optional fields)
     const cleanedData = Object.fromEntries(
-      Object.entries(vendorData).filter(([key, value]) => 
-        allowedFields.includes(key) && 
-        value !== undefined && 
-        value !== null && 
-        value !== ''
-      )
+      Object.entries(vendorData).filter(([key, value]) => {
+        if (!allowedFields.includes(key)) return false;
+        if (value === undefined || value === null) return false;
+        // Allow empty strings for email and alternate_number (optional fields)
+        if (key === 'email' || key === 'alternate_number') return true;
+        // For other fields, filter out empty strings
+        if (value === '') return false;
+        return true;
+      })
     );
     
     console.log('Cleaned vendor data:', cleanedData);
@@ -1648,10 +1700,22 @@ export const reviewVendorProfileChange = async (
 
     // If approved, apply changes to vendors table
     if (status === 'approved') {
-      const proposedChanges = changeRecord.proposed_changes;
+      let proposedChanges = changeRecord.proposed_changes;
+      
+      // CRITICAL: If proposed_changes is a string (JSON), parse it
+      if (typeof proposedChanges === 'string') {
+        try {
+          proposedChanges = JSON.parse(proposedChanges);
+        } catch (e) {
+          console.error('Error parsing proposed_changes JSON:', e);
+          return { success: false, message: 'Invalid proposed changes format' };
+        }
+      }
       
       console.log('Applying changes to vendor:', changeRecord.vendor_id);
-      console.log('Proposed changes:', proposedChanges);
+      console.log('Proposed changes (raw):', proposedChanges);
+      console.log('Proposed changes category type:', typeof proposedChanges?.category, 'IsArray:', Array.isArray(proposedChanges?.category));
+      console.log('Proposed changes categories type:', typeof proposedChanges?.categories, 'IsArray:', Array.isArray(proposedChanges?.categories));
       
       // First check if vendor exists and get current data
       const { data: existingVendor, error: fetchVendorError } = await supabase
@@ -1668,7 +1732,80 @@ export const reviewVendorProfileChange = async (
       console.log('Existing vendor found:', existingVendor.brand_name);
 
       // Clean and validate the proposed changes
-      const cleanedChanges = { ...proposedChanges };
+      // CRITICAL: Don't copy directly - we need to normalize category/categories first
+      const cleanedChanges: any = {};
+      
+      // CRITICAL: Normalize category/categories FIRST before any other processing
+      // This ensures arrays are always arrays, never strings
+      const normalizeCategoryField = (field: any): string[] => {
+        // Handle null/undefined
+        if (field === null || field === undefined) return [];
+        // Handle empty string
+        if (field === '') return [];
+        // Handle array
+        if (Array.isArray(field)) {
+          return field
+            .filter((cat: any) => cat !== null && cat !== undefined && typeof cat === 'string' && cat.trim() !== '')
+            .map((cat: string) => cat.trim());
+        }
+        // Handle string
+        if (typeof field === 'string') {
+          const trimmed = field.trim();
+          return trimmed !== '' ? [trimmed] : [];
+        }
+        // Handle any other type - try to convert to string
+        try {
+          const str = String(field);
+          const trimmed = str.trim();
+          return trimmed !== '' ? [trimmed] : [];
+        } catch (e) {
+          return [];
+        }
+      };
+      
+      // Copy all fields EXCEPT category/categories (we'll handle those separately)
+      Object.keys(proposedChanges).forEach(key => {
+        if (key !== 'category' && key !== 'categories') {
+          cleanedChanges[key] = proposedChanges[key];
+        }
+      });
+      
+      // Normalize both category and categories fields - prioritize categories if it exists
+      let normalizedCategories: string[] = [];
+      
+      // DEBUG: Log raw values from proposedChanges
+      console.log('=== RAW proposedChanges DEBUG ===');
+      console.log('proposedChanges.categories:', proposedChanges.categories, 'Type:', typeof proposedChanges.categories, 'IsArray:', Array.isArray(proposedChanges.categories));
+      console.log('proposedChanges.category:', proposedChanges.category, 'Type:', typeof proposedChanges.category, 'IsArray:', Array.isArray(proposedChanges.category));
+      
+      if (proposedChanges.categories !== undefined && proposedChanges.categories !== null) {
+        normalizedCategories = normalizeCategoryField(proposedChanges.categories);
+        console.log('Normalized from categories field:', proposedChanges.categories, 'Type:', typeof proposedChanges.categories, '->', normalizedCategories, 'IsArray:', Array.isArray(normalizedCategories));
+      } else if (proposedChanges.category !== undefined && proposedChanges.category !== null) {
+        normalizedCategories = normalizeCategoryField(proposedChanges.category);
+        console.log('Normalized from category field:', proposedChanges.category, 'Type:', typeof proposedChanges.category, '->', normalizedCategories, 'IsArray:', Array.isArray(normalizedCategories));
+      }
+      
+      // CRITICAL: Ensure normalizedCategories is ALWAYS an array
+      if (!Array.isArray(normalizedCategories)) {
+        console.error('ERROR: normalizedCategories is not an array after normalization! Value:', normalizedCategories);
+        normalizedCategories = [];
+      }
+      
+      // Set categories as array (ALWAYS) - even if empty
+      // Create a fresh array copy to avoid any reference issues
+      cleanedChanges.categories = Array.isArray(normalizedCategories) ? [...normalizedCategories] : [];
+      // Also set category as first item (string) for backward compatibility (but we won't use this in update)
+      cleanedChanges.category = normalizedCategories.length > 0 ? normalizedCategories[0] : '';
+      
+      console.log('After normalization - categories:', cleanedChanges.categories, 'IsArray:', Array.isArray(cleanedChanges.categories), 'Type:', typeof cleanedChanges.categories);
+      console.log('After normalization - category:', cleanedChanges.category);
+      
+      // FINAL CHECK: If categories is somehow not an array, force it to empty array
+      if (!Array.isArray(cleanedChanges.categories)) {
+        console.error('CRITICAL: cleanedChanges.categories is NOT an array after setting! Forcing to empty array.');
+        cleanedChanges.categories = [];
+      }
       
       // Remove any fields that shouldn't be updated or don't exist in vendors table
       delete cleanedChanges.id;
@@ -1690,20 +1827,137 @@ export const reviewVendorProfileChange = async (
       const contactPersonImageUrl = cleanedChanges.contact_person_image_url;
       delete cleanedChanges.contact_person_image_url;
       
+      // Limit highlight_features to max 4 items
+      if (cleanedChanges.highlight_features && Array.isArray(cleanedChanges.highlight_features)) {
+        cleanedChanges.highlight_features = cleanedChanges.highlight_features
+          .filter((f: any) => f && typeof f === 'string' && f.trim() !== '')
+          .slice(0, 4)
+          .map((f: string) => f.trim());
+      }
+      
+      // Final safety check: Ensure categories is ALWAYS an array before database update
+      // This is a last-ditch effort to prevent "malformed array literal" errors
+      if (cleanedChanges.categories !== undefined) {
+        if (!Array.isArray(cleanedChanges.categories)) {
+          console.error('CRITICAL ERROR: categories is still not an array after normalization! Value:', cleanedChanges.categories, 'Type:', typeof cleanedChanges.categories);
+          // Try one more normalization
+          cleanedChanges.categories = normalizeCategoryField(cleanedChanges.categories);
+          // If still not an array, remove it to prevent error
+          if (!Array.isArray(cleanedChanges.categories)) {
+            console.error('FINAL FALLBACK: Removing categories from update to prevent database error');
+            delete cleanedChanges.categories;
+          }
+        } else {
+          // Final validation: ensure all items are non-empty strings
+          cleanedChanges.categories = cleanedChanges.categories
+            .filter((cat: any) => cat !== null && cat !== undefined && typeof cat === 'string' && cat.trim() !== '')
+            .map((cat: string) => cat.trim());
+        }
+      }
+      
+      // Debug log to verify categories is an array
+      console.log('Final categories before DB update:', cleanedChanges.categories, 'Type:', typeof cleanedChanges.categories, 'IsArray:', Array.isArray(cleanedChanges.categories));
+      
+      // ABSOLUTE FINAL CHECK: If categories exists and is not an array, remove it
+      if (cleanedChanges.categories !== undefined && !Array.isArray(cleanedChanges.categories)) {
+        console.error('ABSOLUTE FINAL CHECK FAILED: Removing categories to prevent database error');
+        delete cleanedChanges.categories;
+      }
+      
+      // FINAL SAFETY CHECK: Remove categories from update if it's not a valid array
+      // This prevents "malformed array literal" errors
+      if (cleanedChanges.categories !== undefined) {
+        if (!Array.isArray(cleanedChanges.categories)) {
+          console.error('CRITICAL: categories is not an array, removing from update to prevent error. Value:', cleanedChanges.categories);
+          // Try one more time to convert it
+          const lastAttempt = normalizeCategoryField(cleanedChanges.categories);
+          if (Array.isArray(lastAttempt) && lastAttempt.length > 0) {
+            cleanedChanges.categories = lastAttempt;
+            console.log('Successfully converted categories to array:', cleanedChanges.categories);
+          } else {
+            // If we can't convert it, remove it from the update payload
+            console.warn('Removing categories from update payload as it cannot be converted to array');
+            delete cleanedChanges.categories;
+          }
+        } else {
+          // Even if it's an array, ensure it's valid
+          cleanedChanges.categories = cleanedChanges.categories
+            .filter((cat: any) => cat && typeof cat === 'string' && cat.trim() !== '')
+            .map((cat: string) => cat.trim());
+          
+          // If array is empty, we can either set it to empty array or remove it
+          // For now, let's set it to empty array (PostgreSQL accepts empty arrays)
+          if (cleanedChanges.categories.length === 0) {
+            cleanedChanges.categories = [];
+          }
+        }
+      }
+      
       // Convert arrays to proper format if needed
       if (cleanedChanges.deliverables && Array.isArray(cleanedChanges.deliverables)) {
         cleanedChanges.deliverables = cleanedChanges.deliverables.filter(item => item && item.trim() !== '');
       }
 
       console.log('Cleaned changes to apply (without catalog_images and highlight_status_changes):', cleanedChanges);
+      console.log('Categories in final payload:', cleanedChanges.categories, 'IsArray:', Array.isArray(cleanedChanges.categories));
+
+      // Build update payload carefully, ensuring categories is properly formatted
+      const updatePayload: any = {
+        updated_at: new Date().toISOString()
+      };
+      
+      // Copy all fields one by one, with special handling for category/categories
+      Object.keys(cleanedChanges).forEach(key => {
+        // Skip category field - we only use categories (array)
+        if (key === 'category') {
+          return; // Don't include category string field
+        }
+        
+        if (key === 'categories') {
+          // CRITICAL: Only include categories if it's a valid array
+          if (Array.isArray(cleanedChanges.categories) && cleanedChanges.categories.length > 0) {
+            // Create a fresh array to ensure it's not a reference issue
+            updatePayload.categories = [...cleanedChanges.categories];
+            console.log('Including categories in update payload:', updatePayload.categories, 'Type check:', Array.isArray(updatePayload.categories));
+          } else {
+            console.warn('Skipping categories - not a valid array or empty:', cleanedChanges.categories, 'Type:', typeof cleanedChanges.categories, 'IsArray:', Array.isArray(cleanedChanges.categories));
+            // Don't include it - let database keep existing value
+          }
+        } else if (key === 'highlight_features') {
+          // Ensure highlight_features is limited to max 4 items
+          if (Array.isArray(cleanedChanges.highlight_features)) {
+            updatePayload.highlight_features = cleanedChanges.highlight_features
+              .filter((f: any) => f && typeof f === 'string' && f.trim() !== '')
+              .slice(0, 4)
+              .map((f: string) => f.trim());
+          }
+        } else {
+          updatePayload[key] = cleanedChanges[key];
+        }
+      });
+      
+      // ABSOLUTE FINAL CHECK: Remove categories if it's not an array
+      if (updatePayload.categories !== undefined) {
+        if (!Array.isArray(updatePayload.categories)) {
+          console.error('CRITICAL: categories is NOT an array in final payload! Removing it. Value:', updatePayload.categories, 'Type:', typeof updatePayload.categories);
+          delete updatePayload.categories;
+        } else {
+          // Double-check it's a valid array of strings
+          const isValid = updatePayload.categories.every((cat: any) => typeof cat === 'string' && cat.trim() !== '');
+          if (!isValid) {
+            console.error('CRITICAL: categories array contains invalid values! Filtering...');
+            updatePayload.categories = updatePayload.categories.filter((cat: any) => typeof cat === 'string' && cat.trim() !== '');
+          }
+        }
+      }
+      
+      console.log('FINAL update payload before DB:', JSON.stringify(updatePayload, null, 2));
+      console.log('Categories in payload:', updatePayload.categories, 'IsArray:', Array.isArray(updatePayload.categories), 'Type:', typeof updatePayload.categories);
 
       // Update vendor profile (excluding catalog_images)
       const { error: vendorUpdateError } = await supabase
         .from('vendors')
-        .update({
-          ...cleanedChanges,
-          updated_at: new Date().toISOString()
-        })
+        .update(updatePayload)
         .eq('vendor_id', changeRecord.vendor_id);
 
       if (vendorUpdateError) {

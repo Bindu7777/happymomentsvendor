@@ -335,18 +335,55 @@ const VendorsPage = () => {
       console.log('🔍 Current selectedServiceTypes:', selectedServiceTypes);
       console.log('🔍 Current selectedBudgetRanges:', selectedBudgetRanges);
       
-      // DIRECT KEYWORD MATCHING - More reliable than parseRequest
+      // Helper function for fuzzy matching (handles typos)
+      const fuzzyMatch = (text: string, pattern: string, maxDistance: number = 2): boolean => {
+        const textLower = text.toLowerCase();
+        const patternLower = pattern.toLowerCase();
+        
+        // Exact match first
+        if (textLower.includes(patternLower)) return true;
+        
+        // Check if pattern is close enough (Levenshtein-like approach)
+        // For simple cases, check if removing 1-2 characters makes it match
+        if (patternLower.length >= 4) {
+          // Try removing common typos: extra letters, swapped letters
+          const variations = [
+            patternLower,
+            patternLower.replace(/e{2,}/g, 'e'), // "decorator" -> "decorator" (handle "decoratorer")
+            patternLower.replace(/(.)\1/g, '$1'), // "decorator" -> "decorator" (handle double letters)
+          ];
+          
+          for (const variation of variations) {
+            if (textLower.includes(variation) || variation.includes(textLower.substring(0, Math.min(variation.length + 2, textLower.length)))) {
+              return true;
+            }
+          }
+        }
+        
+        return false;
+      };
+
+      // DIRECT KEYWORD MATCHING - Find ALL service types mentioned in prompt (with typo tolerance)
       const serviceKeywordMap: Record<string, string> = {
-        // Event Planners - check first (longest match)
+        // Event Planners - check longest matches first
         'event planners': 'planning',
         'event planner': 'planning',
         'event planning': 'planning',
+        'event management': 'planning',
         'planners': 'planning',
         'planner': 'planning',
         'planning': 'planning',
         'coordinator': 'planning',
         'organizer': 'planning',
-        'event management': 'planning',
+        'event coordinator': 'planning',
+        'event organizer': 'planning',
+        // Common misspellings for planning
+        'plannar': 'planning',
+        'plannner': 'planning',
+        'planer': 'planning',
+        'coordinater': 'planning',
+        'organiser': 'planning',
+        'organisor': 'planning',
         // Photography
         'photographers': 'photography',
         'photographer': 'photography',
@@ -354,65 +391,251 @@ const VendorsPage = () => {
         'photo': 'photography',
         'video': 'photography',
         'videography': 'photography',
+        'camera': 'photography',
+        'photo shoot': 'photography',
+        'video shoot': 'photography',
+        // Common misspellings for photography
+        'photograpger': 'photography',
+        'photographe': 'photography',
+        'photograpghy': 'photography',
+        'photograpy': 'photography',
+        'photograhpy': 'photography',
+        'fotographer': 'photography',
+        'fotography': 'photography',
+        'videograpghy': 'photography',
+        'videograpy': 'photography',
         // Makeup
         'makeup artists': 'makeup',
         'makeup artist': 'makeup',
         'makeup': 'makeup',
         'beauty': 'makeup',
+        'beauty artist': 'makeup',
+        'bridal makeup': 'makeup',
+        // Common misspellings for makeup
+        'make up': 'makeup',
+        'make-up': 'makeup',
+        'makeupartist': 'makeup',
+        'beuty': 'makeup',
+        'beauti': 'makeup',
+        'bridal make up': 'makeup',
         // Decor
         'decorators': 'decor',
         'decorator': 'decor',
         'decoration': 'decor',
         'decor': 'decor',
+        'floral': 'decor',
+        'florist': 'decor',
+        'stage decoration': 'decor',
+        'mandap decoration': 'decor',
+        // Common misspellings for decorator
+        'decoreter': 'decor',
+        'decorater': 'decor',
+        'decoratorer': 'decor',
+        'decoratr': 'decor',
+        'decoratoor': 'decor',
+        'decorat': 'decor',
+        'decorationer': 'decor',
+        'decorations': 'decor',
+        'florists': 'decor',
         // Catering
         'caterers': 'catering',
         'caterer': 'catering',
         'catering': 'catering',
+        'food': 'catering',
+        'catering service': 'catering',
+        'food service': 'catering',
+        // Common misspellings for caterer
+        'caterar': 'catering',
+        'caterrer': 'catering',
+        'cateror': 'catering',
+        'caterring': 'catering',
+        'caterin': 'catering',
+        'caterig': 'catering',
+        'caterng': 'catering',
         // Venues
         'venues': 'venues',
         'venue': 'venues',
         'hall': 'venues',
+        'banquet hall': 'venues',
+        'wedding hall': 'venues',
+        'marriage hall': 'venues',
+        // Common misspellings for venue
+        'venu': 'venues',
+        'veneu': 'venues',
+        'vennue': 'venues',
+        'banquet': 'venues',
+        'banquette': 'venues',
         // Music/DJ
         'djs': 'music',
         'dj': 'music',
         'music': 'music',
         'entertainment': 'music',
-        // Attire
+        'sound system': 'music',
+        'lighting': 'music',
+        // Common misspellings for DJ/Music
+        'deejay': 'music',
+        'd j': 'music',
+        'd-j': 'music',
+        'musik': 'music',
+        'musick': 'music',
+        'entertainmnt': 'music',
+        'entertainmant': 'music',
+        // Attire/Clothing Designer
         'fashion': 'attire',
         'clothing': 'attire',
-        'attire': 'attire'
+        'attire': 'attire',
+        'clothing designer': 'attire',
+        'fashion designer': 'attire',
+        'dress': 'attire',
+        'outfit': 'attire',
+        // Common misspellings for attire/clothing
+        'clothng': 'attire',
+        'fashon': 'attire',
+        'fashoin': 'attire',
+        'desiner': 'attire',
+        'designer': 'attire',
+        'desinger': 'attire',
+        'dres': 'attire',
+        'dreses': 'attire'
       };
       
-      // Find service type by checking keywords in order (longest first)
+      // Find ALL service types by checking keywords (longest first to avoid partial matches)
       const sortedKeywords = Object.keys(serviceKeywordMap).sort((a, b) => b.length - a.length);
-      let foundServiceType: string | null = null;
+      const foundServiceTypes = new Set<string>();
       
+      // First pass: Exact word boundary matching for accuracy
       for (const keyword of sortedKeywords) {
-        if (promptLower.includes(keyword)) {
-          foundServiceType = serviceKeywordMap[keyword];
-          console.log(`✅ Found keyword "${keyword}" → filter "${foundServiceType}"`);
-          break; // Take first match
+        // Escape special regex characters in keyword
+        const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Use word boundary to avoid partial matches (e.g., "photo" shouldn't match "photography" when we want "photography")
+        const keywordRegex = new RegExp(`\\b${escapedKeyword}\\b`, 'i');
+        if (keywordRegex.test(promptText)) {
+          const serviceType = serviceKeywordMap[keyword];
+          foundServiceTypes.add(serviceType);
+          console.log(`✅ Found exact keyword "${keyword}" → filter "${serviceType}"`);
         }
       }
       
-      if (foundServiceType) {
-        console.log('✅ Setting service type:', foundServiceType);
+      // Second pass: Fuzzy matching for typos (only if no exact match found for that service type)
+      // Split prompt into words and check each word for fuzzy matches
+      const promptWords = promptLower.split(/\s+/);
+      const serviceTypeKeywords: Record<string, string[]> = {
+        'planning': ['planner', 'planning', 'coordinator', 'organizer'],
+        'photography': ['photographer', 'photography', 'photo', 'video', 'videography', 'camera'],
+        'makeup': ['makeup', 'beauty', 'artist'],
+        'decor': ['decorator', 'decoration', 'decor', 'floral', 'florist'],
+        'catering': ['caterer', 'catering', 'food'],
+        'venues': ['venue', 'hall', 'banquet'],
+        'music': ['dj', 'music', 'entertainment', 'sound'],
+        'attire': ['clothing', 'fashion', 'designer', 'dress', 'attire']
+      };
+      
+      for (const word of promptWords) {
+        // Skip very short words
+        if (word.length < 4) continue;
+        
+        // Check each service type category
+        for (const [serviceType, keywords] of Object.entries(serviceTypeKeywords)) {
+          // Skip if already found via exact match
+          if (foundServiceTypes.has(serviceType)) continue;
+          
+          // Check fuzzy match against keywords
+          for (const keyword of keywords) {
+            if (fuzzyMatch(word, keyword, 2)) {
+              foundServiceTypes.add(serviceType);
+              console.log(`✅ Found fuzzy match "${word}" → "${keyword}" → filter "${serviceType}"`);
+              break;
+            }
+          }
+        }
+      }
+      
+      // Add all found service types
+      if (foundServiceTypes.size > 0) {
+        console.log('✅ Found service types:', Array.from(foundServiceTypes));
         // Use functional update to avoid stale state
         setSelectedServiceTypes(prev => {
-          if (prev.includes(foundServiceType!)) {
-            console.log('⚠️ Service type already selected:', foundServiceType);
-            return prev; // Already selected, no change
-          }
-          const updated = [...prev, foundServiceType!];
+          const updated = [...prev];
+          let hasChanges = false;
+          
+          // Add all found service types that aren't already selected
+          foundServiceTypes.forEach(serviceType => {
+            if (!updated.includes(serviceType)) {
+              updated.push(serviceType);
+              hasChanges = true;
+              console.log(`✅ Added service type: ${serviceType}`);
+            } else {
+              console.log(`⚠️ Service type already selected: ${serviceType}`);
+            }
+          });
+          
+          if (hasChanges) {
           console.log('✅ Updated service types state:', updated);
           return updated;
+          }
+          return prev; // No changes
         });
       } else {
         console.log('⚠️ No service types found in prompt');
       }
       
-      // DIRECT BUDGET EXTRACTION - More reliable
-      // Extract numbers from text (handles formats like 200000, 2,00,000, 2 lakh, etc.)
+      // DIRECT BUDGET EXTRACTION - Handle both single amounts and ranges
+      // First try to extract budget range (e.g., "50000 to 1 lakh", "50000 - 1 lakh")
+      const budgetRangePatterns = [
+        /(\d{1,3}(?:,\d{2,3})*|\d{4,})\s*(?:to|-|and)\s*(\d{1,3}(?:,\d{2,3})*|\d{4,})\s*(?:lakh|lakhs?|l)?/i,  // "50000 to 1 lakh" or "50000 - 1 lakh"
+        /(\d+)\s*(?:lakh|lakhs?|l)\s*(?:to|-|and)\s*(\d+)\s*(?:lakh|lakhs?|l)/i,  // "2 lakh to 3 lakh"
+        /budget\s+(?:of|is)?\s*(\d{1,3}(?:,\d{2,3})*|\d{4,})\s*(?:to|-|and)\s*(\d{1,3}(?:,\d{2,3})*|\d{4,})\s*(?:lakh|lakhs?|l)?/i  // "budget 50000 to 1 lakh"
+      ];
+      
+      let customMinBudgetValue = 0;
+      let customMaxBudgetValue = 0;
+      let foundRange = false;
+      
+      console.log('💰 Extracting budget from:', promptText);
+      
+      // Try to find budget range first
+      for (const pattern of budgetRangePatterns) {
+        const match = promptText.match(pattern);
+        if (match && match[1] && match[2]) {
+          let minStr = match[1].replace(/,/g, '');
+          let maxStr = match[2].replace(/,/g, '');
+          let minNum = parseInt(minStr);
+          let maxNum = parseInt(maxStr);
+          
+          // Check if pattern contains "lakh" for max value
+          if (pattern.source.includes('lakh') && match[0].toLowerCase().includes('lakh')) {
+            // If max value is followed by "lakh", multiply by 100000
+            const maxPart = match[0].toLowerCase();
+            if (maxPart.includes(maxStr + ' lakh') || maxPart.endsWith('lakh')) {
+              maxNum = maxNum * 100000;
+            }
+            // If min value is also in lakhs (check the full match)
+            if (maxPart.includes(minStr + ' lakh')) {
+              minNum = minNum * 100000;
+            }
+          }
+          
+          // Handle cases where max is in lakhs but min is not
+          if (maxNum < 100000 && minNum >= 100000) {
+            // Max might be in lakhs, min is in rupees
+            maxNum = maxNum * 100000;
+          } else if (maxNum < 1000 && minNum >= 1000) {
+            // Both might need conversion, but max is likely in lakhs
+            maxNum = maxNum * 100000;
+          }
+          
+          if (minNum > 0 && maxNum > minNum) {
+            customMinBudgetValue = minNum;
+            customMaxBudgetValue = maxNum;
+            foundRange = true;
+            console.log(`✅ Extracted budget range: ${customMinBudgetValue} to ${customMaxBudgetValue}`);
+            break;
+          }
+        }
+      }
+      
+      // If no range found, try single amount
+      if (!foundRange) {
       const budgetPatterns = [
         /for\s+(\d{1,3}(?:,\d{2,3})*|\d{4,})/i,  // "for 200000" or "for 2,00,000" - check first!
         /(\d{1,3}(?:,\d{2,3})*)\s*(?:lakh|lakhs?|l)/i,  // 2 lakh, 2,00,000
@@ -421,9 +644,6 @@ const VendorsPage = () => {
         /(\d{5,})/,  // 200000 (5+ digits) - standalone large numbers
         /budget\s+(?:of|is)?\s*(\d{1,3}(?:,\d{2,3})*|\d{4,})/i  // "budget 200000"
       ];
-      
-      let budgetAmount = 0;
-      console.log('💰 Extracting budget from:', promptText);
       
       for (const pattern of budgetPatterns) {
         const match = promptText.match(pattern);
@@ -435,32 +655,35 @@ const VendorsPage = () => {
           
           // If pattern contains "lakh", multiply by 100000
           if (pattern.source.includes('lakh')) {
-            budgetAmount = num * 100000;
-            console.log('💰 Multiplied by 100000 (lakh):', budgetAmount);
+              customMaxBudgetValue = num * 100000;
+              console.log('💰 Multiplied by 100000 (lakh):', customMaxBudgetValue);
           } else if (num >= 100000) {
             // Already in rupees (200000 = 2 lakh)
-            budgetAmount = num;
-            console.log('💰 Using as-is (>= 100000):', budgetAmount);
+              customMaxBudgetValue = num;
+              console.log('💰 Using as-is (>= 100000):', customMaxBudgetValue);
           } else if (num >= 1000 && num < 100000) {
             // Could be in thousands, but treat as rupees
-            budgetAmount = num;
-            console.log('💰 Using as-is (1000-100000):', budgetAmount);
+              customMaxBudgetValue = num;
+              console.log('💰 Using as-is (1000-100000):', customMaxBudgetValue);
           }
           
-          if (budgetAmount > 0) {
-            console.log(`✅ Extracted budget: ${budgetAmount} from pattern: ${pattern.source}`);
+            if (customMaxBudgetValue > 0) {
+              customMinBudgetValue = 0; // Default min to 0 for single amount
+              console.log(`✅ Extracted budget: ${customMaxBudgetValue} from pattern: ${pattern.source}`);
             break;
+            }
           }
         }
       }
       
-      // Also try parseRequest as fallback
-      if (budgetAmount === 0) {
+      // Also try parseRequest as fallback if no budget found
+      if (customMaxBudgetValue === 0) {
         try {
           const parsedRequest = parseRequest(promptText);
       if (parsedRequest.budgetRange) {
-            budgetAmount = parsedRequest.budgetRange.min || parsedRequest.budgetRange.max || 0;
-            console.log('💰 Budget from parseRequest:', budgetAmount);
+            customMinBudgetValue = parsedRequest.budgetRange.min || 0;
+            customMaxBudgetValue = parsedRequest.budgetRange.max || parsedRequest.budgetRange.min || 0;
+            console.log('💰 Budget from parseRequest:', customMinBudgetValue, 'to', customMaxBudgetValue);
           }
         } catch (e) {
           console.log('⚠️ parseRequest failed, using direct extraction');
@@ -468,12 +691,12 @@ const VendorsPage = () => {
       }
       
       // Set budget filters
-      if (budgetAmount > 0) {
-        console.log('💰 Setting custom budget: min=0, max=' + budgetAmount);
+      if (customMaxBudgetValue > 0) {
+        console.log(`💰 Setting custom budget: min=${customMinBudgetValue}, max=${customMaxBudgetValue}`);
         
-        // Set custom budget: min = 0, max = user entered amount
-        setCustomMinBudget('0');
-        setCustomMaxBudget(String(budgetAmount));
+        // Set custom budget with extracted min and max
+        setCustomMinBudget(String(customMinBudgetValue));
+        setCustomMaxBudget(String(customMaxBudgetValue));
         
         // Only add custom budget range, not preset ranges
         setSelectedBudgetRanges(prev => {

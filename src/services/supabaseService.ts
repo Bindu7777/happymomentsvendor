@@ -1968,13 +1968,14 @@ export const reviewVendorProfileChange = async (
 
       // Handle catalog_images through vendor_media table if they were included in changes
       if (catalogImages) {
-        console.log('=== UPDATING CATALOG IMAGES IN VENDOR_MEDIA ===');
+        console.log('=== UPDATING CATALOG IMAGES IN STORAGE ===');
         console.log('Vendor ID:', changeRecord.vendor_id);
         console.log('Catalog images data:', catalogImages);
         console.log('Catalog images type:', typeof catalogImages);
         
         try {
-          let finalImageUrls: string[] = [];
+          // Import storage service
+          const { deleteImageFromStorage, getVendorCatalogImagesFromStorage } = await import('./supabaseStorageService');
           
           // Handle new structured format (added/removed)
           if (typeof catalogImages === 'object' && catalogImages.added && catalogImages.removed) {
@@ -1982,47 +1983,119 @@ export const reviewVendorProfileChange = async (
             console.log('Added images:', catalogImages.added);
             console.log('Removed images:', catalogImages.removed);
             
-            // Get current images from vendor_media table
-            const { data: currentImages, error: fetchError } = await supabase
-              .from('vendor_media')
-              .select('media_url')
-              .eq('vendor_id', changeRecord.vendor_id)
-              .eq('category', 'catalog');
+            // Delete removed images from storage
+            if (catalogImages.removed && catalogImages.removed.length > 0) {
+              console.log(`Deleting ${catalogImages.removed.length} removed images from storage...`);
               
-            if (fetchError) {
-              console.error('Error fetching current catalog images:', fetchError);
-              throw fetchError;
+              const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+              const vendorIdStr = changeRecord.vendor_id.toString();
+              
+              for (const removedUrl of catalogImages.removed) {
+                // Extract file path from URL
+                let filePath = '';
+                try {
+                  const urlObj = new URL(removedUrl);
+                  // Try to find the path after bucket name
+                  const pathParts = urlObj.pathname.split('/');
+                  const bucketIndex = pathParts.findIndex(part => possibleBuckets.includes(part));
+                  if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+                    filePath = pathParts.slice(bucketIndex + 1).join('/');
+                  } else {
+                    // Fallback: try vendor_id/catalog/filename pattern
+                    const filename = pathParts[pathParts.length - 1];
+                    filePath = `${vendorIdStr}/catalog/${filename}`;
+                  }
+                } catch (e) {
+                  // If URL parsing fails, try to extract filename
+                  const filename = removedUrl.split('/').pop();
+                  filePath = `${vendorIdStr}/catalog/${filename}`;
+                }
+                
+                // Try deleting from each possible bucket
+                let deleted = false;
+                for (const bucket of possibleBuckets) {
+                  const deleteResult = await deleteImageFromStorage(filePath, bucket);
+                  if (deleteResult) {
+                    console.log(`✅ Deleted ${removedUrl} from ${bucket}`);
+                    deleted = true;
+                    break;
+                  }
+                }
+                
+                if (!deleted) {
+                  console.warn(`⚠️ Could not delete ${removedUrl} from storage`);
+                }
+              }
             }
             
-            const currentImageUrls = currentImages?.map(img => img.media_url) || [];
-            console.log('Current catalog images from database:', currentImageUrls);
-            
-            // Remove deleted images and add new images
-            const afterRemoval = currentImageUrls.filter(url => !catalogImages.removed.includes(url));
-            finalImageUrls = [...afterRemoval, ...catalogImages.added];
-            
-            console.log('Final image URLs after processing:', finalImageUrls);
+            // Added images should already be in storage from upload, so no action needed
+            if (catalogImages.added && catalogImages.added.length > 0) {
+              console.log(`✅ ${catalogImages.added.length} new images added (already in storage from upload)`);
+            }
             
           } else if (Array.isArray(catalogImages)) {
-            // Handle legacy array format
+            // Handle legacy array format - get current images and delete ones not in new array
             console.log('Processing legacy array format');
-            finalImageUrls = catalogImages;
+            
+            const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+            const vendorIdStr = changeRecord.vendor_id.toString();
+            
+            // Get current images from storage
+            let currentStorageImages: any[] = [];
+            for (const bucket of possibleBuckets) {
+              const storageImages = await getVendorCatalogImagesFromStorage(changeRecord.vendor_id, bucket);
+              if (storageImages.length > 0) {
+                currentStorageImages = storageImages;
+                break;
+              }
+            }
+            
+            const currentUrls = currentStorageImages.map(img => img.url);
+            const newUrls = catalogImages;
+            
+            // Find images to delete (in current but not in new)
+            const toDelete = currentUrls.filter(url => !newUrls.includes(url));
+            
+            if (toDelete.length > 0) {
+              console.log(`Deleting ${toDelete.length} removed images from storage...`);
+              for (const removedUrl of toDelete) {
+                let filePath = '';
+                try {
+                  const urlObj = new URL(removedUrl);
+                  const pathParts = urlObj.pathname.split('/');
+                  const bucketIndex = pathParts.findIndex(part => possibleBuckets.includes(part));
+                  if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+                    filePath = pathParts.slice(bucketIndex + 1).join('/');
+                  } else {
+                    const filename = pathParts[pathParts.length - 1];
+                    filePath = `${vendorIdStr}/catalog/${filename}`;
+                  }
+                } catch (e) {
+                  const filename = removedUrl.split('/').pop();
+                  filePath = `${vendorIdStr}/catalog/${filename}`;
+                }
+                
+                let deleted = false;
+                for (const bucket of possibleBuckets) {
+                  const deleteResult = await deleteImageFromStorage(filePath, bucket);
+                  if (deleteResult) {
+                    console.log(`✅ Deleted ${removedUrl} from ${bucket}`);
+                    deleted = true;
+                    break;
+                  }
+                }
+                
+                if (!deleted) {
+                  console.warn(`⚠️ Could not delete ${removedUrl} from storage`);
+                }
+              }
+            }
           } else {
             console.log('Unknown catalog images format, skipping update');
             return { success: true, message: 'Changes approved but catalog images format not recognized' };
           }
           
-          if (finalImageUrls.length >= 0) { // Allow empty arrays (all images removed)
-            const catalogUpdateResult = await updateVendorCatalogImages(changeRecord.vendor_id, finalImageUrls);
-            if (!catalogUpdateResult) {
-              console.error('❌ Failed to update catalog images in vendor_media table');
-              // Don't fail the entire approval, just log the error
-              console.warn('Vendor profile updated but catalog images update failed');
-            } else {
-              console.log('✅ Catalog images updated successfully in vendor_media table');
-              console.log('Catalog images should now be visible in public profile');
-            }
-          }
+          console.log('✅ Catalog images updated successfully in storage');
           
         } catch (catalogError) {
           console.error('❌ Error updating catalog images:', catalogError);

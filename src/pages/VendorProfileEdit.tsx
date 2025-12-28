@@ -988,33 +988,92 @@ const VendorProfileEdit: React.FC = () => {
         
       } else if (deleteConfirmType === 'catalog' && deleteConfirmData) {
         console.log('Deleting catalog image:', deleteConfirmData.id);
-        // Extract the file path from the image data
-        const imagePath = deleteConfirmData.filename || deleteConfirmData.name;
-        console.log('Image path to delete:', imagePath);
+        console.log('Image data:', deleteConfirmData);
         
-        // Try to delete from different possible bucket/folder combinations
-        const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
-        const vendorIdStr = vendor?.vendor_id?.toString() || '';
-        let success = false;
+        const mediaUrl = deleteConfirmData.media_url || deleteConfirmData.url;
+        console.log('Media URL to delete:', mediaUrl);
         
-        for (const bucket of possibleBuckets) {
-          // Try different path formats
-          const possiblePaths = [
-            `${vendorIdStr}/${imagePath}`,
-            `${vendorIdStr}/catalog/${imagePath}`,
-            `${vendorIdStr}/gallery/${imagePath}`,
-            imagePath // Direct path
-          ];
+        if (!mediaUrl) {
+          setHighlightMessage('❌ Error: Could not find image URL to delete');
+          setTimeout(() => setHighlightMessage(''), 5000);
+          return;
+        }
+        
+        // Extract file path from Supabase storage URL
+        // Format: https://project.supabase.co/storage/v1/object/public/bucket-name/path/to/file.jpg
+        let filePath = '';
+        let bucketName = '';
+        
+        try {
+          const urlObj = new URL(mediaUrl);
+          const pathParts = urlObj.pathname.split('/').filter(p => p);
           
-          for (const path of possiblePaths) {
-            success = await deleteImageFromStorage(path, bucket);
-            if (success) {
-              console.log(`Successfully deleted from bucket: ${bucket}, path: ${path}`);
-              break;
+          // Find the bucket name (usually after 'public')
+          const publicIndex = pathParts.findIndex(p => p === 'public');
+          if (publicIndex !== -1 && publicIndex < pathParts.length - 1) {
+            bucketName = pathParts[publicIndex + 1];
+            // Everything after bucket name is the file path
+            filePath = pathParts.slice(publicIndex + 2).join('/');
+          } else {
+            // Fallback: try to extract from pathname
+            const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+            for (const bucket of possibleBuckets) {
+              const bucketIndex = pathParts.findIndex(p => p === bucket);
+              if (bucketIndex !== -1 && bucketIndex < pathParts.length - 1) {
+                bucketName = bucket;
+                filePath = pathParts.slice(bucketIndex + 1).join('/');
+                break;
+              }
             }
           }
           
-          if (success) break;
+          console.log('Extracted bucket:', bucketName);
+          console.log('Extracted file path:', filePath);
+        } catch (e) {
+          console.error('Error parsing URL:', e);
+          // Fallback: try to extract filename and construct path
+          const vendorIdStr = vendor?.vendor_id?.toString() || '';
+          const filename = mediaUrl.split('/').pop() || '';
+          filePath = `${vendorIdStr}/catalog/${filename}`;
+          bucketName = 'vendor-images'; // Default bucket
+          console.log('Using fallback path:', filePath);
+        }
+        
+        let success = false;
+        
+        if (filePath && bucketName) {
+          // Try deleting with extracted bucket and path
+          success = await deleteImageFromStorage(filePath, bucketName);
+          if (success) {
+            console.log(`✅ Successfully deleted from bucket: ${bucketName}, path: ${filePath}`);
+          }
+        }
+        
+        // If that didn't work, try all possible buckets
+        if (!success) {
+          const possibleBuckets = ['catalog-images', 'vendor-images', 'images', 'media'];
+          const vendorIdStr = vendor?.vendor_id?.toString() || '';
+          const filename = filePath.split('/').pop() || mediaUrl.split('/').pop() || '';
+          
+          for (const bucket of possibleBuckets) {
+            const possiblePaths = [
+              filePath, // Use extracted path first
+              `${vendorIdStr}/catalog/${filename}`,
+              `${vendorIdStr}/${filename}`,
+              filename
+            ];
+            
+            for (const path of possiblePaths) {
+              if (!path) continue;
+              success = await deleteImageFromStorage(path, bucket);
+              if (success) {
+                console.log(`✅ Successfully deleted from bucket: ${bucket}, path: ${path}`);
+                break;
+              }
+            }
+            
+            if (success) break;
+          }
         }
         
         console.log('Delete result:', success);
@@ -1041,10 +1100,13 @@ const VendorProfileEdit: React.FC = () => {
           });
           
           // Remove from catalog image form fields (URL inputs section)
+          // Remove from catalog_images form field (URL fields)
+          // Remove from catalog_images form field if it exists
           const currentCatalogImageValues = watch('catalog_images') || [];
-          const updatedCatalogImageValues = currentCatalogImageValues.filter((url: string) => url !== deleteConfirmData.media_url);
+          const urlToRemove = deleteConfirmData.media_url;
+          const updatedCatalogImageValues = currentCatalogImageValues.filter((url: string) => url !== urlToRemove);
           setValue('catalog_images', updatedCatalogImageValues);
-          console.log('Updated catalog_images form field:', updatedCatalogImageValues);
+          console.log('Updated catalog_images form field after gallery delete:', updatedCatalogImageValues);
           
           // Update current highlight status to remove deleted image
           setCurrentHighlightStatus(prev => 
@@ -1054,14 +1116,17 @@ const VendorProfileEdit: React.FC = () => {
           setHighlightMessage('✅ Image deleted successfully!');
           setTimeout(() => setHighlightMessage(''), 3000);
           
-          // Refresh catalog images to ensure consistency
+          // Refresh catalog images from storage to update gallery
           if (vendor?.vendor_id) {
             try {
-              console.log('Refreshing catalog images from storage...');
-              const refreshedUrls = await loadCatalogImages(vendor.vendor_id);
-              console.log('Catalog images refreshed successfully:', refreshedUrls);
+              console.log('Refreshing catalog images from storage after deletion...');
+              // Use the existing loadCatalogImages function which properly updates state
+              await loadCatalogImages(vendor.vendor_id.toString());
+              console.log('✅ Catalog images refreshed from storage');
             } catch (refreshError) {
               console.error('Error refreshing after delete:', refreshError);
+              setHighlightMessage('⚠️ Image deleted but failed to refresh gallery. Please reload the page.');
+              setTimeout(() => setHighlightMessage(''), 5000);
             }
           }
         } else {
@@ -2678,21 +2743,13 @@ const VendorProfileEdit: React.FC = () => {
           {/* Catalog Images */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex justify-between items-center">
+              <CardTitle>
                 <div>
                   <span>Catalog Images</span>
                   <p className="text-sm font-normal text-gray-600 mt-1">
                     Highlight up to 3 images to feature them prominently in your profile
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  onClick={() => appendCatalogImage("")}
-                  variant="outline"
-                  size="sm"
-                >
-                  Add Image URL
-                </Button>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -2878,103 +2935,11 @@ const VendorProfileEdit: React.FC = () => {
                     />
                   </div>
                   
-                  {/* OR Divider */}
-                  <div className="flex items-center gap-4 py-2">
-                    <div className="flex-1 border-t border-gray-300"></div>
-                    <span className="text-sm text-gray-500 bg-white px-3">OR</span>
-                    <div className="flex-1 border-t border-gray-300"></div>
-                  </div>
-                  
-                  {/* URL Input Section */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-sm font-medium text-gray-700">Add Image URLs</h4>
-                      <Button
-                        type="button"
-                        onClick={() => appendCatalogImage("")}
-                        variant="outline"
-                        size="sm"
-                      >
-                        Add URL Field
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mb-3">
-                      Alternatively, you can provide direct image URLs if you have images hosted elsewhere.
-                    </p>
-                    
-                    {catalogImageFields.map((field, index) => (
-                      <div key={field.id} className="space-y-2">
-                        <div className="flex gap-2">
-                          <Input
-                            {...register(`catalog_images.${index}` as const)}
-                            placeholder="Enter image URL (https://...)"
-                            type="url"
-                            className="flex-1"
-                          />
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              // Get the URL that's being removed
-                              const urlToRemove = watch(`catalog_images.${index}`);
-                              console.log('Removing URL from form field:', urlToRemove);
-                              
-                              // Remove from form field
-                              removeCatalogImage(index);
-                              
-                              // Also remove from visual thumbnails if it exists there
-                              if (urlToRemove) {
-                                setCatalogImagesWithMeta(prev => {
-                                  const newImages = prev.filter(img => img.media_url !== urlToRemove);
-                                  console.log('Updated catalogImagesWithMeta after URL removal:', newImages);
-                                  return newImages;
-                                });
-                                
-                                setCatalogImages(prev => {
-                                  const newUrls = prev.filter(url => url !== urlToRemove);
-                                  console.log('Updated catalogImages after URL removal:', newUrls);
-                                  return newUrls;
-                                });
-                                
-                                setUploadedImageUrls(prev => {
-                                  const newUrls = prev.filter(url => url !== urlToRemove);
-                                  console.log('Updated uploadedImageUrls after URL removal:', newUrls);
-                                  return newUrls;
-                                });
-                                
-                                setCurrentHighlightStatus(prev => 
-                                  prev.filter(img => img.media_url !== urlToRemove)
-                                );
-                              }
-                            }}
-                            variant="outline"
-                            size="sm"
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                        {/* Image Preview */}
-                        {watch(`catalog_images.${index}`) && (
-                          <div className="border rounded-lg p-2 bg-gray-50">
-                            <img
-                              src={watch(`catalog_images.${index}`)}
-                              alt={`Catalog preview ${index + 1}`}
-                              className="w-full h-32 object-cover rounded"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                            <div className="text-xs text-gray-500 mt-1">External URL</div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {catalogImageFields.length === 0 && catalogImagesWithMeta.length === 0 && uploadedImageUrls.length === 0 && (
+                  {catalogImagesWithMeta.length === 0 && uploadedImageUrls.length === 0 && (
                       <p className="text-gray-500 text-center py-4">
-                        No catalog images added yet. Upload images or add URLs to showcase your work.
+                      No catalog images added yet. Upload images to showcase your work.
                       </p>
                     )}
-                  </div>
                 </div>
               </div>
             </CardContent>

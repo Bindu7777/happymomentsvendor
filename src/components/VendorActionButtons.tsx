@@ -1,18 +1,11 @@
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from './ui/dropdown-menu';
-import { 
   MessageCircle, 
   Phone, 
   Calendar, 
   Heart, 
   Share2, 
-  ChevronDown,
   Loader2,
   Check
 } from 'lucide-react';
@@ -97,37 +90,19 @@ const VendorActionButtons: React.FC<VendorActionButtonsProps> = ({
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      {/* Chat Dropdown Button */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button 
-            className={`bg-green-500 hover:bg-green-600 active:bg-green-700 text-white ${currentSize.button} font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 relative overflow-hidden group`}
-            title="Chat with vendor"
+      {/* Chat Button - Direct WhatsApp */}
+      {vendor && (
+        <div className="relative overflow-hidden group">
+          <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg pointer-events-none"></div>
+          <WhatsAppButton
+            vendor={vendor}
+            size={size}
+            className={`bg-green-500 hover:bg-green-600 active:bg-green-700 text-white ${currentSize.button} font-semibold shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 relative z-10`}
           >
-            <div className="absolute inset-0 bg-white/20 scale-0 group-active:scale-100 transition-transform duration-150 rounded-lg"></div>
-            <MessageCircle className={`${currentSize.icon} ${currentSize.iconMargin} relative z-10`} />
-            <span className="relative z-10">Chat</span>
-            <ChevronDown className="w-3 h-3 ml-1 relative z-10" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className={currentSize.dropdown}>
-          <DropdownMenuItem asChild>
-            {vendor && (
-              <WhatsAppButton
-                vendor={vendor}
-                className="w-full justify-start px-2 py-1.5 text-sm hover:bg-green-50"
-              >
-                <MessageCircle className="w-4 h-4 mr-2 text-green-600" />
-                WhatsApp Chat
-              </WhatsAppButton>
-            )}
-          </DropdownMenuItem>
-          <DropdownMenuItem className="px-2 py-1.5 text-sm hover:bg-blue-50">
-            <MessageCircle className="w-4 h-4 mr-2 text-blue-600" />
-            In-App Chat
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            Chat
+          </WhatsAppButton>
+        </div>
+      )}
 
       {/* Call Button */}
       <Button 

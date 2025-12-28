@@ -205,6 +205,7 @@ const VendorsPage = () => {
   const handleCustomBudgetChange = (type: 'min' | 'max', value: string) => {
     const numStr = value.replace(/[^\d]/g, '');
     if (type === 'min') {
+      // Allow empty string or '0' for min (will default to 0)
       setCustomMinBudget(numStr);
     } else {
       setCustomMaxBudget(numStr);
@@ -213,11 +214,16 @@ const VendorsPage = () => {
 
   // Apply custom budget filter
   const applyCustomBudget = () => {
-    const min = parseInt(customMinBudget.replace(/[^\d]/g, ''));
+    const min = parseInt(customMinBudget.replace(/[^\d]/g, '')) || 0;
     const max = parseInt(customMaxBudget.replace(/[^\d]/g, ''));
     
-    if (isNaN(min) || isNaN(max)) {
-      alert('Please enter valid budget values');
+    if (isNaN(max) || max <= 0) {
+      alert('Please enter a valid maximum budget value');
+      return;
+    }
+    
+    if (min < 0) {
+      alert('Minimum budget cannot be negative');
       return;
     }
     
@@ -281,126 +287,636 @@ const VendorsPage = () => {
     }
   }, [selectedServiceTypes, selectedLocations, selectedBudgetRanges, setSearchParams, vendors.length]);
 
-  // Sync displayQuery with searchQuery when URL changes
+  // Sync searchQuery with URL when URL changes (for direct navigation)
   useEffect(() => {
     const urlQuery = searchParams.get('query') || '';
     if (urlQuery !== searchQuery) {
       setSearchQuery(urlQuery);
-      setDisplayQuery(urlQuery);
     }
   }, [searchParams]);
 
-  // Trigger vendor filtering when searchQuery changes
+  // Auto-parse prompt when navigating from Hero page with query/original param
   useEffect(() => {
-    if (searchQuery.trim()) {
-      console.log('🔍 Search query changed, filtering vendors:', searchQuery);
-      console.log('🔍 Current serviceType state:', serviceType);
-      
-      // Use the proper request parser instead of simple inline parsing
-      const parsedRequest = parseRequest(searchQuery);
-      console.log('🔍 Parsed request from requestParser:', parsedRequest);
-      
-      // Map the parsed service types to filter values
-      let extractedServiceType = 'all';
-      if (parsedRequest.serviceTypes && parsedRequest.serviceTypes.length > 0) {
-        const firstService = parsedRequest.serviceTypes[0].toLowerCase();
-        if (firstService.includes('photographer')) {
-          extractedServiceType = 'photography';
-        } else if (firstService.includes('makeup')) {
-          extractedServiceType = 'makeup';
-        } else if (firstService.includes('decorator')) {
-          extractedServiceType = 'decor';
-        } else if (firstService.includes('caterer')) {
-          extractedServiceType = 'catering';
-        } else if (firstService.includes('venue')) {
-          extractedServiceType = 'venues';
-        } else if (firstService.includes('dj') || firstService.includes('music') || firstService.includes('entertainment')) {
-          extractedServiceType = 'music';
-        } else if (firstService.includes('fashion') || firstService.includes('costume')) {
-          extractedServiceType = 'attire';
-        } else if (firstService.includes('planner')) {
-          extractedServiceType = 'planning';
-        }
+    const urlQuery = searchParams.get('query') || '';
+    const urlOriginal = searchParams.get('original') || '';
+    const promptToParse = urlOriginal || urlQuery;
+    
+    // Only parse if we have a prompt and it hasn't been processed yet
+    // This runs when component mounts or when searchParams change (navigation from Hero)
+    if (promptToParse && promptToParse.trim()) {
+      // Check if this is a fresh navigation (original param exists means it came from Hero)
+      if (urlOriginal) {
+        console.log('🔄 Auto-parsing prompt from Hero page:', promptToParse);
+        setOriginalSmartRequest(urlOriginal);
+        setDisplayQuery(urlOriginal);
+        parsePromptAndUpdateFilters(promptToParse);
+      } else if (urlQuery && urlQuery !== displayQuery) {
+        // If only query param exists and it's different, also parse it
+        console.log('🔄 Auto-parsing query param:', urlQuery);
+        setDisplayQuery(urlQuery);
+        parsePromptAndUpdateFilters(urlQuery);
       }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]); // Only run when searchParams change (on initial load or navigation)
+
+  // Parse prompt and update filters automatically
+  const parsePromptAndUpdateFilters = async (promptText: string) => {
+    if (!promptText.trim()) {
+      console.log('⚠️ Empty prompt text');
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const promptLower = promptText.toLowerCase();
+      console.log('🔍 ===== PARSING PROMPT =====');
+      console.log('🔍 Prompt text:', promptText);
+      console.log('🔍 Current selectedServiceTypes:', selectedServiceTypes);
+      console.log('🔍 Current selectedBudgetRanges:', selectedBudgetRanges);
       
-      // Map location to filter value
-      let extractedLocation = 'all';
-      if (parsedRequest.location && parsedRequest.location !== 'Hyderabad') {
-        const locationLower = parsedRequest.location.toLowerCase();
-        // Map common locations to filter values
-        if (locationLower.includes('hyderabad')) {
-          extractedLocation = 'hyderabad';
-        } else if (locationLower.includes('bangalore')) {
-          extractedLocation = 'bangalore';
-        } else if (locationLower.includes('chennai')) {
-          extractedLocation = 'chennai';
-        } else if (locationLower.includes('mumbai')) {
-          extractedLocation = 'mumbai';
-        } else if (locationLower.includes('delhi')) {
-          extractedLocation = 'delhi';
-        }
-        // Add more location mappings as needed
-      }
-      
-      // Map budget to filter value
-      let extractedBudget = 'all';
-      if (parsedRequest.budgetRange) {
-        const budgetAmount = parsedRequest.budgetRange.min || parsedRequest.budgetRange.max;
-        if (budgetAmount <= 50000) {
-          extractedBudget = '10k-50k';
-        } else if (budgetAmount <= 100000) {
-          extractedBudget = '50k-1l';
-        } else if (budgetAmount <= 300000) {
-          extractedBudget = '1l-3l';
-        } else if (budgetAmount <= 1000000) {
-          extractedBudget = '3l-10l';
-        } else if (budgetAmount <= 1500000) {
-          extractedBudget = '10l-15l';
-        } else if (budgetAmount <= 2500000) {
-          extractedBudget = '15l-25l';
-        } else if (budgetAmount <= 5000000) {
-          extractedBudget = '25l-50l';
-        } else {
-          extractedBudget = '50l-1cr';
-        }
-      }
-      
-      const parsed = {
-          serviceType: extractedServiceType,
-          location: extractedLocation,
-        budget: extractedBudget,
-        originalQuery: searchQuery
+      // DIRECT KEYWORD MATCHING - More reliable than parseRequest
+      const serviceKeywordMap: Record<string, string> = {
+        // Event Planners - check first (longest match)
+        'event planners': 'planning',
+        'event planner': 'planning',
+        'event planning': 'planning',
+        'planners': 'planning',
+        'planner': 'planning',
+        'planning': 'planning',
+        'coordinator': 'planning',
+        'organizer': 'planning',
+        'event management': 'planning',
+        // Photography
+        'photographers': 'photography',
+        'photographer': 'photography',
+        'photography': 'photography',
+        'photo': 'photography',
+        'video': 'photography',
+        'videography': 'photography',
+        // Makeup
+        'makeup artists': 'makeup',
+        'makeup artist': 'makeup',
+        'makeup': 'makeup',
+        'beauty': 'makeup',
+        // Decor
+        'decorators': 'decor',
+        'decorator': 'decor',
+        'decoration': 'decor',
+        'decor': 'decor',
+        // Catering
+        'caterers': 'catering',
+        'caterer': 'catering',
+        'catering': 'catering',
+        // Venues
+        'venues': 'venues',
+        'venue': 'venues',
+        'hall': 'venues',
+        // Music/DJ
+        'djs': 'music',
+        'dj': 'music',
+        'music': 'music',
+        'entertainment': 'music',
+        // Attire
+        'fashion': 'attire',
+        'clothing': 'attire',
+        'attire': 'attire'
       };
       
-      console.log('🔍 Final parsed result for filters:', parsed);
+      // Find service type by checking keywords in order (longest first)
+      const sortedKeywords = Object.keys(serviceKeywordMap).sort((a, b) => b.length - a.length);
+      let foundServiceType: string | null = null;
       
-      // Update the filter states based on parsed data
-      if (parsed.serviceType !== 'all') {
-        if (!selectedServiceTypes.includes(parsed.serviceType)) {
-          setSelectedServiceTypes(prev => [...prev, parsed.serviceType]);
-        }
-      }
-      if (parsed.location !== 'all') {
-        if (!selectedLocations.includes(parsed.location)) {
-          setSelectedLocations(prev => [...prev, parsed.location]);
-        }
-      }
-      if (parsed.budget !== 'all') {
-        if (!selectedBudgetRanges.includes(parsed.budget)) {
-          setSelectedBudgetRanges(prev => [...prev, parsed.budget]);
+      for (const keyword of sortedKeywords) {
+        if (promptLower.includes(keyword)) {
+          foundServiceType = serviceKeywordMap[keyword];
+          console.log(`✅ Found keyword "${keyword}" → filter "${foundServiceType}"`);
+          break; // Take first match
         }
       }
       
-      // Show the "We understood your request" window
-      setParsedRequest({
-        serviceType: parsed.serviceType,
-        location: parsed.location,
-        budget: parsed.budget,
-        originalQuery: searchQuery
-      });
-      setIsEditing(false);
+      if (foundServiceType) {
+        console.log('✅ Setting service type:', foundServiceType);
+        // Use functional update to avoid stale state
+        setSelectedServiceTypes(prev => {
+          if (prev.includes(foundServiceType!)) {
+            console.log('⚠️ Service type already selected:', foundServiceType);
+            return prev; // Already selected, no change
+          }
+          const updated = [...prev, foundServiceType!];
+          console.log('✅ Updated service types state:', updated);
+          return updated;
+        });
+      } else {
+        console.log('⚠️ No service types found in prompt');
+      }
+      
+      // DIRECT BUDGET EXTRACTION - More reliable
+      // Extract numbers from text (handles formats like 200000, 2,00,000, 2 lakh, etc.)
+      const budgetPatterns = [
+        /for\s+(\d{1,3}(?:,\d{2,3})*|\d{4,})/i,  // "for 200000" or "for 2,00,000" - check first!
+        /(\d{1,3}(?:,\d{2,3})*)\s*(?:lakh|lakhs?|l)/i,  // 2 lakh, 2,00,000
+        /(\d+)\s*(?:lakh|lakhs?|l)/i,  // 2 lakh
+        /(\d{1,3}(?:,\d{2,3})+)/,  // 2,00,000
+        /(\d{5,})/,  // 200000 (5+ digits) - standalone large numbers
+        /budget\s+(?:of|is)?\s*(\d{1,3}(?:,\d{2,3})*|\d{4,})/i  // "budget 200000"
+      ];
+      
+      let budgetAmount = 0;
+      console.log('💰 Extracting budget from:', promptText);
+      
+      for (const pattern of budgetPatterns) {
+        const match = promptText.match(pattern);
+        console.log('💰 Pattern:', pattern.source, 'Match:', match);
+        if (match && match[1]) {
+          let numStr = match[1].replace(/,/g, '');
+          const num = parseInt(numStr);
+          console.log('💰 Parsed number:', num);
+          
+          // If pattern contains "lakh", multiply by 100000
+          if (pattern.source.includes('lakh')) {
+            budgetAmount = num * 100000;
+            console.log('💰 Multiplied by 100000 (lakh):', budgetAmount);
+          } else if (num >= 100000) {
+            // Already in rupees (200000 = 2 lakh)
+            budgetAmount = num;
+            console.log('💰 Using as-is (>= 100000):', budgetAmount);
+          } else if (num >= 1000 && num < 100000) {
+            // Could be in thousands, but treat as rupees
+            budgetAmount = num;
+            console.log('💰 Using as-is (1000-100000):', budgetAmount);
+          }
+          
+          if (budgetAmount > 0) {
+            console.log(`✅ Extracted budget: ${budgetAmount} from pattern: ${pattern.source}`);
+            break;
+          }
+        }
+      }
+      
+      // Also try parseRequest as fallback
+      if (budgetAmount === 0) {
+        try {
+          const parsedRequest = parseRequest(promptText);
+      if (parsedRequest.budgetRange) {
+            budgetAmount = parsedRequest.budgetRange.min || parsedRequest.budgetRange.max || 0;
+            console.log('💰 Budget from parseRequest:', budgetAmount);
+          }
+        } catch (e) {
+          console.log('⚠️ parseRequest failed, using direct extraction');
+        }
+      }
+      
+      // Set budget filters
+      if (budgetAmount > 0) {
+        console.log('💰 Setting custom budget: min=0, max=' + budgetAmount);
+        
+        // Set custom budget: min = 0, max = user entered amount
+        setCustomMinBudget('0');
+        setCustomMaxBudget(String(budgetAmount));
+        
+        // Only add custom budget range, not preset ranges
+        setSelectedBudgetRanges(prev => {
+          // Remove any preset ranges and only keep custom
+          const updated = prev.filter(range => range === 'custom');
+          // Add custom if not present
+          if (!updated.includes('custom')) {
+            updated.push('custom');
+          }
+          console.log('✅ Updated budget ranges (custom only):', updated);
+          return updated;
+        });
+        setShowCustomBudget(true);
+      } else {
+        console.log('⚠️ No budget found in prompt');
+      }
+      
+      // LOCATION EXTRACTION - Map cities to states
+      const cityToStateMap: Record<string, string> = {
+        // Telangana cities
+        'hyderabad': 'telangana',
+        'secunderabad': 'telangana',
+        'warangal': 'telangana',
+        'nizamabad': 'telangana',
+        'karimnagar': 'telangana',
+        'khammam': 'telangana',
+        'ramagundam': 'telangana',
+        'mahabubnagar': 'telangana',
+        'nalgonda': 'telangana',
+        'adilabad': 'telangana',
+        'suryapet': 'telangana',
+        'miryalaguda': 'telangana',
+        'jagtial': 'telangana',
+        'peddapalli': 'telangana',
+        'kamareddy': 'telangana',
+        'siddipet': 'telangana',
+        'wanaparthy': 'telangana',
+        'bhongir': 'telangana',
+        'bodhan': 'telangana',
+        'palwancha': 'telangana',
+        'mandamarri': 'telangana',
+        'koratla': 'telangana',
+        'mancherial': 'telangana',
+        'kothagudem': 'telangana',
+        'dharmabad': 'telangana',
+        'basheerabad': 'telangana',
+        'uzhavarkarai': 'telangana',
+        'nagarkurnool': 'telangana',
+        'gadwal': 'telangana',
+        'sircilla': 'telangana',
+        'vikarabad': 'telangana',
+        'sangareddy': 'telangana',
+        'medak': 'telangana',
+        'narayanpet': 'telangana',
+        'andhra pradesh cities': 'andhra-pradesh',
+        'visakhapatnam': 'andhra-pradesh',
+        'vizag': 'andhra-pradesh',
+        'vijayawada': 'andhra-pradesh',
+        'guntur': 'andhra-pradesh',
+        'nellore': 'andhra-pradesh',
+        'kurnool': 'andhra-pradesh',
+        'rajahmundry': 'andhra-pradesh',
+        'kakinada': 'andhra-pradesh',
+        'tirupati': 'andhra-pradesh',
+        'anantapur': 'andhra-pradesh',
+        'kadapa': 'andhra-pradesh',
+        'eluru': 'andhra-pradesh',
+        'ongole': 'andhra-pradesh',
+        'nandyal': 'andhra-pradesh',
+        'machilipatnam': 'andhra-pradesh',
+        'adoni': 'andhra-pradesh',
+        'tenali': 'andhra-pradesh',
+        'chittoor': 'andhra-pradesh',
+        'proddatur': 'andhra-pradesh',
+        'bhimavaram': 'andhra-pradesh',
+        'tadepalligudem': 'andhra-pradesh',
+        'dharmavaram': 'andhra-pradesh',
+        'gudivada': 'andhra-pradesh',
+        'srikakulam': 'andhra-pradesh',
+        'hindupur': 'andhra-pradesh',
+        'tadpatri': 'andhra-pradesh',
+        'kavali': 'andhra-pradesh',
+        'chilakaluripet': 'andhra-pradesh',
+        'palakollu': 'andhra-pradesh',
+        'tamil nadu cities': 'tamil-nadu',
+        'chennai': 'tamil-nadu',
+        'madras': 'tamil-nadu',
+        'coimbatore': 'tamil-nadu',
+        'madurai': 'tamil-nadu',
+        'tiruchirappalli': 'tamil-nadu',
+        'salem': 'tamil-nadu',
+        'tirunelveli': 'tamil-nadu',
+        'erode': 'tamil-nadu',
+        'vellore': 'tamil-nadu',
+        'dindigul': 'tamil-nadu',
+        'thanjavur': 'tamil-nadu',
+        'tuticorin': 'tamil-nadu',
+        'kanchipuram': 'tamil-nadu',
+        'nagercoil': 'tamil-nadu',
+        'karur': 'tamil-nadu',
+        'hosur': 'tamil-nadu',
+        'karnataka cities': 'karnataka',
+        'bangalore': 'karnataka',
+        'bengaluru': 'karnataka',
+        'mysore': 'karnataka',
+        'hubli': 'karnataka',
+        'mangalore': 'karnataka',
+        'belgaum': 'karnataka',
+        'gulbarga': 'karnataka',
+        'davangere': 'karnataka',
+        'bellary': 'karnataka',
+        'bijapur': 'karnataka',
+        'raichur': 'karnataka',
+        'tumkur': 'karnataka',
+        'bidar': 'karnataka',
+        'hospet': 'karnataka',
+        'hassan': 'karnataka',
+        'shimoga': 'karnataka',
+        'gadag': 'karnataka',
+        'chitradurga': 'karnataka',
+        'udupi': 'karnataka',
+        'maharashtra cities': 'maharashtra',
+        'mumbai': 'maharashtra',
+        'pune': 'maharashtra',
+        'nagpur': 'maharashtra',
+        'thane': 'maharashtra',
+        'nashik': 'maharashtra',
+        'kalyan': 'maharashtra',
+        'vasai': 'maharashtra',
+        'solapur': 'maharashtra',
+        'aurangabad': 'maharashtra',
+        'nanded': 'maharashtra',
+        'sangli': 'maharashtra',
+        'kolhapur': 'maharashtra',
+        'ulhasnagar': 'maharashtra',
+        'akola': 'maharashtra',
+        'latur': 'maharashtra',
+        'dhule': 'maharashtra',
+        'amravati': 'maharashtra',
+        'ichalkaranji': 'maharashtra',
+        'jalgaon': 'maharashtra',
+        'bhusawal': 'maharashtra',
+        'panvel': 'maharashtra',
+        'satara': 'maharashtra',
+        'beed': 'maharashtra',
+        'yavatmal': 'maharashtra',
+        'kamptee': 'maharashtra',
+        'gondia': 'maharashtra',
+        'barshi': 'maharashtra',
+        'achalpur': 'maharashtra',
+        'osmanabad': 'maharashtra',
+        'nandurbar': 'maharashtra',
+        'wardha': 'maharashtra',
+        'udgir': 'maharashtra',
+        'hinganghat': 'maharashtra',
+        'delhi cities': 'delhi',
+        'new delhi': 'delhi',
+        'delhi': 'delhi',
+        'kerala cities': 'kerala',
+        'kochi': 'kerala',
+        'cochin': 'kerala',
+        'thiruvananthapuram': 'kerala',
+        'trivandrum': 'kerala',
+        'calicut': 'kerala',
+        'kozhikode': 'kerala',
+        'thrissur': 'kerala',
+        'palakkad': 'kerala',
+        'kannur': 'kerala',
+        'kollam': 'kerala',
+        'alappuzha': 'kerala',
+        'kottayam': 'kerala',
+        'tirur': 'kerala',
+        'koyilandy': 'kerala',
+        'malappuram': 'kerala',
+        'thalassery': 'kerala',
+        'payyannur': 'kerala',
+        'kanhangad': 'kerala',
+        'vadakara': 'kerala',
+        'neyyattinkara': 'kerala',
+        'neyyatinkara': 'kerala',
+        'pallakad': 'kerala',
+        'punjab cities': 'punjab',
+        'ludhiana': 'punjab',
+        'amritsar': 'punjab',
+        'jalandhar': 'punjab',
+        'patiala': 'punjab',
+        'bathinda': 'punjab',
+        'pathankot': 'punjab',
+        'hoshiarpur': 'punjab',
+        'batala': 'punjab',
+        'moga': 'punjab',
+        'abohar': 'punjab',
+        'khanna': 'punjab',
+        'phagwara': 'punjab',
+        'muktsar': 'punjab',
+        'barnala': 'punjab',
+        'firozpur': 'punjab',
+        'kapurthala': 'punjab',
+        'rajasthan cities': 'rajasthan',
+        'jaipur': 'rajasthan',
+        'jodhpur': 'rajasthan',
+        'kota': 'rajasthan',
+        'bikaner': 'rajasthan',
+        'ajmer': 'rajasthan',
+        'udaipur': 'rajasthan',
+        'bhilwara': 'rajasthan',
+        'alwar': 'rajasthan',
+        'bharatpur': 'rajasthan',
+        'ganganagar': 'rajasthan',
+        'sirohi': 'rajasthan',
+        'tonk': 'rajasthan',
+        'pali': 'rajasthan',
+        'sikar': 'rajasthan',
+        'haryana cities': 'haryana',
+        'faridabad': 'haryana',
+        'gurgaon': 'haryana',
+        'gurugram': 'haryana',
+        'panipat': 'haryana',
+        'ambala': 'haryana',
+        'yamunanagar': 'haryana',
+        'rohtak': 'haryana',
+        'hisar': 'haryana',
+        'karnal': 'haryana',
+        'sonipat': 'haryana',
+        'panchkula': 'haryana',
+        'bhiwani': 'haryana',
+        'bahadurgarh': 'haryana',
+        'jind': 'haryana',
+        'sirsa': 'haryana',
+        'thanesar': 'haryana',
+        'kaithal': 'haryana',
+        'palwal': 'haryana',
+        'rewari': 'haryana',
+        'gujarat cities': 'gujarat',
+        'ahmedabad': 'gujarat',
+        'surat': 'gujarat',
+        'vadodara': 'gujarat',
+        'baroda': 'gujarat',
+        'rajkot': 'gujarat',
+        'bhavnagar': 'gujarat',
+        'jamnagar': 'gujarat',
+        'gandhinagar': 'gujarat',
+        'anand': 'gujarat',
+        'bharuch': 'gujarat',
+        'junagadh': 'gujarat',
+        'navsari': 'gujarat',
+        'morbi': 'gujarat',
+        'nadiad': 'gujarat',
+        'surendranagar': 'gujarat',
+        'gandhidham': 'gujarat',
+        'veraval': 'gujarat',
+        'porbandar': 'gujarat',
+        'mehsana': 'gujarat',
+        'bhuj': 'gujarat',
+        'godhra': 'gujarat',
+        'palanpur': 'gujarat',
+        'vapi': 'gujarat',
+        'ankleshwar': 'gujarat',
+        'west bengal cities': 'west-bengal',
+        'kolkata': 'west-bengal',
+        'calcutta': 'west-bengal',
+        'howrah': 'west-bengal',
+        'durgapur': 'west-bengal',
+        'asansol': 'west-bengal',
+        'siliguri': 'west-bengal',
+        'bardhaman': 'west-bengal',
+        'malda': 'west-bengal',
+        'bhatpara': 'west-bengal',
+        'kharagpur': 'west-bengal',
+        'shantipur': 'west-bengal',
+        'ranchi': 'west-bengal',
+        'dhanbad': 'west-bengal',
+        'jamshedpur': 'west-bengal',
+        'bokaro': 'west-bengal',
+        'hazaribagh': 'west-bengal',
+        'giridih': 'west-bengal',
+        'ramgarh': 'west-bengal',
+        'medininagar': 'west-bengal',
+        'chirkunda': 'west-bengal',
+        'uttar pradesh cities': 'uttar-pradesh',
+        'lucknow': 'uttar-pradesh',
+        'kanpur': 'uttar-pradesh',
+        'agra': 'uttar-pradesh',
+        'meerut': 'uttar-pradesh',
+        'varanasi': 'uttar-pradesh',
+        'banaras': 'uttar-pradesh',
+        'allahabad': 'uttar-pradesh',
+        'prayagraj': 'uttar-pradesh',
+        'ghaziabad': 'uttar-pradesh',
+        'noida': 'uttar-pradesh',
+        'greater noida': 'uttar-pradesh',
+        'aligarh': 'uttar-pradesh',
+        'bareilly': 'uttar-pradesh',
+        'gorakhpur': 'uttar-pradesh',
+        'moradabad': 'uttar-pradesh',
+        'saharanpur': 'uttar-pradesh',
+        'jhansi': 'uttar-pradesh',
+        'faizabad': 'uttar-pradesh',
+        'ayodhya': 'uttar-pradesh',
+        'mathura': 'uttar-pradesh',
+        'firozabad': 'uttar-pradesh',
+        'shahjahanpur': 'uttar-pradesh',
+        'rampur': 'uttar-pradesh',
+        'modinagar': 'uttar-pradesh',
+        'hapur': 'uttar-pradesh',
+        'amroha': 'uttar-pradesh',
+        'mainpuri': 'uttar-pradesh',
+        'hardoi': 'uttar-pradesh',
+        'fatehpur': 'uttar-pradesh',
+        'raebareli': 'uttar-pradesh',
+        'orissa cities': 'odisha',
+        'odisha cities': 'odisha',
+        'bhubaneswar': 'odisha',
+        'cuttack': 'odisha',
+        'rourkela': 'odisha',
+        'berhampur': 'odisha',
+        'sambalpur': 'odisha',
+        'puri': 'odisha',
+        'baleshwar': 'odisha',
+        'baripada': 'odisha',
+        'bhadrak': 'odisha',
+        'balangir': 'odisha',
+        'jharsuguda': 'odisha',
+        'bargarh': 'odisha',
+        'paradip': 'odisha',
+        'bhawanipatna': 'odisha',
+        'jeypore': 'odisha',
+        'dhenkanal': 'odisha',
+        'angul': 'odisha',
+        'kendrapara': 'odisha',
+        'goa cities': 'goa',
+        'panaji': 'goa',
+        'panjim': 'goa',
+        'margao': 'goa',
+        'vasco da gama': 'goa',
+        'vasco': 'goa',
+        'mapusa': 'goa',
+        'pondicherry cities': 'puducherry',
+        'puducherry cities': 'puducherry',
+        'pondicherry': 'puducherry',
+        'puducherry': 'puducherry',
+        'karaikal': 'puducherry',
+        'yanam': 'puducherry',
+        'mahe': 'puducherry',
+      };
+      
+      // Also map state names directly
+      const stateNameMap: Record<string, string> = {
+        'telangana': 'telangana',
+        'andhra pradesh': 'andhra-pradesh',
+        'andhra': 'andhra-pradesh',
+        'ap': 'andhra-pradesh',
+        'tamil nadu': 'tamil-nadu',
+        'tamilnadu': 'tamil-nadu',
+        'tn': 'tamil-nadu',
+        'karnataka': 'karnataka',
+        'ka': 'karnataka',
+        'maharashtra': 'maharashtra',
+        'mh': 'maharashtra',
+        'delhi': 'delhi',
+        'kerala': 'kerala',
+        'kl': 'kerala',
+        'punjab': 'punjab',
+        'pb': 'punjab',
+        'rajasthan': 'rajasthan',
+        'rj': 'rajasthan',
+        'haryana': 'haryana',
+        'hr': 'haryana',
+        'gujarat': 'gujarat',
+        'gj': 'gujarat',
+        'west bengal': 'west-bengal',
+        'wb': 'west-bengal',
+        'uttar pradesh': 'uttar-pradesh',
+        'up': 'uttar-pradesh',
+        'odisha': 'odisha',
+        'orissa': 'odisha',
+        'or': 'odisha',
+        'goa': 'goa',
+        'ga': 'goa',
+        'puducherry': 'puducherry',
+        'pondicherry': 'puducherry',
+        'py': 'puducherry',
+      };
+      
+      // Extract location - check cities first (more specific), then states
+      let foundLocation: string | null = null;
+      console.log('📍 Extracting location from:', promptText);
+      
+      // Check for cities (sorted by length, longest first for better matching)
+      const sortedCities = Object.keys(cityToStateMap).sort((a, b) => b.length - a.length);
+      for (const city of sortedCities) {
+        // Use word boundary matching for better accuracy
+        const cityRegex = new RegExp(`\\b${city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (cityRegex.test(promptText)) {
+          foundLocation = cityToStateMap[city];
+          console.log(`✅ Found city "${city}" → state "${foundLocation}"`);
+          break;
+        }
+      }
+      
+      // If no city found, check for state names
+      if (!foundLocation) {
+        const sortedStates = Object.keys(stateNameMap).sort((a, b) => b.length - a.length);
+        for (const state of sortedStates) {
+          const stateRegex = new RegExp(`\\b${state.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          if (stateRegex.test(promptText)) {
+            foundLocation = stateNameMap[state];
+            console.log(`✅ Found state "${state}" → filter "${foundLocation}"`);
+            break;
+          }
+        }
+      }
+      
+      // Set location filter
+      if (foundLocation) {
+        console.log('✅ Setting location:', foundLocation);
+        setSelectedLocations(prev => {
+          if (prev.includes(foundLocation!)) {
+            console.log('⚠️ Location already selected:', foundLocation);
+            return prev; // Already selected, no change
+          }
+          const updated = [...prev, foundLocation!];
+          console.log('✅ Updated locations state:', updated);
+          return updated;
+        });
+      } else {
+        console.log('⚠️ No location found in prompt');
+      }
+      
+      // Update search query for text search
+      setSearchQuery(promptText);
+      
+      // Update URL params
+      const params = new URLSearchParams(searchParams);
+      params.set('query', promptText);
+      setSearchParams(params);
+      
+    } catch (error) {
+      console.error('Error parsing prompt:', error);
+    } finally {
+      setIsProcessing(false);
     }
-  }, [searchQuery]);
+  };
 
   // Handle voice data extraction
   useEffect(() => {
@@ -415,19 +931,10 @@ const VendorsPage = () => {
       if (extractedData.serviceType) {
         if (!selectedServiceTypes.includes(extractedData.serviceType)) {
           setSelectedServiceTypes(prev => [...prev, extractedData.serviceType]);
+        }
       }
-      }
-      // Note: extractedData.location and extractedData.budget may not exist in VoiceExtractedData type
-      // This will be handled by the request parser instead
-      
-      // Auto-trigger search with voice data
-      setSearchQuery(transcript);
-      const params = new URLSearchParams(searchParams);
-      params.set('query', transcript);
-      if (extractedData.serviceType) params.set('service', extractedData.serviceType);
-      if (extractedData.location) params.set('location', extractedData.location);
-      if (extractedData.budget) params.set('budget', extractedData.budget);
-      setSearchParams(params);
+      // Parse the transcript and update all filters
+      parsePromptAndUpdateFilters(transcript);
       
       // Clear voice data after processing
       clearData();
@@ -560,10 +1067,10 @@ const VendorsPage = () => {
         
         // Check if vendor price falls within ANY of the selected ranges
         return selectedBudgetRanges.some(range => {
-          if (range === 'custom' && customMinBudget && customMaxBudget) {
-            const min = parseInt(customMinBudget.replace(/[^\d]/g, ''));
+          if (range === 'custom' && customMinBudget !== '' && customMaxBudget) {
+            const min = parseInt(customMinBudget.replace(/[^\d]/g, '')) || 0;
             const max = parseInt(customMaxBudget.replace(/[^\d]/g, ''));
-            if (!isNaN(min) && !isNaN(max) && min > 0 && max > 0) {
+            if (!isNaN(min) && !isNaN(max) && min >= 0 && max > 0) {
               return vendorStartingPrice >= min && vendorStartingPrice <= max;
             }
             return false;
@@ -603,14 +1110,10 @@ const VendorsPage = () => {
         });
       }
       
-      // Search query filter
-      const matchesSearch = searchQuery === '' ||
+      // Search query filter - simple text search like CategoryVendors
+      const matchesSearch = !searchQuery.trim() ||
         vendor.brand_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        vendor.spoc_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (vendor.specialties && Array.isArray(vendor.specialties) && 
-         vendor.specialties.some((specialty: string) => 
-          specialty.toLowerCase().includes(searchQuery.toLowerCase())
-         ));
+        (vendor.spoc_name && vendor.spoc_name.toLowerCase().includes(searchQuery.toLowerCase()));
       
       // Price filter - removed as per user request
       
@@ -622,7 +1125,7 @@ const VendorsPage = () => {
         }
         
         const rating = vendor.rating || 0;
-        const numericRating = parseFloat(rating);
+        const numericRating = parseFloat(String(rating));
         
         console.log(`🔍 RATING FILTER CHECK:`, {
           vendor: vendor.brand_name,
@@ -710,7 +1213,7 @@ const VendorsPage = () => {
   // Debug: Show rating distribution
   if (ratingFilter !== 'all') {
     const ratingStats = vendors.reduce((acc, vendor) => {
-      const rating = parseFloat(vendor.rating) || 0;
+      const rating = parseFloat(String(vendor.rating || 0)) || 0;
       const range = Math.floor(rating);
       acc[range] = (acc[range] || 0) + 1;
       return acc;
@@ -797,13 +1300,10 @@ const VendorsPage = () => {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            // Update search query and trigger search
+                            // Parse prompt and update filters
                             const queryToSearch = originalSmartRequest || displayQuery;
                             if (queryToSearch.trim()) {
-                              setSearchQuery(queryToSearch);
-                            const params = new URLSearchParams(searchParams);
-                              params.set('query', queryToSearch);
-                            setSearchParams(params);
+                              parsePromptAndUpdateFilters(queryToSearch);
                             }
                           }
                         }}
@@ -864,24 +1364,25 @@ const VendorsPage = () => {
                             </Button>
                           )}
                           
-                          <Button
-                            type="button"
+                        <Button
+                          type="button"
                           size="sm"
-                            onClick={() => {
-                            // Update search query and trigger search
+                          onClick={() => {
+                            // Parse prompt and update filters
                             const queryToSearch = originalSmartRequest || displayQuery;
+                            console.log('🚀 Send button clicked with text:', queryToSearch);
                             if (queryToSearch.trim()) {
-                              setSearchQuery(queryToSearch);
-                              const params = new URLSearchParams(searchParams);
-                              params.set('query', queryToSearch);
-                              setSearchParams(params);
+                              parsePromptAndUpdateFilters(queryToSearch);
+                              console.log('✅ Parsing function called');
+                            } else {
+                              console.log('⚠️ No text to parse');
                             }
-                            }}
-                          disabled={loading || (!originalSmartRequest?.trim() && !displayQuery?.trim())}
+                          }}
+                          disabled={loading || isProcessing || (!originalSmartRequest?.trim() && !displayQuery?.trim())}
                           className="h-5 w-5 p-0 bg-orange-500 hover:bg-orange-600 text-white"
                           title="Send search query"
                           >
-                            {loading ? (
+                          {loading || isProcessing ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Send className="h-4 w-4" />
@@ -924,183 +1425,6 @@ const VendorsPage = () => {
         
         <div className="absolute bottom-0 left-0 right-0 h-2 bg-white rounded-t-2xl shadow-inner"></div>
       </div>
-
-      {/* We Understood Your Request Window */}
-      {parsedRequest && !isEditing && (
-        <div className="container mx-auto px-4 sm:px-6 py-4">
-          <Card className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 p-6 mb-4">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 py-3 px-4 rounded-t-lg">
-              <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                  <Check className="w-5 h-5 text-green-600" />
-                  <span className="text-lg font-bold text-green-800">We understood your request!</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsCardMinimized(!isCardMinimized)}
-                    className="border-green-300 text-green-600 hover:bg-green-50"
-                    title={isCardMinimized ? "Expand details" : "Minimize details"}
-                  >
-                    {isCardMinimized ? (
-                      <ChevronDown className="w-4 h-4" />
-                    ) : (
-                      <ChevronUp className="w-4 h-4" />
-                    )}
-                  </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="border-green-300 text-green-600 hover:bg-green-50"
-                >
-                  <Edit3 className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setParsedRequest(null);
-                      setSearchQuery('');
-                      setDisplayQuery('');
-                      setOriginalSmartRequest('');
-                      const params = new URLSearchParams(searchParams);
-                      params.delete('query');
-                      setSearchParams(params);
-                    }}
-                    className="border-red-300 text-red-600 hover:bg-red-50"
-                    title="Close this summary"
-                  >
-                    <X className="w-4 h-4" />
-                </Button>
-                </div>
-              </div>
-            </CardHeader>
-            {!isCardMinimized && (
-            <CardContent className="p-4">
-              {/* Original Prompt Display */}
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Your Original Prompt:</label>
-                <p className="text-gray-800 font-medium">"{parsedRequest.originalQuery}"</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Services Needed:</label>
-                  <Badge variant="secondary" className="bg-orange-100 text-orange-800 px-3 py-1">
-                    {serviceTypes.find(s => s.value === parsedRequest.serviceType)?.label || parsedRequest.serviceType}
-                  </Badge>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Location:</label>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
-                    {parsedRequest.location === 'all' ? 'All Locations' : (cities.find(c => c.value === parsedRequest.location)?.label || parsedRequest.location)}
-                  </Badge>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Budget:</label>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-3 py-1">
-                    {parsedRequest.budget === 'all' ? 'All Budgets' : (budgetRanges.find(b => b.value === parsedRequest.budget)?.label || parsedRequest.budget)}
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => {
-                    // Trigger search with parsed request
-                    setSearchQuery(parsedRequest.originalQuery);
-                    const params = new URLSearchParams(searchParams);
-                    params.set('query', parsedRequest.originalQuery);
-                    params.set('service', parsedRequest.serviceType);
-                    params.set('location', parsedRequest.location);
-                    params.set('budget', parsedRequest.budget);
-                    setSearchParams(params);
-                  }}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2"
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  Find Vendors
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                  className="border-orange-300 text-orange-600 hover:bg-orange-50"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setParsedRequest(null);
-                    setSearchQuery('');
-                    setDisplayQuery('');
-                    setOriginalSmartRequest('');
-                    const params = new URLSearchParams(searchParams);
-                    params.delete('query');
-                    setSearchParams(params);
-                  }}
-                  className="border-red-300 text-red-600 hover:bg-red-50"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Clear
-                </Button>
-              </div>
-            </CardContent>
-            )}
-            
-            {/* Minimized state - show only action buttons */}
-            {isCardMinimized && (
-              <CardContent className="p-4">
-                <div className="flex gap-3 justify-center">
-                  <Button
-                    onClick={() => {
-                      // Trigger search with parsed request
-                      setSearchQuery(parsedRequest.originalQuery);
-                      const params = new URLSearchParams(searchParams);
-                      params.set('query', parsedRequest.originalQuery);
-                      params.set('service', parsedRequest.serviceType);
-                      params.set('location', parsedRequest.location);
-                      params.set('budget', parsedRequest.budget);
-                      setSearchParams(params);
-                    }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    Find Vendors
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                    className="border-orange-300 text-orange-600 hover:bg-orange-50"
-                  >
-                    <Edit3 className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setParsedRequest(null);
-                      setSearchQuery('');
-                      setDisplayQuery('');
-                      setOriginalSmartRequest('');
-                      const params = new URLSearchParams(searchParams);
-                      params.delete('query');
-                      setSearchParams(params);
-                    }}
-                    className="border-red-300 text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Clear
-                  </Button>
-                </div>
-              </CardContent>
-            )}
-          </Card>
-        </div>
-      )}
 
       {/* Filters Section */}
       <div className="container mx-auto px-4 sm:px-6 py-4 mt-2">
@@ -1160,12 +1484,12 @@ const VendorsPage = () => {
                     <div className="p-2 border-t">
                       <Button
                         variant="ghost"
-                        size="sm"
+                    size="sm"
                         className="w-full text-xs"
                         onClick={() => setSelectedServiceTypes([])}
                       >
                         Clear All
-                      </Button>
+                  </Button>
                     </div>
                   )}
                 </PopoverContent>
@@ -1180,8 +1504,8 @@ const VendorsPage = () => {
               </label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
+                <Button
+                  variant="outline"
                     className="w-full h-9 border border-gray-200 bg-white text-wedding-navy hover:border-orange-300 transition-all duration-200 rounded-lg text-sm justify-start"
                   >
                     <span>
@@ -1225,12 +1549,12 @@ const VendorsPage = () => {
                     <div className="p-2 border-t">
                       <Button
                         variant="ghost"
-                        size="sm"
+                  size="sm"
                         className="w-full text-xs"
                         onClick={() => setSelectedLocations([])}
-                      >
+                >
                         Clear All
-                      </Button>
+                </Button>
                     </div>
                   )}
                 </PopoverContent>
@@ -1259,12 +1583,12 @@ const VendorsPage = () => {
                         : `${selectedBudgetRanges.length} Ranges`
                       }
                     </span>
-                  </Button>
+                </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-72 p-0" align="start">
                   <div className="p-3 border-b">
                     <p className="text-sm font-semibold text-gray-700">Select Budget Ranges</p>
-                  </div>
+                </div>
                   <div className="max-h-64 overflow-y-auto p-2">
                     {budgetRanges.filter(b => b.value !== 'all').map((range) => {
                       const isChecked = selectedBudgetRanges.includes(range.value);
@@ -1284,11 +1608,11 @@ const VendorsPage = () => {
                           >
                       {range.label}
                           </label>
-          </div>
+              </div>
                       );
                     })}
-          </div>
-
+              </div>
+              
                   <div className="border-t p-2">
                     <div className="space-y-3">
                       <div className="flex items-center space-x-2">
@@ -1315,11 +1639,11 @@ const VendorsPage = () => {
                         >
                           Custom Budget
                         </label>
-                      </div>
+                </div>
                       {selectedBudgetRanges.includes('custom') && (
                         <div className="space-y-2 pl-6">
                           <div className="grid grid-cols-2 gap-2">
-                            <div>
+                <div>
                               <label className="text-xs text-gray-500 mb-1 block">Min (₹)</label>
                               <Input
                                 type="text"
@@ -1328,8 +1652,8 @@ const VendorsPage = () => {
                                 onChange={(e) => handleCustomBudgetChange('min', e.target.value)}
                                 className="text-sm"
                               />
-                            </div>
-                            <div>
+                </div>
+                <div>
                               <label className="text-xs text-gray-500 mb-1 block">Max (₹)</label>
                               <Input
                                 type="text"
@@ -1338,27 +1662,27 @@ const VendorsPage = () => {
                                 onChange={(e) => handleCustomBudgetChange('max', e.target.value)}
                                 className="text-sm"
                               />
-                            </div>
-                          </div>
-                          <Button
+                </div>
+              </div>
+                <Button
                             onClick={applyCustomBudget}
                             className="w-full bg-orange-500 hover:bg-orange-600 text-white text-sm"
-                            disabled={!customMinBudget || !customMaxBudget}
+                            disabled={!customMaxBudget}
                           >
                             Apply
-                          </Button>
-                        </div>
+                </Button>
+              </div>
                       )}
                     </div>
                   </div>
                   
                   {selectedBudgetRanges.length > 0 && (
                     <div className="p-2 border-t">
-                      <Button
+                  <Button
                         variant="ghost"
                         size="sm"
                         className="w-full text-xs"
-                        onClick={() => {
+                    onClick={() => {
                           setSelectedBudgetRanges([]);
                           setCustomMinBudget('');
                           setCustomMaxBudget('');
@@ -1366,12 +1690,12 @@ const VendorsPage = () => {
                         }}
                       >
                         Clear All
-                      </Button>
-                    </div>
-                  )}
+                  </Button>
+                </div>
+            )}
                 </PopoverContent>
               </Popover>
-            </div>
+        </div>
             
             {/* Rating Filter - In main row */}
             <div className="flex-1">
@@ -1412,7 +1736,7 @@ const VendorsPage = () => {
                 />
               </div>
             </div>
-          </div>
+            </div>
             
         </div>
       </div>

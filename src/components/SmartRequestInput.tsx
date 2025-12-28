@@ -304,6 +304,9 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
           // Convert voice processing result to legacy format for compatibility
           const parsed = parseRequest(newText);
           
+          // Always include the original text
+          parsed.originalText = newText.trim();
+          
           // Only use voice processing for actual voice input, not manual typing
           if (isRecording || transcript) {
             // Use our improved voice processing service only for voice input
@@ -412,7 +415,22 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
 
   const handleSubmit = () => {
     if (parsedRequest) {
-      onRequestSubmit(parsedRequest);
+      // Ensure originalText is set from current text input
+      const requestWithText = {
+        ...parsedRequest,
+        originalText: text.trim() || parsedRequest.originalText
+      };
+      onRequestSubmit(requestWithText);
+    } else if (text.trim()) {
+      // If parsing hasn't completed, create a minimal request with just the text
+      // The vendors page will parse it using parsePromptAndUpdateFilters
+      const minimalRequest: ParsedRequest = {
+        serviceTypes: [],
+        eventType: '',
+        location: '',
+        originalText: text.trim()
+      };
+      onRequestSubmit(minimalRequest);
     }
   };
 

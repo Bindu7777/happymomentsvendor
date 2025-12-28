@@ -371,7 +371,9 @@ const VendorProfileEdit: React.FC = () => {
           console.log('=== LOADING CATALOG IMAGES IN INIT ===');
           console.log('Final vendor data vendor_id:', finalVendorData.vendor_id);
           console.log('Final vendor data vendor_id type:', typeof finalVendorData.vendor_id);
-          catalogImages = await loadCatalogImages(finalVendorData.vendor_id);
+          console.log('Vendor catalog_images_metadata:', finalVendorData.catalog_images_metadata);
+          // Pass existing metadata to preserve highlight status
+          catalogImages = await loadCatalogImages(finalVendorData.vendor_id, finalVendorData.catalog_images_metadata);
           console.log('Catalog images loaded successfully:', catalogImages);
           // Store original catalog images for comparison
           setOriginalCatalogImages(catalogImages);
@@ -1121,7 +1123,9 @@ const VendorProfileEdit: React.FC = () => {
             try {
               console.log('Refreshing catalog images from storage after deletion...');
               // Use the existing loadCatalogImages function which properly updates state
-              await loadCatalogImages(vendor.vendor_id.toString());
+              // Pass current metadata to preserve highlight status
+              const currentMetadata = watch('catalog_images_metadata') || catalogImagesWithMeta || [];
+              await loadCatalogImages(vendor.vendor_id.toString(), currentMetadata);
               console.log('✅ Catalog images refreshed from storage');
             } catch (refreshError) {
               console.error('Error refreshing after delete:', refreshError);
@@ -1145,11 +1149,16 @@ const VendorProfileEdit: React.FC = () => {
     }
   };
 
-  const loadCatalogImages = async (vendorId: string): Promise<string[]> => {
+  const loadCatalogImages = async (vendorId: string, existingMetadata?: any[]): Promise<string[]> => {
     try {
       console.log('=== LOADING CATALOG IMAGES FROM STORAGE ===');
       console.log('Vendor ID:', vendorId);
       console.log('Vendor ID type:', typeof vendorId);
+      
+      // Get metadata from parameter, vendor state, or form field
+      const metadata = existingMetadata || vendor?.catalog_images_metadata || watch('catalog_images_metadata') || [];
+      console.log('Existing metadata for highlights:', metadata);
+      console.log('Metadata count:', metadata.length);
       
       // First, let's see what buckets are available
       console.log('Listing available storage buckets...');
@@ -1188,28 +1197,86 @@ const VendorProfileEdit: React.FC = () => {
       
       // Convert storage images to the format expected by the component
       const imageUrls = storageImages.map(img => img.url);
-            // Get existing metadata to preserve highlight status
-            const existingMetadata = vendor?.catalog_images_metadata || [];
-            console.log('Existing metadata for highlights:', existingMetadata);
-            
-            const mediaObjects = storageImages.map(img => {
-              // Find existing metadata for this image
-              const existingMeta = existingMetadata.find((meta: any) => 
-                meta.filename === img.name || 
-                meta.media_url === img.url ||
-                meta.id === img.id
-              );
-              
-              return {
-                id: img.id,
-                media_url: img.url,
-                is_highlighted: existingMeta?.is_highlighted || false, // Use existing highlight status
-                title: img.name,
-                filename: img.name,
-                size: img.size,
-                created_at: img.created_at
-              };
-            });
+      
+      // Helper function to normalize URLs for comparison (remove query params, trailing slashes)
+      const normalizeUrl = (url: string): string => {
+        if (!url) return '';
+        try {
+          const urlObj = new URL(url);
+          return urlObj.pathname;
+        } catch {
+          // If URL parsing fails, just remove query params manually
+          return url.split('?')[0].replace(/\/$/, '');
+        }
+      };
+      
+      // Match storage images with existing metadata to preserve highlight status
+      const mediaObjects = storageImages.map(img => {
+        // Normalize the storage image URL for comparison
+        const normalizedImgUrl = normalizeUrl(img.url);
+        const imgFilename = img.name || img.url.split('/').pop()?.split('?')[0] || '';
+        
+        // Try multiple matching strategies to find existing metadata
+        const existingMeta = metadata.find((meta: any) => {
+          if (!meta) return false;
+          
+          // Match by exact URL (most reliable)
+          if (meta.media_url && img.url && meta.media_url === img.url) {
+            console.log(`✅ Matched by exact URL: ${img.url}`);
+            return true;
+          }
+          
+          // Match by normalized URL (removes query params)
+          if (meta.media_url) {
+            const normalizedMetaUrl = normalizeUrl(meta.media_url);
+            if (normalizedMetaUrl && normalizedImgUrl && normalizedMetaUrl === normalizedImgUrl) {
+              console.log(`✅ Matched by normalized URL: ${normalizedImgUrl}`);
+              return true;
+            }
+          }
+          
+          // Match by filename (if URLs differ but filename matches)
+          const metaFilename = meta.filename || (meta.media_url ? meta.media_url.split('/').pop()?.split('?')[0] : '') || '';
+          if (imgFilename && metaFilename && imgFilename === metaFilename) {
+            console.log(`✅ Matched by filename: ${imgFilename}`);
+            return true;
+          }
+          
+          // Match by ID (if available)
+          if (meta.id && img.id && String(meta.id) === String(img.id)) {
+            console.log(`✅ Matched by ID: ${img.id}`);
+            return true;
+          }
+          
+          // Match by URL containing the same filename (case-insensitive)
+          if (meta.media_url && img.url) {
+            const metaUrlFilename = meta.media_url.split('/').pop()?.split('?')[0]?.toLowerCase() || '';
+            const imgUrlFilename = img.url.split('/').pop()?.split('?')[0]?.toLowerCase() || '';
+            if (metaUrlFilename && imgUrlFilename && metaUrlFilename === imgUrlFilename) {
+              console.log(`✅ Matched by URL filename (case-insensitive): ${imgUrlFilename}`);
+              return true;
+            }
+          }
+          
+          return false;
+        });
+        
+        const isHighlighted = existingMeta?.is_highlighted === true || existingMeta?.is_highlighted === 'true';
+        console.log(`Image ${img.url}: Found existing meta:`, existingMeta ? 'YES' : 'NO', isHighlighted ? '(highlighted)' : '(not highlighted)');
+        if (existingMeta) {
+          console.log('  Meta is_highlighted value:', existingMeta.is_highlighted, 'Type:', typeof existingMeta.is_highlighted);
+        }
+        
+        return {
+          id: img.id || `img_${Date.now()}_${Math.random()}`,
+          media_url: img.url,
+          is_highlighted: isHighlighted, // Use the normalized check
+          title: img.name || `Catalog Image`,
+          filename: img.name || img.url.split('/').pop() || '',
+          size: img.size,
+          created_at: img.created_at
+        };
+      });
       
       console.log('=== CATALOG IMAGES FROM STORAGE ===');
       console.log('Bucket used:', bucketUsed);
@@ -2812,7 +2879,7 @@ const VendorProfileEdit: React.FC = () => {
                               <input
                                 type="checkbox"
                                 id={`highlight-${image.id}`}
-                                checked={image.is_highlighted || false}
+                                checked={Boolean(image.is_highlighted)}
                                 onChange={async (e) => {
                                   const isChecking = e.target.checked;
                                   
@@ -2922,7 +2989,9 @@ const VendorProfileEdit: React.FC = () => {
                         
                         // Refresh the catalog images to show newly uploaded ones
                         if (vendor?.vendor_id) {
-                          loadCatalogImages(vendor.vendor_id).then(refreshedUrls => {
+                          // Pass current metadata to preserve highlight status
+                          const currentMetadata = watch('catalog_images_metadata') || catalogImagesWithMeta || [];
+                          loadCatalogImages(vendor.vendor_id.toString(), currentMetadata).then(refreshedUrls => {
                             console.log('Refreshed catalog images after upload:', refreshedUrls);
                           });
                         }

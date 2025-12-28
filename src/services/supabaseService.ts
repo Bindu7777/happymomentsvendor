@@ -48,6 +48,14 @@ const parseVendorJsonFields = (vendorData: any): Vendor => {
     }
   }
 
+  if (vendorData.catalog_images_metadata && typeof vendorData.catalog_images_metadata === 'string') {
+    try {
+      vendorData.catalog_images_metadata = JSON.parse(vendorData.catalog_images_metadata);
+    } catch (e) {
+      console.warn('Failed to parse catalog_images_metadata JSON:', e);
+    }
+  }
+
   // CRITICAL: Normalize and clean categories field - PRIORITIZE categories over category
   // Clean malformed entries like ["{Caterers}"] or ["{\"Event Planners\"}"]
   const normalizeCategories = (cats: any): string[] => {

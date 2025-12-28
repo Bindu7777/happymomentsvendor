@@ -715,6 +715,7 @@ const VendorProfile = () => {
                 )}
               </div>
             )}
+
           </div>
         </div>
 
@@ -1386,6 +1387,142 @@ const VendorProfile = () => {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Contact Information Section - Mobile (After Reviews) */}
+            <Card className="mb-4 hover:shadow-lg transition-all duration-300 border-2 border-blue-100">
+              <CardContent className="p-4 sm:p-6">
+                <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2 text-gray-800">
+                  <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                  Contact Information
+                </h3>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex items-center gap-3 p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg hover:from-blue-100 hover:to-indigo-100 transition-colors border border-blue-200">
+                    <Phone className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-semibold text-gray-800 block text-sm sm:text-base">{vendor.phone_number}</span>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1">Call for immediate response</p>
+                    </div>
+                  </div>
+                  {vendor.whatsapp_number && (
+                    <div className="flex items-center gap-3 p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg hover:from-green-100 hover:to-emerald-100 transition-colors border border-green-200">
+                      <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-gray-800 block text-sm sm:text-base">{vendor.whatsapp_number}</span>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">WhatsApp for quick chat</p>
+                      </div>
+                    </div>
+                  )}
+                  {vendor.email && (
+                    <div className="flex items-center gap-3 p-3 sm:p-4 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg hover:from-pink-100 hover:to-rose-100 transition-colors border border-pink-200">
+                      <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-pink-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <span className="font-semibold text-gray-800 block text-sm sm:text-base break-all">{vendor.email}</span>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">Email for inquiries</p>
+                      </div>
+                    </div>
+                  )}
+                  {vendor.instagram && (
+                    <div className="flex items-center gap-3 p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg hover:from-purple-100 hover:to-pink-100 transition-colors border border-purple-200">
+                      <Instagram className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <a 
+                          href={`https://instagram.com/${vendor.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-gray-800 block text-sm sm:text-base hover:text-purple-600 transition-colors break-all"
+                        >
+                          {vendor.instagram}
+                        </a>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">Follow us on Instagram</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Booking Policies Section - Mobile (After Reviews) */}
+            {vendor.booking_policies && (
+              <Card className="mb-4 hover:shadow-lg transition-all duration-300 border-2 border-amber-100">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2 text-gray-800">
+                    <Scroll className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
+                    Booking Policies
+                  </h3>
+                  <div className="space-y-4 sm:space-y-6">
+                    
+                    {/* Payment Terms Policy */}
+                    {vendor.booking_policies.payment_terms && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <span className="text-white text-sm font-bold">₹</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-amber-800 mb-1 sm:mb-2 text-sm sm:text-base">Payment Terms</h4>
+                            <p className="text-xs sm:text-sm text-amber-700 leading-relaxed break-words">
+                              {vendor.booking_policies.payment_terms}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Cancellation Policy */}
+                    {vendor.booking_policies.cancellation_policy && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border border-red-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-red-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-red-800 mb-1 sm:mb-2 text-sm sm:text-base">Cancellation Policy</h4>
+                            <p className="text-xs sm:text-sm text-red-700 leading-relaxed break-words">
+                              {vendor.booking_policies.cancellation_policy}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Booking Requirements */}
+                    {vendor.booking_policies.booking_requirements && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-blue-800 mb-1 sm:mb-2 text-sm sm:text-base">Booking Requirements</h4>
+                            <p className="text-xs sm:text-sm text-blue-700 leading-relaxed break-words">
+                              {vendor.booking_policies.booking_requirements}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Advance Payment */}
+                    {vendor.booking_policies.advance && (
+                      <div className="p-3 sm:p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl border border-purple-200">
+                        <div className="flex items-start gap-2 sm:gap-3">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                            <span className="text-white text-sm font-bold">₹</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-purple-800 mb-1 sm:mb-2 text-sm sm:text-base">Advance Payment</h4>
+                            <p className="text-xs sm:text-sm text-purple-700 leading-relaxed break-words">
+                              {vendor.booking_policies.advance}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Additional Information Section - Moved from Sidebar */}
             {vendor.additional_info && (

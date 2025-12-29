@@ -267,7 +267,7 @@ const PhotographyVendors = () => {
               <ChevronLeft className="w-6 h-6" />
             </Button>
             <div className="flex-1">
-              <h1 className="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">
+              <h1 className="text-xl md:text-4xl font-bold text-white drop-shadow-lg">
                 Photography Vendors
               </h1>
               {/* Elegant Accent Line */}

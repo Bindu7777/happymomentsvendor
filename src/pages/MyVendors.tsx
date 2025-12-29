@@ -184,17 +184,17 @@ const MyVendors: React.FC = () => {
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8 mt-6">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mb-6"
+            className="flex items-center text-gray-600 hover:text-wedding-orange transition-colors mb-6 mt-4"
           >
             <ArrowLeft className="h-5 w-5 mr-2" />
             Back
           </button>
           <div className="flex items-center justify-center">
             <MessageCircle className="h-8 w-8 text-[#001B5E] mr-2.5" strokeWidth={2} />
-            <h1 className="text-4xl font-semibold text-[#001B5E]">
+            <h1 className="text-4xl font-semibold text-gray-800">
               Contacted Vendors
             </h1>
           </div>

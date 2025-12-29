@@ -342,7 +342,7 @@ const Hero = () => {
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-extrabold space text-white mb-3 md:mb-4 leading-[1.1] animate-fade-up tracking-normal drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)] whitespace-normal">
             Find the Best Event Vendors, Perfect for Your Budget and Vision
             </h1>
-            <p className="text-base sm:text-lg md:text-xl text-white/95 mb-2 max-w-2xl mx-auto animate-fade-up drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] font-semibold" style={{ animationDelay: '100ms' }}>
+            <p className="hidden md:block text-base sm:text-lg md:text-xl text-white/95 mb-2 max-w-2xl mx-auto animate-fade-up drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] font-semibold" style={{ animationDelay: '100ms' }}>
             A–Z Event Tools & Top Vendors with Trusted Reviews!
             </p>
           </div>
@@ -583,6 +583,17 @@ const Hero = () => {
           </div>
         </div>
       )}
+      
+      {/* Floating WhatsApp Button - Mobile Only */}
+      <a
+        href="https://wa.me/917330732710?text=Hi!%20I'm%20interested%20in%20learning%20more%20about%20your%20event%20services.%20Could%20you%20please%20share%20more%20details?"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 z-50 md:hidden bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+        aria-label="Chat on WhatsApp"
+      >
+        <MessageCircle className="h-6 w-6" />
+      </a>
       </section>
   );
 };

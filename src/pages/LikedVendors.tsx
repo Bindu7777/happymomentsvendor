@@ -79,18 +79,18 @@ const LikedVendors = () => {
       <div className="container mx-auto px-4 py-8 main-content">
         {/* Header */}
         <div className="mb-8">
-          <button
+            <button
             onClick={() => navigate('/')}
             className="flex items-center text-gray-600 hover:text-wedding-orange transition-colors mb-6"
-          >
-            <ArrowLeft className="h-5 w-5 mr-2" />
-            Back
-          </button>
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back
+            </button>
           <div className="flex items-center justify-center">
             <Heart className="h-8 w-8 mr-2.5 text-red-500 fill-red-500" />
             <h1 className="text-4xl font-semibold text-gray-800">
-              Liked Vendors
-            </h1>
+                Liked Vendors
+              </h1>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ const LikedVendors = () => {
               </p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6 md:mb-0">
               {likedVendors.map((vendor) => (
                 <VendorShortCard
                   key={vendor.vendor_id}

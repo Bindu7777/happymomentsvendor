@@ -194,10 +194,13 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
   const allLanguages = getAllLanguages();
 
   return (
-    <Card className="group hover:shadow-xl transition-all duration-300 border border-gray-200 bg-white overflow-hidden h-full flex flex-col">
+    <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-gray-300 md:border-gray-200 bg-white overflow-hidden h-full flex flex-col rounded-xl md:rounded-lg shadow-md md:shadow-sm">
       <CardContent className="p-0 flex flex-col h-full">
+        {/* Subtle top accent for visual start */}
+        <div className="h-1 bg-gradient-to-r from-[#F7941D] via-[#FFA326] to-[#F7941D]"></div>
+        
         {/* Cover Image or Placeholder */}
-        <div className="relative h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
+        <div className={`relative ${coverImage ? 'h-48 md:h-48' : 'h-32 md:h-48'} overflow-hidden bg-gradient-to-br from-[#001B5E] via-[#001B5E]/90 to-[#F7941D]/20 flex items-center justify-center`}>
           {coverImage ? (
             <>
               <img
@@ -219,9 +222,14 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
             </>
           ) : null}
           <div 
-            className={`cover-placeholder ${coverImage ? 'hidden' : 'flex'} items-center justify-center w-full h-full text-gray-400 text-sm font-medium`}
+            className={`cover-placeholder ${coverImage ? 'hidden' : 'flex'} items-center justify-center w-full h-full`}
           >
-            No cover image
+            <div className="text-center">
+              <div className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-2 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30">
+                <Star className="w-6 h-6 md:w-8 md:h-8 text-white/80 fill-white/40" />
+              </div>
+              <p className="text-white/70 text-xs font-medium">Happy Moments</p>
+            </div>
           </div>
           
           {/* Like Button - Top Right Corner - High z-index to ensure visibility */}
@@ -367,7 +375,7 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
         </div>
 
         {/* 9. Secondary CTA - View Profile */}
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-4 md:pb-2">
           <Button
             variant="outline"
             className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"

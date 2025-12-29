@@ -73,6 +73,11 @@ const CategoryVendors = () => {
   const [comparisonVendors, setComparisonVendors] = useState<Vendor[]>([]);
   const [showComparison, setShowComparison] = useState(false);
 
+  // Reset scroll position on page load and route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [category]);
+
   // Fetch vendors from Supabase
   useEffect(() => {
     const fetchVendors = async () => {
@@ -436,17 +441,26 @@ const CategoryVendors = () => {
           <div className="flex items-center gap-4 mb-6">
             <Button
               variant="ghost"
-              onClick={() => navigate('/')}
+              onClick={() => {
+                navigate('/');
+                // Scroll to categories section after navigation
+                setTimeout(() => {
+                  const categoriesSection = document.getElementById('categories');
+                  if (categoriesSection) {
+                    categoriesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 100);
+              }}
               className="text-white hover:bg-white/20 p-2 rounded-xl transition-all duration-200 backdrop-blur-sm"
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
-            <div className="flex-1">
-              <h1 className="text-xl md:text-4xl font-bold text-white drop-shadow-lg">
+            <div className="flex-1 text-center">
+              <h1 className="text-lg md:text-3xl font-bold text-white drop-shadow-lg">
                 {formatCategoryName(category || '')} Vendors
               </h1>
               {/* Elegant Accent Line */}
-              <div className="mt-3 h-1 w-24 bg-gradient-to-r from-white via-amber-200 to-transparent rounded-full shadow-sm"></div>
+              <div className="mt-3 h-1 w-24 bg-gradient-to-r from-white via-amber-200 to-transparent rounded-full shadow-sm mx-auto"></div>
             </div>
           </div>
           
@@ -944,8 +958,8 @@ const CategoryVendors = () => {
       {/* Bottom CTA Section */}
       <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white py-12 mt-16">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">Can't Find the Perfect Vendor?</h2>
-          <p className="text-amber-100 mb-6 max-w-2xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4 text-white">Can't Find the Perfect Vendor?</h2>
+          <p className="text-white mb-6 max-w-2xl mx-auto">
             Let us help you find the ideal professional for your special event. 
             Our team will connect you with verified vendors in your area.
           </p>

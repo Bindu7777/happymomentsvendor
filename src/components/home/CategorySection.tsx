@@ -65,7 +65,7 @@ const CategorySection = () => {
   ];
 
   return (
-    <section className="py-20 bg-wedding-light">
+    <section id="categories" className="py-20 bg-wedding-light">
       <div className="container-custom">
 
         {/* Find Vendors Section */}

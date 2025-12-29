@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -11,6 +11,11 @@ import Header from '../components/layout/Header';
 const PhotographyVendors = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Reset scroll position on page load
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   const [locationFilter, setLocationFilter] = useState('all');
   const [priceFilter, setPriceFilter] = useState('all');
   const [sortBy, setSortBy] = useState('rating');
@@ -261,17 +266,26 @@ const PhotographyVendors = () => {
           <div className="flex items-center gap-4 mb-6">
             <Button
               variant="ghost"
-              onClick={() => navigate('/')}
+              onClick={() => {
+                navigate('/');
+                // Scroll to categories section after navigation
+                setTimeout(() => {
+                  const categoriesSection = document.getElementById('categories');
+                  if (categoriesSection) {
+                    categoriesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }, 100);
+              }}
               className="text-white hover:bg-white/20 p-2 rounded-xl transition-all duration-200 backdrop-blur-sm"
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
-            <div className="flex-1">
-              <h1 className="text-xl md:text-4xl font-bold text-white drop-shadow-lg">
+            <div className="flex-1 text-center">
+              <h1 className="text-lg md:text-3xl font-bold text-white drop-shadow-lg">
                 Photography Vendors
               </h1>
               {/* Elegant Accent Line */}
-              <div className="mt-3 h-1 w-24 bg-gradient-to-r from-white via-amber-200 to-transparent rounded-full shadow-sm"></div>
+              <div className="mt-3 h-1 w-24 bg-gradient-to-r from-white via-amber-200 to-transparent rounded-full shadow-sm mx-auto"></div>
             </div>
           </div>
           

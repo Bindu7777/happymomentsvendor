@@ -273,19 +273,17 @@ const Header = () => {
                   onCloseAutoFocus={(e) => e.preventDefault()}
                 >
                   {CATEGORY_LIST.map((category) => {
-                    // Convert category name to URL-friendly format
+                    // Convert category name to URL-friendly format (same as CategorySection)
                     const categorySlug = category.name.toLowerCase()
                       .replace(/\s+/g, '-')
-                      .replace(/\//g, '-')
-                      .replace(/,/g, '')
-                      .replace(/&/g, 'and');
+                      .replace(/\//g, '-');
                     
                     return (
                       <DropdownMenuItem 
                         key={category.code}
                         className="hover:bg-wedding-orange-light rounded-lg transition-custom cursor-pointer px-3 py-2"
                       >
-                        <Link to={`/vendors?category=${categorySlug}`} className="w-full">
+                        <Link to={`/category/${categorySlug}`} className="w-full">
                           {category.name}
                         </Link>
                       </DropdownMenuItem>

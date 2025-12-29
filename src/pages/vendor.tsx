@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Navigate } from 'react-router-dom';
+import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { Vendor } from '@/lib/supabase';
 import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
 import { getVendorBrandLogoFromStorage, getVendorContactPersonImageFromStorage } from '../services/supabaseStorageService';
-import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2, Info, Globe, Scroll, FileText, Menu, X } from 'lucide-react';
+import { Star, MapPin, Phone, Mail, Instagram, Facebook, Heart, Share2, Calendar, Clock, CheckCircle, Camera, Video, Users, Award, MessageCircle, Zap, Trophy, Sparkles, ArrowRight, Play, Pause, Building2, Info, Globe, Scroll, FileText, Menu, X, ChevronLeft } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
@@ -18,13 +18,32 @@ import VendorStatusDropdown from '@/components/VendorStatusDropdown';
 import VendorActionButtons from '@/components/VendorActionButtons';
 import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 import { checkVendorContacted } from '@/services/contactedVendorsApiService';
+import { getLoggedInVendor } from '@/services/supabaseService';
 
 const VendorProfile = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const { customer } = useCustomerAuth();
+  const navigate = useNavigate();
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Check if customer is logged in - redirect to login if not
+  // But skip if vendor is logged in (vendor should be able to view their own profile)
+  // Only check after initial load is complete
+  useEffect(() => {
+    // Wait a bit for customer auth to initialize, then check
+    const checkAuth = setTimeout(() => {
+      const loggedInVendor = getLoggedInVendor();
+      // If vendor is logged in, allow access without customer login
+      if (!customer && !loggedInVendor && !isLoading && vendorId) {
+        // Redirect to login with redirect parameter
+        navigate(`/customer-login?redirect=${encodeURIComponent(`/vendor/${vendorId}`)}`);
+      }
+    }, 500);
+    
+    return () => clearTimeout(checkAuth);
+  }, [customer, isLoading, navigate, vendorId]);
   const [contactStatus, setContactStatus] = useState<string>('Contacted');
   const [isContacted, setIsContacted] = useState(false);
   const [highlightImages, setHighlightImages] = useState<any[]>([]);
@@ -376,8 +395,17 @@ const VendorProfile = () => {
       <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm lg:hidden mobile-menu-container">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Left side - Company name only */}
+            {/* Left side - Back button and Company name */}
             <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-lg"
+                title="Go back"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-700" />
+              </Button>
               <h1 className="text-base font-bold text-gray-900 truncate">{vendor.brand_name}</h1>
             </div>
 
@@ -396,7 +424,7 @@ const VendorProfile = () => {
 
               {/* Like Button */}
               <LikeButton 
-                vendorId={vendorId || ''} 
+                vendorId={String(vendorId || '')} 
                 className="p-2"
               />
 
@@ -509,6 +537,16 @@ const VendorProfile = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              {/* Back Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate(-1)}
+                className="flex-shrink-0 p-2 hover:bg-gray-100 rounded-lg"
+                title="Go back"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-700" />
+              </Button>
               <img 
                 src={brandLogoUrl || "/images/vendor.jpeg"} 
                 alt={vendor.brand_name}

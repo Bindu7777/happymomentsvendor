@@ -6,6 +6,8 @@ import { Badge } from './ui/badge';
 import { Star, MapPin, MessageCircle, Eye, Languages } from 'lucide-react';
 import { Vendor } from '@/lib/supabase';
 import WhatsAppButton from './WhatsAppButton';
+import LikeButton from './LikeButton';
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 import { getAllCatalogImages } from '@/services/supabaseService';
 
 interface VendorShortCardProps {
@@ -16,6 +18,7 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
   vendor
 }) => {
   const navigate = useNavigate();
+  const { customer } = useCustomerAuth();
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
   // Load cover image from catalog images
@@ -220,6 +223,21 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
           >
             No cover image
           </div>
+          
+          {/* Like Button - Top Right Corner - High z-index to ensure visibility */}
+          <div 
+            className="absolute top-3 right-3 z-30 flex items-center justify-center" 
+            onClick={(e) => e.stopPropagation()}
+            style={{ zIndex: 30 }}
+          >
+            <div className="bg-white/95 hover:bg-white backdrop-blur-sm shadow-xl rounded-full p-1.5 border border-white/80">
+              <LikeButton
+                vendorId={String(vendor.vendor_id)}
+                size="md"
+                className=""
+              />
+            </div>
+          </div>
         </div>
 
         {/* 1. Vendor Brand Name (Primary Heading) */}
@@ -355,6 +373,12 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
             className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
             onClick={(e) => {
               e.stopPropagation();
+              // Check if customer is logged in before viewing profile
+              if (!customer) {
+                // Redirect to customer login
+                navigate('/customer-login?redirect=' + encodeURIComponent(`/vendor/${vendor.vendor_id}`));
+                return;
+              }
               navigate(`/vendor/${vendor.vendor_id}`);
             }}
           >

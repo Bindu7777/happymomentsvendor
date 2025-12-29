@@ -123,15 +123,15 @@ router.post('/save-contact', async (req, res) => {
       });
     }
 
-    // Get customer details for notification message
-    const { data: customerData, error: customerError } = await supabase
-      .from('customers')
-      .select('full_name')
-      .eq('id', parseInt(customer_id))
+    // Get vendor details for notification message
+    const { data: vendorData, error: vendorError } = await supabase
+      .from('vendors')
+      .select('brand_name')
+      .eq('vendor_id', parseInt(vendor_id))
       .single();
 
-    const customerName = customerData?.full_name || `Customer ${customer_id}`;
-    const notificationMessage = `${customerName} viewed your profile and contacted you!`;
+    const vendorName = vendorData?.brand_name || 'the event vendor';
+    const notificationMessage = `You contacted ${vendorName}`;
 
     // Insert new contact record with notification fields
     const { data: newContact, error: insertError } = await supabase
@@ -585,12 +585,28 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
     const customerIds = contactedData.map(item => item.customer_id).filter(id => id > 0);
     console.log('Fetching details for customer IDs:', customerIds);
 
+    // Get flag information for these customers from this vendor
+    let flagDataMap = {};
+    if (customerIds.length > 0) {
+      const { data: flagsData, error: flagsError } = await supabase
+        .from('customer_flags')
+        .select('customer_id, vendor_id')
+        .eq('vendor_id', vendor_id.toString())
+        .in('customer_id', customerIds);
+
+      if (!flagsError && flagsData) {
+        flagsData.forEach(flag => {
+          flagDataMap[flag.customer_id] = true;
+        });
+      }
+    }
+
     let customersData = [];
     if (customerIds.length > 0) {
       // Get customer details from customers table using correct column names
       const { data: customersDataResult, error: customersError } = await supabase
         .from('customers')
-        .select('id, full_name, email, mobile_number, gender')
+        .select('id, full_name, email, mobile_number, gender, flag_count, is_blocked')
         .in('id', customerIds);
 
       if (customersError) {
@@ -661,7 +677,11 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
           customer_email: customer.email || '',
           customer_location: '',
           customer_gender: customer.gender || '',
-          is_admin_sent: false
+          is_admin_sent: false,
+          // Flag information
+          flag_count: customer.flag_count || 0,
+          is_blocked: customer.is_blocked || false,
+          is_flagged_by_vendor: flagDataMap[contacted.customer_id] || false
         };
       } else {
         console.log(`Warning: Customer ${contacted.customer_id} not found in database`);
@@ -698,6 +718,156 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
 
   } catch (error) {
     console.error('Error in get-vendor-customers:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Flag a customer (vendor flags a customer)
+router.post('/flag-customer', async (req, res) => {
+  try {
+    const { vendor_id, customer_id, reason } = req.body;
+
+    if (!vendor_id || !customer_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vendor ID and Customer ID are required'
+      });
+    }
+
+    console.log(`Vendor ${vendor_id} flagging customer ${customer_id}`);
+
+    // Check if customer exists
+    const { data: customerData, error: customerError } = await supabase
+      .from('customers')
+      .select('id, full_name, flag_count, is_blocked')
+      .eq('id', parseInt(customer_id))
+      .single();
+
+    if (customerError || !customerData) {
+      return res.status(404).json({
+        success: false,
+        error: 'Customer not found'
+      });
+    }
+
+    // Check if already flagged by this vendor
+    const { data: existingFlag, error: checkError } = await supabase
+      .from('customer_flags')
+      .select('flag_id')
+      .eq('customer_id', parseInt(customer_id))
+      .eq('vendor_id', vendor_id.toString())
+      .single();
+
+    if (existingFlag) {
+      return res.status(400).json({
+        success: false,
+        error: 'Customer already flagged by this vendor'
+      });
+    }
+
+    // Insert flag record
+    const { data: newFlag, error: insertError } = await supabase
+      .from('customer_flags')
+      .insert({
+        customer_id: parseInt(customer_id),
+        vendor_id: vendor_id.toString(),
+        reason: reason || null
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Error flagging customer:', insertError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to flag customer'
+      });
+    }
+
+    // Get updated customer data (flag_count and is_blocked should be updated by trigger)
+    const { data: updatedCustomer, error: fetchError } = await supabase
+      .from('customers')
+      .select('id, full_name, flag_count, is_blocked')
+      .eq('id', parseInt(customer_id))
+      .single();
+
+    console.log(`Customer ${customer_id} flagged. New flag_count: ${updatedCustomer?.flag_count}, is_blocked: ${updatedCustomer?.is_blocked}`);
+
+    res.json({
+      success: true,
+      message: 'Customer flagged successfully',
+      data: {
+        flag_id: newFlag.flag_id,
+        customer_id: parseInt(customer_id),
+        vendor_id: vendor_id.toString(),
+        flag_count: updatedCustomer?.flag_count || 0,
+        is_blocked: updatedCustomer?.is_blocked || false
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in flag-customer:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Unflag a customer (vendor removes their flag)
+router.delete('/unflag-customer', async (req, res) => {
+  try {
+    const { vendor_id, customer_id } = req.body;
+
+    if (!vendor_id || !customer_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vendor ID and Customer ID are required'
+      });
+    }
+
+    console.log(`Vendor ${vendor_id} unflagging customer ${customer_id}`);
+
+    // Delete flag record
+    const { error: deleteError } = await supabase
+      .from('customer_flags')
+      .delete()
+      .eq('customer_id', parseInt(customer_id))
+      .eq('vendor_id', vendor_id.toString());
+
+    if (deleteError) {
+      console.error('Error unflagging customer:', deleteError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to unflag customer'
+      });
+    }
+
+    // Get updated customer data (flag_count and is_blocked should be updated by trigger)
+    const { data: updatedCustomer, error: fetchError } = await supabase
+      .from('customers')
+      .select('id, full_name, flag_count, is_blocked')
+      .eq('id', parseInt(customer_id))
+      .single();
+
+    console.log(`Customer ${customer_id} unflagged. New flag_count: ${updatedCustomer?.flag_count}, is_blocked: ${updatedCustomer?.is_blocked}`);
+
+    res.json({
+      success: true,
+      message: 'Customer unflagged successfully',
+      data: {
+        customer_id: parseInt(customer_id),
+        vendor_id: vendor_id.toString(),
+        flag_count: updatedCustomer?.flag_count || 0,
+        is_blocked: updatedCustomer?.is_blocked || false
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in unflag-customer:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

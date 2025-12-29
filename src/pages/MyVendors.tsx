@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageCircle, Star, MapPin, Phone, Mail, ArrowLeft, Trash2, Filter } from 'lucide-react';
+import { MessageCircle, Star, MapPin, Phone, Mail, Trash2, Filter, ArrowLeft } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,23 +45,7 @@ const MyVendors: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (customer) {
-      fetchContactedVendors();
-      loadStatusOptions();
-    }
-  }, [customer]);
-
-  useEffect(() => {
-    // Apply status filter
-    if (statusFilter === 'all') {
-      setFilteredVendors(contactedVendors);
-    } else {
-      setFilteredVendors(contactedVendors.filter(vendor => vendor.status === statusFilter));
-    }
-  }, [contactedVendors, statusFilter]);
-
-  const fetchContactedVendors = async () => {
+  const fetchContactedVendors = React.useCallback(async () => {
     if (!customer) return;
 
     setLoading(true);
@@ -85,7 +69,39 @@ const MyVendors: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [customer]);
+
+  useEffect(() => {
+    if (customer) {
+      fetchContactedVendors();
+      loadStatusOptions();
+    }
+  }, [customer, fetchContactedVendors]);
+
+  // Listen for vendorContacted events to refresh the list
+  useEffect(() => {
+    const handleVendorContacted = () => {
+      console.log('📢 MyVendors: Vendor contacted event received, refreshing list...');
+      if (customer) {
+        fetchContactedVendors();
+      }
+    };
+
+    window.addEventListener('vendorContacted', handleVendorContacted);
+    
+    return () => {
+      window.removeEventListener('vendorContacted', handleVendorContacted);
+    };
+  }, [customer, fetchContactedVendors]);
+
+  useEffect(() => {
+    // Apply status filter
+    if (statusFilter === 'all') {
+      setFilteredVendors(contactedVendors);
+    } else {
+      setFilteredVendors(contactedVendors.filter(vendor => vendor.status === statusFilter));
+    }
+  }, [contactedVendors, statusFilter]);
 
   const loadStatusOptions = async () => {
     try {
@@ -155,7 +171,6 @@ const MyVendors: React.FC = () => {
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">My Vendors</h1>
             <p className="text-gray-600">Please log in to view your contacted vendors.</p>
           </div>
         </div>
@@ -169,21 +184,19 @@ const MyVendors: React.FC = () => {
       
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Back to Home
-            </button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Vendors</h1>
-              <p className="text-gray-600 mt-1">
-                Vendors you have successfully contacted via WhatsApp
-              </p>
-            </div>
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center text-gray-600 hover:text-gray-900 transition-colors mb-6"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back
+          </button>
+          <div className="flex items-center justify-center">
+            <MessageCircle className="h-8 w-8 text-[#001B5E] mr-2.5" strokeWidth={2} />
+            <h1 className="text-4xl font-semibold text-[#001B5E]">
+              Contacted Vendors
+            </h1>
           </div>
         </div>
 
@@ -331,12 +344,16 @@ const MyVendors: React.FC = () => {
                     {/* Card Content */}
                     <div className="p-4">
                       {/* Vendor Info */}
-                      <div className="mb-3">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors">
+                      <div className="mb-3 min-w-0">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors break-words overflow-hidden text-ellipsis" style={{ 
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
                           {vendor.brand_name || 'Unknown Vendor'}
                         </h3>
-                        <p className="text-xs text-amber-600 font-medium mb-1">{vendor.category || 'Unknown Category'}</p>
-                        <p className="text-sm text-gray-600">by {vendor.spoc_name || 'Unknown'}</p>
+                        <p className="text-xs text-amber-600 font-medium mb-1 break-words overflow-hidden text-ellipsis whitespace-nowrap">{vendor.category || 'Unknown Category'}</p>
+                        <p className="text-sm text-gray-600 break-words overflow-hidden text-ellipsis whitespace-nowrap">by {vendor.spoc_name || 'Unknown'}</p>
                       </div>
 
                       {/* Rating */}
@@ -364,13 +381,13 @@ const MyVendors: React.FC = () => {
                       {/* Starting Price */}
                       <div className="mb-3">
                         <p className="text-sm text-gray-500 mb-1">Starting Price</p>
-                        <p className="text-lg font-bold text-amber-600">
+                        <p className="text-lg font-bold text-amber-600 break-words">
                           ₹{vendor.starting_price?.toLocaleString() || 'Contact for pricing'}
                         </p>
                       </div>
 
                       {/* Contacted Date */}
-                      <div className="text-xs text-gray-500 mb-3">
+                      <div className="text-xs text-gray-500 mb-3 break-words">
                         Contacted on {formatDate(vendor.contacted_at)}
                       </div>
 

@@ -30,14 +30,15 @@ import {
   X,
   UserCheck,
   Heart,
-  History
+  History,
+  Flag
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorRejectedChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
-import { getVendorCustomers, updateVendorStatusForContact, updateNotesForContact } from '../services/contactedVendorsApiService';
+import { getVendorCustomers, updateVendorStatusForContact, updateNotesForContact, flagCustomer, unflagCustomer } from '../services/contactedVendorsApiService';
 import { Vendor } from '../lib/supabase';
 import AddLeadModal from '../components/AddLeadModal';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
@@ -563,6 +564,45 @@ const VendorDashboard: React.FC = () => {
   const handleViewCustomerDetails = (customer: any) => {
     setSelectedCustomer(customer);
     setShowCustomerDetails(true);
+  };
+
+  const handleFlagCustomer = async (customer: any) => {
+    if (!vendor) return;
+
+    try {
+      const isCurrentlyFlagged = customer.is_flagged_by_vendor;
+      
+      if (isCurrentlyFlagged) {
+        // Unflag the customer
+        const result = await unflagCustomer(vendor.vendor_id.toString(), customer.customer_id);
+        if (result.success) {
+          console.log('Customer unflagged successfully');
+          // Reload customers to get updated flag status
+          loadCustomersData(parseInt(vendor.vendor_id));
+        } else {
+          console.error('Failed to unflag customer:', result.error);
+          alert('Failed to unflag customer: ' + result.error);
+        }
+      } else {
+        // Flag the customer
+        const result = await flagCustomer(vendor.vendor_id.toString(), customer.customer_id);
+        if (result.success) {
+          console.log('Customer flagged successfully');
+          // Check if customer is now blocked
+          if (result.data?.is_blocked) {
+            alert(`Customer flagged. This customer has been blocked (flagged ${result.data.flag_count} times).`);
+          }
+          // Reload customers to get updated flag status
+          loadCustomersData(parseInt(vendor.vendor_id));
+        } else {
+          console.error('Failed to flag customer:', result.error);
+          alert('Failed to flag customer: ' + result.error);
+        }
+      }
+    } catch (error) {
+      console.error('Error flagging/unflagging customer:', error);
+      alert('An error occurred while flagging/unflagging the customer');
+    }
   };
 
   const handleVendorStatusUpdate = async (contactId: string, newStatus: string) => {
@@ -1192,35 +1232,35 @@ const VendorDashboard: React.FC = () => {
         {activeTab === 'customers' && (
           <div className="space-y-6">
         {/* Customer Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
           <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-[#001B5E]">{customerStats.total_customers || 0}</p>
-              <p className="text-sm text-gray-600">Total Contacts</p>
+            <CardContent className="p-2 md:p-4 text-center">
+              <p className="text-lg md:text-2xl font-bold text-[#001B5E]">{customerStats.total_customers || 0}</p>
+              <p className="text-xs md:text-sm text-gray-600">Total Contacts</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-purple-600">{customerStats.admin_sent || 0}</p>
-              <p className="text-sm text-gray-600">👑 Admin Sent</p>
+            <CardContent className="p-2 md:p-4 text-center">
+              <p className="text-lg md:text-2xl font-bold text-purple-600">{customerStats.admin_sent || 0}</p>
+              <p className="text-xs md:text-sm text-gray-600">👑 Admin Sent</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-blue-600">{customerStats.contacted || 0}</p>
-              <p className="text-sm text-gray-600">Contacted</p>
+            <CardContent className="p-2 md:p-4 text-center">
+              <p className="text-lg md:text-2xl font-bold text-blue-600">{customerStats.contacted || 0}</p>
+              <p className="text-xs md:text-sm text-gray-600">Contacted</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-600">{customerStats.customer_interested || 0}</p>
-              <p className="text-sm text-gray-600">Interested</p>
+            <CardContent className="p-2 md:p-4 text-center">
+              <p className="text-lg md:text-2xl font-bold text-yellow-600">{customerStats.customer_interested || 0}</p>
+              <p className="text-xs md:text-sm text-gray-600">Interested</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">{customerStats.event_completed || 0}</p>
-              <p className="text-sm text-gray-600">Completed</p>
+            <CardContent className="p-2 md:p-4 text-center">
+              <p className="text-lg md:text-2xl font-bold text-green-600">{customerStats.event_completed || 0}</p>
+              <p className="text-xs md:text-sm text-gray-600">Completed</p>
             </CardContent>
           </Card>
         </div>
@@ -1313,6 +1353,18 @@ const VendorDashboard: React.FC = () => {
                         {customer.is_admin_sent && (
                           <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-bold border border-purple-300">
                             👑 ADMIN SENT
+                          </span>
+                        )}
+                        {/* Blocked badge */}
+                        {customer.is_blocked && (
+                          <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold border border-red-300">
+                            ⛔ BLOCKED
+                          </span>
+                        )}
+                        {/* Flag count badge */}
+                        {customer.flag_count > 0 && !customer.is_blocked && (
+                          <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-bold border border-orange-300">
+                            🚩 {customer.flag_count} Flag{customer.flag_count > 1 ? 's' : ''}
                           </span>
                         )}
                       </div>
@@ -1434,6 +1486,35 @@ const VendorDashboard: React.FC = () => {
                           }}
                         >
                           <MessageCircle className="w-4 h-4" />
+                        </Button>
+                      )}
+                      
+                      {/* Flag Button */}
+                      {customer.customer_id > 0 && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFlagCustomer(customer);
+                          }}
+                          title={customer.is_flagged_by_vendor ? "Unflag Customer" : "Flag Customer"}
+                          className="p-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
+                          style={{ 
+                            background: customer.is_flagged_by_vendor 
+                              ? 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)'
+                              : 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = customer.is_flagged_by_vendor 
+                              ? 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)'
+                              : 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)';
+                          }}
+                        >
+                          <Flag className={`w-4 h-4 ${customer.is_flagged_by_vendor ? 'fill-white' : ''}`} />
                         </Button>
                       )}
                     </div>

@@ -400,7 +400,7 @@ const Hero = () => {
                     </div>
 
                     {/* Smart Matching */}
-                    <div className="text-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-white/95 to-orange-50/95 rounded-xl md:rounded-2xl border border-orange-300/60 shadow-lg hover:shadow-2xl hover:shadow-orange-300/40 transition-all duration-300 hover:scale-105 hover:-translate-y-2 group sm:col-span-2 lg:col-span-1">
+                    <div className="hidden md:block text-center p-4 sm:p-6 md:p-8 bg-gradient-to-br from-white/95 to-orange-50/95 rounded-xl md:rounded-2xl border border-orange-300/60 shadow-lg hover:shadow-2xl hover:shadow-orange-300/40 transition-all duration-300 hover:scale-105 hover:-translate-y-2 group sm:col-span-2 lg:col-span-1">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-600 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-xl hover:shadow-2xl hover:shadow-orange-400/60 transition-all duration-300 hover:scale-110 group">
                         <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-white transition-transform duration-300 group-hover:rotate-180 group-hover:scale-110 animate-spin" style={{ animationDuration: '4s', animationIterationCount: 'infinite' }} />
                       </div>

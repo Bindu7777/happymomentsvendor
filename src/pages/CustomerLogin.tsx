@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCustomerAuth } from '@/contexts/CustomerAuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const CustomerLogin: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signIn } = useCustomerAuth();
   
   const [formData, setFormData] = useState({
@@ -70,8 +71,9 @@ const CustomerLogin: React.FC = () => {
           setErrors({ general: error.message || 'An error occurred during login' });
         }
       } else if (customer) {
-        // Redirect to home page after successful login
-        navigate('/');
+        // Redirect to the page specified in redirect parameter, or home page
+        const redirectPath = searchParams.get('redirect') || '/';
+        navigate(redirectPath);
       }
     } catch (error) {
       setErrors({ general: 'An unexpected error occurred' });

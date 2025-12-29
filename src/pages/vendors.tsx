@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Star, MapPin, Phone, Mail, Instagram, Heart, MessageCircle, Camera, Award, Users, Zap, Clock, ChevronLeft, Search, Filter, SlidersHorizontal, TrendingUp, DollarSign, ChevronDown, ChevronUp, User, Shield, X, Mic, MicOff, Send, Loader2, Edit3, Check, Volume2, Languages, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -17,6 +17,7 @@ import { Vendor } from '@/lib/supabase';
 import { getAllVendors } from '@/services/supabaseService';
 import { parseRequest, validateParsedRequest, ParsedRequest } from '../services/requestParser';
 import { useVoiceProcessing } from '@/hooks/useVoiceProcessing';
+import { getStateForLocation, findStateForLocation } from '../services/locationService';
 
 // Local interface for parsed filter data
 interface ParsedFilterData {
@@ -98,7 +99,126 @@ const cities = [
 const VendorsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const topRef = useRef<HTMLDivElement>(null);
   
+  // ULTIMATE FIX: Lock scroll position completely
+  useEffect(() => {
+    // Step 1: Disable browser scroll restoration
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    
+    // Step 2: Remove hash
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    
+    // Step 3: Lock body overflow to prevent ALL scrolling
+    const originalOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    
+    // Step 4: Force scroll to top
+    const forceScrollToTop = () => {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      if (topRef.current) {
+        topRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+      }
+    };
+    
+    // Step 5: Disable smooth scroll
+    const originalScrollBehavior = document.documentElement.style.scrollBehavior;
+    document.documentElement.style.scrollBehavior = 'auto';
+    
+    // Step 6: Scroll immediately
+    forceScrollToTop();
+    
+    // Step 7: MutationObserver to watch for ANY changes
+    const observer = new MutationObserver(() => {
+      if (window.scrollY !== 0 || document.documentElement.scrollTop !== 0) {
+        forceScrollToTop();
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+    observer.observe(document.documentElement, { attributes: true });
+    
+    // Step 8: Continuous scroll enforcement
+    const scrollInterval = setInterval(() => {
+      if (window.scrollY !== 0 || document.documentElement.scrollTop !== 0) {
+        forceScrollToTop();
+      }
+    }, 1);
+    
+    // Step 9: Prevent ALL scroll-related events
+    const preventAll = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      forceScrollToTop();
+      return false;
+    };
+    
+    const events = ['scroll', 'wheel', 'touchmove', 'touchstart', 'touchend', 'keydown', 'keyup'];
+    events.forEach(evt => {
+      window.addEventListener(evt, preventAll, { passive: false, capture: true });
+      document.addEventListener(evt, preventAll, { passive: false, capture: true });
+    });
+    
+    // Step 10: Prevent focus scroll
+    const handleFocus = () => {
+      setTimeout(forceScrollToTop, 0);
+      setTimeout(forceScrollToTop, 10);
+      setTimeout(forceScrollToTop, 50);
+    };
+    document.addEventListener('focusin', handleFocus, { capture: true });
+    document.addEventListener('focus', handleFocus, { capture: true });
+    
+    // Step 11: Multiple RAF calls
+    let rafId: number;
+    const runRAF = () => {
+      forceScrollToTop();
+      rafId = requestAnimationFrame(runRAF);
+    };
+    runRAF();
+    
+    // Step 12: Cleanup after 15 seconds
+    const cleanupTimeout = setTimeout(() => {
+      clearInterval(scrollInterval);
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+      document.body.style.overflow = originalOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.documentElement.style.scrollBehavior = originalScrollBehavior;
+      events.forEach(evt => {
+        window.removeEventListener(evt, preventAll, { capture: true });
+        document.removeEventListener(evt, preventAll, { capture: true });
+      });
+      document.removeEventListener('focusin', handleFocus, { capture: true });
+      document.removeEventListener('focus', handleFocus, { capture: true });
+    }, 15000);
+    
+    return () => {
+      clearInterval(scrollInterval);
+      cancelAnimationFrame(rafId);
+      observer.disconnect();
+      clearTimeout(cleanupTimeout);
+      document.body.style.overflow = originalOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.documentElement.style.scrollBehavior = originalScrollBehavior;
+      events.forEach(evt => {
+        window.removeEventListener(evt, preventAll, { capture: true });
+        document.removeEventListener(evt, preventAll, { capture: true });
+      });
+      document.removeEventListener('focusin', handleFocus, { capture: true });
+      document.removeEventListener('focus', handleFocus, { capture: true });
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'auto';
+      }
+    };
+  }, []); // Only run on mount
   
   // Filter states - Multi-select arrays
   const [selectedServiceTypes, setSelectedServiceTypes] = useState<string[]>(() => {
@@ -243,6 +363,7 @@ const VendorsPage = () => {
     }
   };
 
+
   // Fetch all vendors from Supabase
   useEffect(() => {
     const fetchVendors = async () => {
@@ -253,17 +374,32 @@ const VendorsPage = () => {
         console.log('Total vendors fetched:', vendorData.length);
         
         setVendors(vendorData);
+        
+        // CRITICAL: After vendors load, force scroll to top again
+        // This prevents scroll that might happen when content renders
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+          if (topRef.current) {
+            topRef.current.scrollIntoView({ behavior: 'instant', block: 'start' });
+          }
+        }, 0);
       } catch (error) {
         console.error('Error fetching vendors:', error);
       } finally {
         setLoading(false);
+        
+        // Also scroll after loading completes
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }, 0);
       }
     };
 
     fetchVendors();
-    
-    // Scroll to top when page loads
-    window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   // Update URL when filters change
@@ -281,10 +417,7 @@ const VendorsPage = () => {
     
     setSearchParams(params, { replace: true });
     
-    // Scroll to top when filters change (but not on initial load)
-    if (vendors.length > 0) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    // Removed auto-scroll when filters change - let user stay at their current scroll position
   }, [selectedServiceTypes, selectedLocations, selectedBudgetRanges, setSearchParams, vendors.length]);
 
   // Sync searchQuery with URL when URL changes (for direct navigation)
@@ -781,6 +914,10 @@ const VendorsPage = () => {
         'kavali': 'andhra-pradesh',
         'chilakaluripet': 'andhra-pradesh',
         'palakollu': 'andhra-pradesh',
+        'tanuku': 'andhra-pradesh',
+        'tadepalli': 'andhra-pradesh',
+        'rajamundry': 'andhra-pradesh',
+        'rajamahendravaram': 'andhra-pradesh',
         'tamil nadu cities': 'tamil-nadu',
         'chennai': 'tamil-nadu',
         'madras': 'tamil-nadu',
@@ -1081,14 +1218,13 @@ const VendorsPage = () => {
         'py': 'puducherry',
       };
       
-      // Extract location - check cities first (more specific), then states
+      // Extract location - use comprehensive location service with API fallback
       let foundLocation: string | null = null;
       console.log('📍 Extracting location from:', promptText);
       
-      // Check for cities (sorted by length, longest first for better matching)
+      // First, try local database lookup for known cities/towns/villages
       const sortedCities = Object.keys(cityToStateMap).sort((a, b) => b.length - a.length);
       for (const city of sortedCities) {
-        // Use word boundary matching for better accuracy
         const cityRegex = new RegExp(`\\b${city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
         if (cityRegex.test(promptText)) {
           foundLocation = cityToStateMap[city];
@@ -1097,7 +1233,21 @@ const VendorsPage = () => {
         }
       }
       
-      // If no city found, check for state names
+      // If no city found in local map, try location service (includes more locations)
+      if (!foundLocation) {
+        // Extract potential location words from prompt (2-20 character words that might be locations)
+        const words = promptText.match(/\b[a-z]{2,20}\b/gi) || [];
+        for (const word of words) {
+          const locationResult = findStateForLocation(word);
+          if (locationResult) {
+            foundLocation = locationResult;
+            console.log(`✅ Found location "${word}" → state "${foundLocation}" via location service`);
+            break;
+          }
+        }
+      }
+      
+      // If still not found, try state names
       if (!foundLocation) {
         const sortedStates = Object.keys(stateNameMap).sort((a, b) => b.length - a.length);
         for (const state of sortedStates) {
@@ -1107,6 +1257,32 @@ const VendorsPage = () => {
             console.log(`✅ Found state "${state}" → filter "${foundLocation}"`);
             break;
           }
+        }
+      }
+      
+      // Last resort: Try geocoding API for unknown locations (async)
+      if (!foundLocation) {
+        // Extract potential location (try to find location-like words)
+        const locationWords = promptText.match(/\b[a-z]{3,15}\b/gi) || [];
+        for (const word of locationWords) {
+          // Skip common non-location words
+          const skipWords = ['need', 'want', 'looking', 'for', 'budget', 'lakh', 'event', 'planner', 'caterer', 'photographer', 'makeup', 'decorator', 'venue', 'music', 'dj', 'clothing', 'designer', 'at', 'in', 'on', 'the', 'a', 'an', 'and', 'or', 'to', 'from'];
+          if (skipWords.includes(word.toLowerCase())) continue;
+          
+          // Try geocoding API (async - will update state when result comes)
+          getStateForLocation(word).then(state => {
+            if (state) {
+              console.log(`✅ Found location "${word}" → state "${state}" via geocoding API`);
+              setSelectedLocations(prev => {
+                if (!prev.includes(state)) {
+                  return [...prev, state];
+                }
+                return prev;
+              });
+            }
+          }).catch(err => {
+            console.log(`⚠️ Geocoding failed for "${word}":`, err);
+          });
         }
       }
       
@@ -1464,8 +1640,7 @@ const VendorsPage = () => {
     setDisplayQuery('');
     setOriginalSmartRequest('');
     setRatingFilter('all');
-    // Scroll to top when clearing filters
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Removed auto-scroll when clearing filters - let user stay at their current scroll position
   };
 
   // Navigate to individual vendor profile
@@ -1476,7 +1651,7 @@ const VendorsPage = () => {
   // WhatsApp integration - now handled by WhatsAppButton component
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50/30 via-white to-orange-50/30 pb-8">
+    <div ref={topRef} className="min-h-screen bg-gradient-to-br from-amber-50/30 via-white to-orange-50/30 pb-8">
       {/* Smart Request Input Section - Fixed Layout */}
       <div className="relative py-4 pt-4 overflow-visible min-h-[180px]">
         <div className="absolute inset-0 bg-gradient-to-br from-amber-600 via-orange-500 to-orange-400"></div>

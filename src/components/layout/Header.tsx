@@ -57,9 +57,13 @@ const Header = () => {
       if (customer) {
         try {
           const result = await getLikedVendors(customer.id);
-          if (result.success && result.data) {
-            setLikedVendorsCount(result.data.length);
+          console.log('Header: Liked vendors API response:', result);
+          if (result.success && result.data && Array.isArray(result.data)) {
+            const count = result.data.length;
+            console.log('Header: Setting liked vendors count to:', count);
+            setLikedVendorsCount(count);
           } else {
+            console.log('Header: No liked vendors data or invalid structure, setting count to 0');
             setLikedVendorsCount(0);
           }
         } catch (error) {
@@ -320,11 +324,6 @@ const Header = () => {
                 title="Liked Vendors"
               >
                 <Heart className="h-5 w-5 stroke-2" />
-                {likedVendorsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg">
-                    {likedVendorsCount > 99 ? '99+' : likedVendorsCount}
-                  </span>
-                )}
               </Link>
 
               {/* Notifications Bell Icon */}
@@ -544,7 +543,7 @@ const Header = () => {
                 className="flex items-center justify-center gap-2 text-white hover:text-red-400 transition-colors font-medium px-4 py-3 rounded-lg bg-white/10 border border-white/20 hover:border-red-400/50"
               >
                 <Heart className="h-5 w-5" />
-                Liked Vendors {likedVendorsCount > 0 && `(${likedVendorsCount})`}
+                Liked Vendors
               </Link>
 
               {/* My Vendors */}

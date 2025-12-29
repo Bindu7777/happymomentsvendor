@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2, Languages, Clock, Users, DollarSign, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, MicOff, Send, Loader2, Edit3, Check, X, Volume2, Languages, Clock, Users, DollarSign, Trash2, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -422,15 +422,25 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       };
       onRequestSubmit(requestWithText);
     } else if (text.trim()) {
-      // If parsing hasn't completed, create a minimal request with just the text
-      // The vendors page will parse it using parsePromptAndUpdateFilters
-      const minimalRequest: ParsedRequest = {
-        serviceTypes: [],
-        eventType: '',
-        location: '',
-        originalText: text.trim()
-      };
-      onRequestSubmit(minimalRequest);
+      // If parsing hasn't completed, try to parse now
+      try {
+        const parsed = parseRequest(text.trim());
+        parsed.originalText = text.trim();
+        setParsedRequest(parsed);
+        onRequestParsed(parsed);
+        onRequestSubmit(parsed);
+      } catch (error) {
+        console.error('Error parsing request on submit:', error);
+        // Fallback: create a minimal request with just the text
+        // The vendors page will parse it using parsePromptAndUpdateFilters
+        const minimalRequest: ParsedRequest = {
+          serviceTypes: [],
+          eventType: '',
+          location: '',
+          originalText: text.trim()
+        };
+        onRequestSubmit(minimalRequest);
+      }
     }
   };
 
@@ -513,6 +523,20 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
       {/* Main Input Card */}
       <Card className="border-2 border-orange-200 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50">
+          <div className="flex items-center justify-between mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                // Navigate to home page - force reload to reset Hero component state
+                window.location.href = '/';
+              }}
+              className="text-orange-700 hover:text-orange-900 hover:bg-orange-100"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to Home
+            </Button>
+          </div>
           <CardTitle className="text-2xl font-bold text-orange-800 flex items-center gap-2">
             <Volume2 className="h-6 w-6" />
             Tell us what you need - in your own words!
@@ -617,8 +641,8 @@ const SmartRequestInput: React.FC<SmartRequestInputProps> = ({
                 <Button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={!parsedRequest || isLoading}
-                  className="bg-orange-500 hover:bg-orange-600 text-white"
+                  disabled={!text.trim() || isLoading}
+                  className="bg-orange-500 hover:bg-orange-600 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

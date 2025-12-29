@@ -34,6 +34,23 @@ export interface ContactedVendor {
   cover_image_url?: string;
   quick_intro?: string;
   spoc_name?: string;
+  // Flag information
+  flag_count?: number;
+  is_blocked?: boolean;
+  is_flagged_by_vendor?: boolean;
+}
+
+export interface FlagCustomerResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    flag_id?: number;
+    customer_id: number;
+    vendor_id: string;
+    flag_count: number;
+    is_blocked: boolean;
+  };
+  error?: string;
 }
 
 // Save contact vendor API call
@@ -347,6 +364,87 @@ export const updateNotesForContact = async (contactId: string, notes: string): P
     console.log('✅ API: Notes updated successfully:', data);
     return data;
   } catch (error) {
+    console.error('💥 API Error:', error);
+    return {
+      success: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+};
+
+// Flag a customer (vendor flags a customer)
+export const flagCustomer = async (vendorId: string, customerId: number, reason?: string): Promise<FlagCustomerResponse> => {
+  try {
+    console.log(`🌐 API: Flagging customer ${customerId} by vendor ${vendorId}`);
+    console.log(`🔗 API URL: ${API_BASE_URL}/flag-customer`);
+    
+    const response = await fetch(`${API_BASE_URL}/flag-customer`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        vendor_id: vendorId,
+        customer_id: customerId,
+        reason: reason || null
+      })
+    });
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    const data = await response.json();
+    console.log(`📦 Response data:`, data);
+    
+    if (!response.ok) {
+      console.error('❌ API Error flagging customer:', data);
+      return {
+        success: false,
+        error: data.error || `HTTP ${response.status}: Failed to flag customer`
+      };
+    }
+
+    console.log('✅ API: Customer flagged successfully:', data);
+    return data;
+  } catch (error: any) {
+    console.error('💥 API Error:', error);
+    return {
+      success: false,
+      error: `Network error: ${error.message}`
+    };
+  }
+};
+
+// Unflag a customer (vendor removes their flag)
+export const unflagCustomer = async (vendorId: string, customerId: number): Promise<FlagCustomerResponse> => {
+  try {
+    console.log(`🌐 API: Unflagging customer ${customerId} by vendor ${vendorId}`);
+    console.log(`🔗 API URL: ${API_BASE_URL}/unflag-customer`);
+    
+    const response = await fetch(`${API_BASE_URL}/unflag-customer`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        vendor_id: vendorId,
+        customer_id: customerId
+      })
+    });
+
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    const data = await response.json();
+    console.log(`📦 Response data:`, data);
+    
+    if (!response.ok) {
+      console.error('❌ API Error unflagging customer:', data);
+      return {
+        success: false,
+        error: data.error || `HTTP ${response.status}: Failed to unflag customer`
+      };
+    }
+
+    console.log('✅ API: Customer unflagged successfully:', data);
+    return data;
+  } catch (error: any) {
     console.error('💥 API Error:', error);
     return {
       success: false,

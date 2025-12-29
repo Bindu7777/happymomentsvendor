@@ -44,8 +44,8 @@ const SERVICE_CATEGORIES: ServiceCategory[] = [
   },
   {
     keywords: [
-      'decorator', 'decoration', 'floral', 'balloon', 'stage', 'mandap', 'backdrop',
-      'decorator kavali', 'decoration kavali', 'stage decoration', 'mandap decoration'
+      'decorator', 'decoretor', 'decoration', 'floral', 'balloon', 'stage', 'mandap', 'backdrop',
+      'decorator kavali', 'decoretor kavali', 'decoration kavali', 'stage decoration', 'mandap decoration'
     ],
     category: 'Decorators',
     subcategories: ['Wedding Decoration', 'Birthday Decoration', 'Corporate Decoration', 'Floral Arrangements']

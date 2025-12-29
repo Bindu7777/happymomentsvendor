@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCustomerAuth } from '../contexts/CustomerAuthContext';
+import { getLoggedInVendor } from '../services/supabaseService';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { User, Lock, ArrowRight } from 'lucide-react';
@@ -12,9 +13,10 @@ interface AuthRequiredProps {
 
 const AuthRequired: React.FC<AuthRequiredProps> = ({ children, fallback }) => {
   const { customer } = useCustomerAuth();
+  const loggedInVendor = getLoggedInVendor();
 
-  // If user is logged in, show the protected content
-  if (customer) {
+  // If user is logged in (customer or vendor), show the protected content
+  if (customer || loggedInVendor) {
     return <>{children}</>;
   }
 

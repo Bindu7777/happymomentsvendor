@@ -3,81 +3,43 @@ import { Star, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { Input } from './ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useCustomerAuth } from '../contexts/CustomerAuthContext';
 import { addReview } from '../services/supabaseService';
 
 interface AddReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   onReviewSubmitted: () => void;
+  vendorId: string | number;
 }
 
-// Indian States list
-const indianStates = [
-  'Andhra Pradesh',
-  'Arunachal Pradesh',
-  'Assam',
-  'Bihar',
-  'Chhattisgarh',
-  'Goa',
-  'Gujarat',
-  'Haryana',
-  'Himachal Pradesh',
-  'Jharkhand',
-  'Karnataka',
-  'Kerala',
-  'Madhya Pradesh',
-  'Maharashtra',
-  'Manipur',
-  'Meghalaya',
-  'Mizoram',
-  'Nagaland',
-  'Odisha',
-  'Punjab',
-  'Rajasthan',
-  'Sikkim',
-  'Tamil Nadu',
-  'Telangana',
-  'Tripura',
-  'Uttar Pradesh',
-  'Uttarakhand',
-  'West Bengal',
-  'Andaman and Nicobar Islands',
-  'Chandigarh',
-  'Dadra and Nagar Haveli',
-  'Daman and Diu',
-  'Delhi',
-  'Jammu and Kashmir',
-  'Ladakh',
-  'Lakshadweep',
-  'Puducherry'
-];
 
 const AddReviewModal: React.FC<AddReviewModalProps> = ({
   isOpen,
   onClose,
-  onReviewSubmitted
+  onReviewSubmitted,
+  vendorId
 }) => {
-  const [name, setName] = useState('');
-  const [state, setState] = useState('');
+  const { customer, isAuthenticated } = useCustomerAuth();
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async () => {
-    // Validate all required fields
-    if (!name.trim()) {
-      setError('Please enter your name');
+    // Check if customer is logged in
+    if (!isAuthenticated || !customer) {
+      setError('You must be logged in as a customer to add a review');
       return;
     }
-    if (!state) {
-      setError('Please select your state');
-      return;
-    }
+
+    // Validate required fields
     if (!reviewText.trim()) {
       setError('Please enter your review');
+      return;
+    }
+    if (rating < 1 || rating > 5) {
+      setError('Please select a valid rating');
       return;
     }
 
@@ -85,17 +47,18 @@ const AddReviewModal: React.FC<AddReviewModalProps> = ({
     setError('');
 
     try {
+      const customerName = customer.full_name || customer.email?.split('@')[0] || 'Customer';
+      
       const result = await addReview(
-        name.trim(),
-        state,
+        vendorId,
+        customer.id,
+        customerName,
         reviewText.trim(),
         rating
       );
 
       if (result.success) {
         // Reset form
-        setName('');
-        setState('');
         setReviewText('');
         setRating(5);
         setError('');
@@ -120,8 +83,6 @@ const AddReviewModal: React.FC<AddReviewModalProps> = ({
 
   const handleClose = () => {
     if (!isSubmitting) {
-      setName('');
-      setState('');
       setReviewText('');
       setRating(5);
       setError('');
@@ -139,43 +100,19 @@ const AddReviewModal: React.FC<AddReviewModalProps> = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Name Field */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Your Name *
-            </label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your full name"
-              disabled={isSubmitting}
-              className="w-full"
-            />
-          </div>
-
-          {/* State Field */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">
-              Your State *
-            </label>
-            <Select value={state} onValueChange={setState} disabled={isSubmitting}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select your state" />
-              </SelectTrigger>
-              <SelectContent>
-                {indianStates.map((stateOption) => (
-                  <SelectItem key={stateOption} value={stateOption}>
-                    {stateOption}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Customer Info Display */}
+          {customer && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Reviewing as:</span> {customer.full_name || customer.email}
+              </p>
+            </div>
+          )}
 
           {/* Star Rating */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700">
-              Rating (Optional)
+              Rating *
             </label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -243,7 +180,7 @@ const AddReviewModal: React.FC<AddReviewModalProps> = ({
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || !name.trim() || !state || !reviewText.trim()}
+              disabled={isSubmitting || !isAuthenticated || !customer || !reviewText.trim()}
               className="flex-1 bg-green-600 hover:bg-green-700"
             >
               {isSubmitting ? 'Submitting...' : 'Submit Review'}

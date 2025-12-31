@@ -471,6 +471,7 @@ const VendorProfile = () => {
                       className="w-full text-sm"
                       vendorName={vendor?.brand_name || vendor?.spoc_name || 'Vendor'}
                       vendorPhoneNumber={vendor?.whatsapp_number || vendor?.phone_number}
+                      userType="customer"
                     />
                 </div>
               )}
@@ -655,6 +656,28 @@ const VendorProfile = () => {
                 >
                   Chat to Book Now
                 </WhatsAppButton>
+              )}
+
+              {/* Status Management - Show only if customer has contacted this vendor */}
+              {customer && isContacted && vendorId && (
+                <Card className="mt-4 border-2 border-blue-100">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                      </div>
+                    </div>
+                    <VendorStatusDropdown
+                      customerId={customer.id}
+                      vendorId={vendorId}
+                      currentStatus={contactStatus}
+                      onStatusUpdate={handleStatusUpdate}
+                      className="w-full"
+                      userType="customer"
+                      dropdownDirection="down"
+                    />
+                  </CardContent>
+                </Card>
               )}
             </div>
 
@@ -1941,6 +1964,24 @@ const VendorProfile = () => {
                       <Phone className="w-6 h-6 mr-3" />
                       Request Callback
                     </WhatsAppButton>
+                  )}
+
+                  {/* Status Management - Show only if customer has contacted this vendor */}
+                  {customer && isContacted && vendorId && (
+                    <div className="mt-4 p-4 bg-white/70 rounded-xl border border-blue-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                      </div>
+                      <VendorStatusDropdown
+                        customerId={customer.id}
+                        vendorId={vendorId}
+                        currentStatus={contactStatus}
+                        onStatusUpdate={handleStatusUpdate}
+                        className="w-full"
+                        userType="customer"
+                        dropdownDirection="down"
+                      />
+                    </div>
                   )}
                 </div>
                 

@@ -1526,13 +1526,21 @@ export const getVendorNotifications = async (vendorId: number, unreadOnly: boole
         customerInfo = customerDetails[contact.customer_id] || null;
       }
 
+      // Format message: use notification_message if available, otherwise use customer name
+      let message = contact.notification_message;
+      if (!message && customerInfo) {
+        message = `${customerInfo.full_name || 'A customer'} contacted you`;
+      } else if (!message) {
+        message = 'Customer contacted you';
+      }
+
       return {
         id: contact.contact_id,
         vendor_id: contact.vendor_id,
         customer_id: contact.customer_id,
         notification_type: notificationType,
         title: title,
-        message: contact.notification_message || 'Customer contacted you',
+        message: message,
         is_read: !contact.vendor_notified,
         created_at: contact.contacted_at,
         customers: customerInfo
@@ -1607,7 +1615,7 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
       `)
       .eq('customer_id', customerId)
       .order('contacted_at', { ascending: false })
-      .limit(20); // Get latest 20 contacts
+      .limit(50); // Get more contacts to sort properly
 
     // If we only want unread notifications (customer_notified = true means unread)
     if (unreadOnly) {
@@ -1651,20 +1659,40 @@ export const getCustomerNotifications = async (customerId: number, unreadOnly: b
       const vendor = vendorDetails[parseInt(contact.vendor_id)];
       const vendorName = vendor?.brand_name || `Vendor ${contact.vendor_id}`;
       
+      // Determine the message based on notification type:
+      // - If notification_message contains "updated your status", it's a vendor status update - use stored message
+      // - Otherwise, it's an initial contact - generate "You contacted {Vendor Name}"
+      let customerMessage;
+      if (contact.notification_message && contact.notification_message.includes('updated your status')) {
+        // This is a status update from vendor - use the stored message (already customer-specific)
+        customerMessage = contact.notification_message;
+      } else {
+        // This is an initial contact - generate customer-specific message
+        customerMessage = `You contacted ${vendorName}`;
+      }
+      
       return {
         id: contact.contact_id,
         vendor_id: contact.vendor_id,
         customer_id: contact.customer_id,
         notification_type: 'status_change',
-        title: 'Vendor Status Update',
-        message: contact.notification_message || `${vendorName} updated your status`,
+        title: 'Update',
+        message: customerMessage, // Customer-specific message
         is_read: !contact.customer_notified,
         created_at: contact.contacted_at,
+        customer_notified: contact.customer_notified, // Keep this for sorting
         vendors: vendor
       };
     });
 
-    console.log(`✅ Transformed customer notifications:`, transformedData);
+    // Sort notifications by date: newest first (latest on top)
+    transformedData.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return dateB - dateA; // Descending order (newest first)
+    });
+
+    console.log(`✅ Transformed and sorted customer notifications:`, transformedData);
     return transformedData;
   } catch (error) {
     console.error('💥 Error fetching customer notifications:', error);
@@ -1709,6 +1737,26 @@ export const markAllCustomerNotificationsAsRead = async (customerId: number): Pr
     return true;
   } catch (error) {
     console.error('Error marking all customer notifications as read:', error);
+    return false;
+  }
+};
+
+// Clear/delete a single customer notification
+export const clearCustomerNotification = async (contactId: number): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('contacted_vendors')
+      .delete()
+      .eq('contact_id', contactId);
+
+    if (error) {
+      console.error('Error clearing customer notification:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error clearing customer notification:', error);
     return false;
   }
 };
@@ -2958,22 +3006,46 @@ export const getAllReviews = async (): Promise<{ success: boolean; data?: Review
   }
 };
 
-// Add a new review
+// Add a new review for a vendor (customer reviews)
 export const addReview = async (
-  name: string,
-  state: string,
-  review: string,
+  vendorId: string | number,
+  customerId: number,
+  customerName: string,
+  reviewText: string,
   rating: number = 5
-): Promise<{ success: boolean; data?: Review; error?: string }> => {
+): Promise<{ success: boolean; data?: any; error?: string }> => {
   try {
+    console.log(`Adding review for vendor ${vendorId} by customer ${customerId}`);
+    
+    // Validate required fields
+    if (!vendorId) {
+      return { success: false, error: 'Vendor ID is required' };
+    }
+    if (!customerId) {
+      return { success: false, error: 'Customer must be logged in to add a review' };
+    }
+    if (!customerName || !customerName.trim()) {
+      return { success: false, error: 'Customer name is required' };
+    }
+    if (!reviewText || !reviewText.trim()) {
+      return { success: false, error: 'Review text is required' };
+    }
+    if (rating < 1 || rating > 5) {
+      return { success: false, error: 'Rating must be between 1 and 5' };
+    }
+
     const { data, error } = await supabase
-      .from('reviews')
+      .from('customer_reviews')
       .insert([
         {
-          name,
-          state,
-          review,
-          rating
+          vendor_id: vendorId.toString(),
+          customer_id: customerId,
+          customer_name: customerName.trim(),
+          review_text: reviewText.trim(),
+          rating: rating,
+          is_published: true,
+          is_verified: true, // Auto-verify reviews from logged-in customers
+          created_at: new Date().toISOString()
         }
       ])
       .select()
@@ -2981,9 +3053,10 @@ export const addReview = async (
 
     if (error) {
       console.error('Error adding review:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.message || 'Failed to add review' };
     }
 
+    console.log('✅ Review added successfully:', data);
     return { success: true, data };
   } catch (error) {
     console.error('Error in addReview:', error);

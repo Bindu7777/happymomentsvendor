@@ -123,17 +123,31 @@ router.post('/save-contact', async (req, res) => {
       });
     }
 
-    // Get vendor details for notification message
+    // Get vendor details for customer notification message
     const { data: vendorData, error: vendorError } = await supabase
       .from('vendors')
       .select('brand_name')
       .eq('vendor_id', parseInt(vendor_id))
       .single();
 
+    // Get customer details for vendor notification message
+    const { data: customerData, error: customerError } = await supabase
+      .from('customers')
+      .select('full_name')
+      .eq('id', parseInt(customer_id))
+      .single();
+
     const vendorName = vendorData?.brand_name || 'the event vendor';
-    const notificationMessage = `You contacted ${vendorName}`;
+    const customerName = customerData?.full_name || 'A customer';
+    
+    // Notification message for vendor: "Customer Name contacted you"
+    const vendorNotificationMessage = `${customerName} contacted you`;
+    
+    // Notification message for customer: "You contacted Vendor Name"
+    const customerNotificationMessage = `You contacted ${vendorName}`;
 
     // Insert new contact record with notification fields
+    // Using vendor notification message since vendor_notified is true
     const { data: newContact, error: insertError } = await supabase
       .from('contacted_vendors')
       .insert({
@@ -142,7 +156,7 @@ router.post('/save-contact', async (req, res) => {
         status: 'Contacted',
         vendor_notified: true,  // Vendor is notified about this contact
         customer_notified: false, // Customer hasn't been notified yet
-        notification_message: notificationMessage
+        notification_message: vendorNotificationMessage  // Message for vendor
       })
       .select()
       .single();
@@ -312,7 +326,10 @@ router.get('/get-contacted-vendors/:customer_id', async (req, res) => {
       if (vendor) {
         return {
           ...vendor,
-          contacted_at: contacted.contacted_at
+          status: contacted.status || 'Contacted', // Include customer status
+          vendor_status: contacted.vendor_status || 'Contacted', // Include vendor status
+          contacted_at: contacted.contacted_at,
+          contact_id: contacted.contact_id // Include contact_id for updates
         };
       } else {
         console.log(`Warning: Vendor ${contacted.vendor_id} not found in database`);
@@ -320,7 +337,10 @@ router.get('/get-contacted-vendors/:customer_id', async (req, res) => {
           vendor_id: contacted.vendor_id,
           brand_name: 'Unknown Vendor',
           category: 'Unknown',
-          contacted_at: contacted.contacted_at
+          status: contacted.status || 'Contacted', // Include customer status
+          vendor_status: contacted.vendor_status || 'Contacted', // Include vendor status
+          contacted_at: contacted.contacted_at,
+          contact_id: contacted.contact_id // Include contact_id for updates
         };
       }
     });
@@ -437,7 +457,9 @@ router.delete('/remove-contact', async (req, res) => {
 // Update vendor status
 router.put('/update-status', async (req, res) => {
   try {
-    const { customer_id, vendor_id, status } = req.body;
+    const { customer_id, vendor_id, status, notes, feedback, userType } = req.body;
+
+    console.log('Update status request:', { customer_id, vendor_id, status, notes, feedback, userType });
 
     if (!customer_id || !vendor_id || !status) {
       return res.status(400).json({
@@ -446,86 +468,179 @@ router.put('/update-status', async (req, res) => {
       });
     }
 
-    // Validate status values
-    const validStatuses = [
-      'Contacted',
-      'In Discussion', 
-      'Deal Agreed',
-      'Request Discount Coupon',
-      'Discount Applied',
-      'Advance Paid',
-      'Event Scheduled',
-      'Event Completed',
-      'Closed - Successful',
-      'Closed - Not Proceeding'
-    ];
+    if (!userType || (userType !== 'customer' && userType !== 'vendor')) {
+      return res.status(400).json({
+        success: false,
+        error: 'userType is required and must be either "customer" or "vendor"'
+      });
+    }
+
+    // Normalize vendor_id to string
+    const normalizedVendorId = vendor_id.toString();
+    const normalizedCustomerId = parseInt(customer_id);
+
+    if (isNaN(normalizedCustomerId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid customer ID'
+      });
+    }
+
+    // Validate status values based on userType
+    let validStatuses = [];
+    let statusField = 'status'; // Default field name
+    
+    if (userType === 'customer') {
+      // Customer-specific statuses
+      validStatuses = [
+        'Contacted',
+        'Discussion in Progress',
+        'Discussion going on',
+        'Negotiation Ongoing',
+        'Deal Finalised',
+        'Advance Paid',
+        'Event Scheduled',
+        'Service in Progress',
+        'Event Completed',
+        'Not Interested',
+        // Legacy statuses (for backward compatibility)
+        'In Discussion', 
+        'Deal Agreed',
+        'Request Discount Coupon',
+        'Discount Applied',
+        'Closed - Successful',
+        'Closed - Not Proceeding'
+      ];
+      statusField = 'status'; // Customer status goes in 'status' field
+    } else {
+      // Vendor-specific statuses
+      validStatuses = [
+        'Customer Contacted',
+        'Discussion in Progress',
+        'Quotation Shared',
+        'Negotiation Ongoing',
+        'Deal Confirmed',
+        'Advance Received',
+        'Event Scheduled',
+        'Service in Progress',
+        'Service Completed',
+        'Payment Settled',
+        'Lost'
+      ];
+      statusField = 'vendor_status'; // Vendor status goes in 'vendor_status' field
+    }
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ 
         success: false, 
-        error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` 
+        error: `Invalid ${userType} status. Must be one of: ${validStatuses.join(', ')}` 
       });
     }
 
-    console.log(`Updating status: Customer ${customer_id}, Vendor ${vendor_id}, Status: ${status}`);
+    console.log(`Updating status: Customer ${normalizedCustomerId}, Vendor ${normalizedVendorId}, Status: ${status}`);
     
     // Check if contact exists
-    const { data: existingContact, error: checkError } = await supabase
+    const { data: existingContacts, error: checkError } = await supabase
       .from('contacted_vendors')
       .select('contact_id')
-      .eq('customer_id', parseInt(customer_id))
-      .eq('vendor_id', vendor_id.toString())
-      .single();
+      .eq('customer_id', normalizedCustomerId)
+      .eq('vendor_id', normalizedVendorId)
+      .limit(1);
 
-    if (checkError && checkError.code !== 'PGRST116') {
+    if (checkError) {
       console.error('Error checking existing contact:', checkError);
       return res.status(500).json({
         success: false,
-        error: 'Failed to check existing contact'
+        error: `Failed to check existing contact: ${checkError.message}`
       });
     }
 
-    if (!existingContact) {
+    if (!existingContacts || existingContacts.length === 0) {
       return res.status(404).json({
         success: false,
-        error: 'Contact not found'
+        error: 'Contact not found. Please contact the vendor first.'
       });
     }
+
+    const existingContact = existingContacts[0];
 
     // Get customer details for notification message
     const { data: customerData, error: customerError } = await supabase
       .from('customers')
       .select('full_name')
-      .eq('id', parseInt(customer_id))
+      .eq('id', normalizedCustomerId)
       .single();
 
     const customerName = customerData?.full_name || `Customer ${customer_id}`;
-    const notificationMessage = `${customerName} updated their status to: ${status}`;
+    
+    // Prepare update data - save to the correct field based on userType
+    const updateData = {};
+    
+    if (userType === 'customer') {
+      // Customer is updating their status
+      updateData.status = status;
+      updateData.vendor_notified = true;  // Vendor is notified about customer status change
+      updateData.customer_notified = false; // Customer doesn't need to be notified about their own change
+      updateData.notification_message = `${customerName} updated their status to: ${status}`;
+    } else {
+      // Vendor is updating their status
+      // Get vendor details for better notification message
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
+        .select('brand_name')
+        .eq('vendor_id', normalizedVendorId)
+        .single();
+      
+      const vendorName = vendorData?.brand_name || `Vendor ${normalizedVendorId}`;
+      
+      updateData.vendor_status = status;
+      updateData.customer_notified = true;  // Set to true so customer sees it as unread notification
+      updateData.vendor_notified = false; // Vendor doesn't need to be notified about their own change
+      updateData.notification_message = `${vendorName} updated your status to: ${status}`; // Use "your status" for customer context
+      updateData.contacted_at = new Date().toISOString(); // Update timestamp so it appears at the top
+    }
 
-    // Update the status and notify vendor
+    // Add notes/feedback if provided
+    if (notes || feedback) {
+      updateData.notes = notes || feedback;
+    }
+
+    // Update the status in the correct field
     const { data, error } = await supabase
       .from('contacted_vendors')
-      .update({ 
-        status,
-        vendor_notified: true,  // Vendor is notified about customer status change
-        customer_notified: false, // Customer doesn't need to be notified about their own change
-        notification_message: notificationMessage
-      })
-      .eq('customer_id', parseInt(customer_id))
-      .eq('vendor_id', vendor_id.toString())
+      .update(updateData)
+      .eq('contact_id', existingContact.contact_id)
       .select()
       .single();
 
     if (error) {
       console.error('Error updating status:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return res.status(500).json({
         success: false,
-        error: 'Failed to update status'
+        error: `Failed to update status: ${error.message || 'Database error'}`
       });
     }
 
+    if (!data) {
+      console.error('No data returned after update');
+      return res.status(500).json({
+        success: false,
+        error: 'Status update completed but no data returned'
+      });
+    }
+
+    // For vendor updates, customer_notified is already set to true in updateData above
+    if (userType === 'vendor') {
+      console.log('Customer notification set to unread for vendor status update');
+    }
+
     console.log('Status updated successfully:', data);
-    console.log('Vendor notified about customer status change:', vendor_id);
+    if (userType === 'customer') {
+      console.log('Vendor notified about customer status change:', vendor_id);
+    } else {
+      console.log('Customer will be notified about vendor status change:', normalizedCustomerId);
+    }
     res.json({
       success: true,
       message: 'Status updated successfully',
@@ -725,7 +840,7 @@ router.get('/get-vendor-customers/:vendor_id', async (req, res) => {
   }
 });
 
-// Flag a customer (vendor flags a customer)
+// Report a customer (vendor reports a customer - requires reason)
 router.post('/flag-customer', async (req, res) => {
   try {
     const { vendor_id, customer_id, reason } = req.body;
@@ -737,7 +852,14 @@ router.post('/flag-customer', async (req, res) => {
       });
     }
 
-    console.log(`Vendor ${vendor_id} flagging customer ${customer_id}`);
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Reason is required for reporting a customer'
+      });
+    }
+
+    console.log(`Vendor ${vendor_id} reporting customer ${customer_id} with reason: ${reason}`);
 
     // Check if customer exists
     const { data: customerData, error: customerError } = await supabase
@@ -877,18 +999,40 @@ router.delete('/unflag-customer', async (req, res) => {
 
 // Get status options
 router.get('/status-options', (req, res) => {
-  const statusOptions = [
-    { value: 'Contacted', label: 'Contacted', description: 'Initial contact made', color: 'blue' },
-    { value: 'In Discussion', label: 'In Discussion', description: 'Negotiating details', color: 'yellow' },
-    { value: 'Deal Agreed', label: 'Deal Agreed', description: 'Agreement reached', color: 'green' },
-    { value: 'Request Discount Coupon', label: 'Request Discount Coupon', description: 'Asking for special offers', color: 'orange' },
-    { value: 'Discount Applied', label: 'Discount Applied', description: 'Special offer applied', color: 'purple' },
-    { value: 'Advance Paid', label: 'Advance Paid', description: 'Payment made', color: 'indigo' },
-    { value: 'Event Scheduled', label: 'Event Scheduled', description: 'Date confirmed', color: 'pink' },
-    { value: 'Event Completed', label: 'Event Completed', description: 'Service delivered', color: 'emerald' },
-    { value: 'Closed - Successful', label: 'Closed - Successful', description: 'Deal completed', color: 'green' },
-    { value: 'Closed - Not Proceeding', label: 'Closed - Not Proceeding', description: 'Deal cancelled', color: 'red' }
-  ];
+  const { userType } = req.query; // 'customer' or 'vendor' or undefined (default to vendor)
+  
+  let statusOptions;
+  
+  if (userType === 'customer') {
+    // Customer-specific status options
+    statusOptions = [
+      { value: 'Contacted', label: 'Contacted', description: 'Initial contact made', color: 'blue' },
+      { value: 'Discussion in Progress', label: 'Discussion in Progress', description: 'Ongoing conversation', color: 'yellow' },
+      { value: 'Discussion going on', label: 'Discussion going on', description: 'Price quote received', color: 'purple' },
+      { value: 'Negotiation Ongoing', label: 'Negotiation Ongoing', description: 'Negotiating terms', color: 'orange' },
+      { value: 'Deal Finalised', label: 'Deal Finalised', description: 'Agreement reached', color: 'green' },
+      { value: 'Advance Paid', label: 'Advance Paid', description: 'Payment made', color: 'indigo' },
+      { value: 'Event Scheduled', label: 'Event Scheduled', description: 'Date confirmed', color: 'pink' },
+      { value: 'Service in Progress', label: 'Service in Progress', description: 'Service ongoing', color: 'blue' },
+      { value: 'Event Completed', label: 'Event Completed', description: 'Service delivered', color: 'emerald' },
+      { value: 'Not Interested', label: 'Not Interested', description: 'No longer interested', color: 'red' }
+    ];
+  } else {
+    // Vendor-specific status options (default)
+    statusOptions = [
+      { value: 'Customer Contacted', label: 'Customer Contacted', description: 'Initial contact made', color: 'blue' },
+      { value: 'Discussion in Progress', label: 'Discussion in Progress', description: 'Ongoing conversation', color: 'yellow' },
+      { value: 'Quotation Shared', label: 'Quotation Shared', description: 'Price quote sent', color: 'purple' },
+      { value: 'Negotiation Ongoing', label: 'Negotiation Ongoing', description: 'Negotiating terms', color: 'orange' },
+      { value: 'Deal Confirmed', label: 'Deal Confirmed', description: 'Agreement reached', color: 'green' },
+      { value: 'Advance Received', label: 'Advance Received', description: 'Payment received', color: 'indigo' },
+      { value: 'Event Scheduled', label: 'Event Scheduled', description: 'Date confirmed', color: 'pink' },
+      { value: 'Service in Progress', label: 'Service in Progress', description: 'Service ongoing', color: 'blue' },
+      { value: 'Service Completed', label: 'Service Completed', description: 'Service delivered', color: 'emerald' },
+      { value: 'Payment Settled', label: 'Payment Settled', description: 'Full payment received', color: 'green' },
+      { value: 'Lost', label: 'Lost', description: 'Deal lost', color: 'red' }
+    ];
+  }
 
   res.json({
     success: true,
@@ -917,12 +1061,24 @@ router.put('/update-vendor-status/:contact_id', async (req, res) => {
       });
     }
 
-    // Validate vendor status values
+    // Validate vendor status values - updated to match new status options
     const validStatuses = [
+      // New vendor status options
+      'Customer Contacted',
+      'Discussion in Progress',
+      'Quotation Shared',
+      'Negotiation Ongoing',
+      'Deal Confirmed',
+      'Advance Received',
+      'Event Scheduled',
+      'Service in Progress',
+      'Service Completed',
+      'Payment Settled',
+      'Lost',
+      // Legacy statuses (for backward compatibility)
       'Contacted',
       'Customer Interested',
       'Deal Made',
-      'Advance Received',
       'Event Completed',
       'Full Amount Settled',
       'Closed'
@@ -959,19 +1115,39 @@ router.put('/update-vendor-status/:contact_id', async (req, res) => {
       .single();
 
     const vendorName = vendorData?.brand_name || `Vendor ${currentContact.vendor_id}`;
-    const notificationMessage = `${vendorName} updated your status to: ${vendor_status}`;
+    const notificationMessage = `${vendorName} updated your status to: ${vendor_status}`; // Use "your status" for customer context
 
     // Update the vendor status and notify customer
+    // Set customer_notified to true so customer sees it as unread notification
     const { data, error } = await supabase
       .from('contacted_vendors')
       .update({ 
         vendor_status,
-        customer_notified: true,  // Customer is notified about status change
-        notification_message: notificationMessage
+        customer_notified: true,  // Set to true so customer sees it as unread notification
+        vendor_notified: false,   // Vendor doesn't need notification for their own change
+        notification_message: notificationMessage,
+        contacted_at: new Date().toISOString() // Update timestamp so it appears at the top
       })
       .eq('contact_id', contact_id)
       .select()
       .single();
+
+    if (error) {
+      console.error('Error updating vendor status:', error);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to update vendor status'
+      });
+    }
+
+    if (!data) {
+      return res.status(500).json({
+        success: false,
+        error: 'Status update completed but no data returned'
+      });
+    }
+
+    console.log('Customer notification set to unread for vendor status update');
 
     if (error) {
       console.error('Error updating vendor status:', error);

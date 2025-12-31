@@ -105,8 +105,13 @@ const MyVendors: React.FC = () => {
 
   const loadStatusOptions = async () => {
     try {
-      const result = await getStatusOptions();
+      // Use 'customer' userType to get customer status options (same as VendorStatusDropdown)
+      console.log('MyVendors: Loading status options for filter dropdown with userType: customer');
+      const result = await getStatusOptions('customer');
+      console.log('MyVendors: Status options result:', result);
       if (result.success && result.data) {
+        console.log('MyVendors: Raw status options:', result.data);
+        console.log('MyVendors: Number of options:', result.data.length);
         const options = [
           { value: 'all', label: 'All Statuses' },
           ...result.data.map((option: any) => ({
@@ -114,10 +119,13 @@ const MyVendors: React.FC = () => {
             label: option.label
           }))
         ];
+        console.log('MyVendors: Final filter options:', options);
         setStatusOptions(options);
+      } else {
+        console.error('MyVendors: Failed to load status options:', result.error);
       }
     } catch (err: any) {
-      console.error('Failed to load status options:', err);
+      console.error('MyVendors: Failed to load status options:', err);
     }
   };
 
@@ -148,6 +156,10 @@ const MyVendors: React.FC = () => {
           : vendor
       )
     );
+    // Refresh the list to get the latest data from server
+    if (customer) {
+      fetchContactedVendors();
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -182,24 +194,24 @@ const MyVendors: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-8 pt-20 md:pt-24">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pt-20 md:pt-24">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex items-center justify-between mb-3 sm:mb-0">
             <button
               onClick={() => navigate('/')}
-              className="flex items-center text-gray-600 hover:text-wedding-orange transition-colors"
+              className="flex items-center text-gray-600 hover:text-wedding-orange transition-colors text-sm sm:text-base"
             >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Back
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Back</span>
             </button>
-            <div className="flex items-center justify-center flex-1">
-              <MessageCircle className="h-8 w-8 text-[#001B5E] mr-2.5" strokeWidth={2} />
-              <h1 className="text-4xl font-semibold text-gray-800">
+            <div className="flex items-center justify-center flex-1 sm:flex-1">
+              <MessageCircle className="h-5 w-5 sm:h-8 sm:w-8 text-[#001B5E] mr-1.5 sm:mr-2.5" strokeWidth={2} />
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-semibold text-gray-800">
                 Contacted Vendors
               </h1>
             </div>
-            <div className="w-20"></div> {/* Spacer to balance the back button */}
+            <div className="w-12 sm:w-20"></div> {/* Spacer to balance the back button */}
           </div>
         </div>
 
@@ -247,11 +259,11 @@ const MyVendors: React.FC = () => {
         {/* Contacted Vendors Grid */}
         {!loading && !error && contactedVendors.length > 0 && (
           <>
-            <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <p className="text-gray-600">
+            <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-0">
+              <p className="text-sm sm:text-base text-gray-600">
                 You have <span className="font-semibold text-wedding-orange">{contactedVendors.length}</span> contacted vendor{contactedVendors.length !== 1 ? 's' : ''}
                 {statusFilter !== 'all' && (
-                  <span className="ml-2">
+                  <span className="block sm:inline sm:ml-2 mt-1 sm:mt-0">
                     • Showing <span className="font-semibold text-blue-600">{filteredVendors.length}</span> with status "{statusOptions.find(opt => opt.value === statusFilter)?.label}"
                   </span>
                 )}
@@ -259,9 +271,9 @@ const MyVendors: React.FC = () => {
               
               {/* Status Filter */}
               <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-500" />
+                <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full sm:w-[180px] text-sm">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -291,11 +303,11 @@ const MyVendors: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {filteredVendors.map((vendor) => (
                 <Card 
                   key={vendor.vendor_id}
-                  className={`group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 bg-white overflow-hidden ${
+                  className={`group cursor-pointer hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border-2 bg-white overflow-visible sm:overflow-hidden ${
                     vendor.verified 
                       ? 'border-green-200 hover:border-green-400' 
                       : 'border-amber-100 hover:border-amber-300'
@@ -304,7 +316,7 @@ const MyVendors: React.FC = () => {
                 >
                   <CardContent className="p-0">
                     {/* Portfolio Image */}
-                    <div className="relative h-48 overflow-hidden">
+                    <div className="relative h-40 sm:h-48 overflow-hidden">
                       <img
                         src={vendor.avatar_url || vendor.cover_image_url || "/images/vendor-placeholder.jpg"}
                         alt={`${vendor.brand_name} portfolio`}
@@ -313,103 +325,105 @@ const MyVendors: React.FC = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
                       
                       {/* Contact Status Badge */}
-                      <div className="absolute top-3 left-3">
-                        <Badge className="bg-green-500 text-white px-2 py-1 text-xs">
-                          📱 {vendor.status || 'Contacted'}
+                      <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
+                        <Badge className="bg-green-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs">
+                          <span className="hidden sm:inline">📱 </span>{vendor.status || 'Contacted'}
                         </Badge>
                       </div>
 
                       {/* Remove from Contacted Button */}
-                      <div className="absolute top-3 right-3 z-10">
+                      <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             removeFromContacted(vendor.vendor_id);
                           }}
-                          className="p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white relative z-20"
+                          className="p-1.5 sm:p-2 bg-white/90 backdrop-blur-xs rounded-full shadow-sm transition-all hover:bg-white relative z-20"
                           title="Remove from contacted"
                         >
-                          <Trash2 className="h-5 w-5 text-red-500" />
+                          <Trash2 className="h-4 w-4 sm:h-5 sm:w-5 text-red-500" />
                         </button>
                       </div>
 
                       {/* Verified Badge */}
                       {vendor.verified && (
-                        <div className="absolute bottom-3 right-3">
-                          <div className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-full shadow-lg border-2 border-white/50">
-                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                            <span className="text-xs font-bold">Verified Pro</span>
+                        <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3">
+                          <div className="flex items-center gap-1 bg-green-600 text-white px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-lg border-2 border-white/50">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div>
+                            <span className="text-[10px] sm:text-xs font-bold">Verified Pro</span>
                           </div>
                         </div>
                       )}
                     </div>
 
                     {/* Card Content */}
-                    <div className="p-4">
+                    <div className="p-3 sm:p-4">
                       {/* Vendor Info */}
-                      <div className="mb-3 min-w-0">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors break-words overflow-hidden text-ellipsis" style={{ 
+                      <div className="mb-2 sm:mb-3 min-w-0">
+                        <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 group-hover:text-amber-600 transition-colors break-words overflow-hidden text-ellipsis" style={{ 
                           display: '-webkit-box',
                           WebkitLineClamp: 2,
                           WebkitBoxOrient: 'vertical'
                         }}>
                           {vendor.brand_name || 'Unknown Vendor'}
                         </h3>
-                        <p className="text-xs text-amber-600 font-medium mb-1 break-words overflow-hidden text-ellipsis whitespace-nowrap">{vendor.category || 'Unknown Category'}</p>
-                        <p className="text-sm text-gray-600 break-words overflow-hidden text-ellipsis whitespace-nowrap">by {vendor.spoc_name || 'Unknown'}</p>
+                        <p className="text-[11px] sm:text-xs text-amber-600 font-medium mb-0.5 sm:mb-1 break-words overflow-hidden text-ellipsis">{vendor.category || 'Unknown Category'}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 break-words overflow-hidden text-ellipsis">by {vendor.spoc_name || 'Unknown'}</p>
                       </div>
 
                       {/* Rating */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                        <div className="flex items-center gap-0.5 sm:gap-1">
                           {[...Array(5)].map((_, i) => (
                             <Star 
                               key={i} 
-                              className={`w-4 h-4 ${i < Math.floor(vendor.rating || 4.5) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
+                              className={`w-3 h-3 sm:w-4 sm:h-4 ${i < Math.floor(vendor.rating || 4.5) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
                             />
                           ))}
                         </div>
-                        <span className="text-sm font-medium text-gray-700">
+                        <span className="text-xs sm:text-sm font-medium text-gray-700">
                           {vendor.rating || 4.5}
                         </span>
                         {vendor.review_count && vendor.review_count > 0 ? (
-                          <span className="text-xs text-gray-500">
+                          <span className="text-[10px] sm:text-xs text-gray-500">
                             ({vendor.review_count})
                           </span>
                         ) : (
-                          <span className="text-xs text-gray-400">No reviews yet</span>
+                          <span className="text-[10px] sm:text-xs text-gray-400">No reviews</span>
                         )}
                       </div>
 
                       {/* Starting Price */}
-                      <div className="mb-3">
-                        <p className="text-sm text-gray-500 mb-1">Starting Price</p>
-                        <p className="text-lg font-bold text-amber-600 break-words">
+                      <div className="mb-2 sm:mb-3">
+                        <p className="text-xs sm:text-sm text-gray-500 mb-0.5 sm:mb-1">Starting Price</p>
+                        <p className="text-base sm:text-lg font-bold text-amber-600 break-words">
                           ₹{vendor.starting_price?.toLocaleString() || 'Contact for pricing'}
                         </p>
                       </div>
 
                       {/* Contacted Date */}
-                      <div className="text-xs text-gray-500 mb-3 break-words">
+                      <div className="text-[10px] sm:text-xs text-gray-500 mb-2 sm:mb-3 break-words">
                         Contacted on {formatDate(vendor.contacted_at)}
                       </div>
 
                       {/* Status Management */}
-                      <div className="mb-3">
-                        <div className="text-xs font-medium text-gray-700 mb-2">Status</div>
+                      <div className="mb-2 sm:mb-3">
+                        <div className="text-[11px] sm:text-xs font-medium text-gray-700 mb-1.5 sm:mb-2">Status</div>
                         <VendorStatusDropdown
                           customerId={customer.id}
                           vendorId={vendor.vendor_id}
                           currentStatus={vendor.status || 'Contacted'}
                           onStatusUpdate={(newStatus) => handleStatusUpdate(vendor.vendor_id, newStatus)}
                           className="w-full"
+                          userType="customer"
+                          dropdownDirection="up"
                         />
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1.5 sm:space-x-2">
                         <Button 
-                          className="flex-1 bg-green-500 hover:bg-green-600 text-white text-sm py-2"
+                          className="flex-1 bg-green-500 hover:bg-green-600 text-white text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-4"
                           onClick={(e) => {
                             e.stopPropagation();
                             // WhatsApp functionality
@@ -419,17 +433,17 @@ const MyVendors: React.FC = () => {
                             }
                           }}
                         >
-                          WhatsApp Again
+                          <span className="hidden sm:inline">WhatsApp </span>Again
                         </Button>
                         <Button 
                           variant="outline"
-                          className="flex-1 text-sm py-2"
+                          className="flex-1 text-xs sm:text-sm py-1.5 sm:py-2 px-2 sm:px-4"
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate(`/vendor/${vendor.vendor_id}`);
                           }}
                         >
-                          View Profile
+                          View
                         </Button>
                       </div>
                     </div>

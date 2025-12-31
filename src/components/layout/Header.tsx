@@ -16,7 +16,7 @@ import { Menu, X, ChevronDown, User, Lock, LogIn, AlertCircle, Heart, Users, Bel
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useUserStore } from "@/store/userStore";
 import { useCustomerAuth } from "@/contexts/CustomerAuthContext";
-import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout, getCustomerNotifications, markAllCustomerNotificationsAsRead } from "@/services/supabaseService";
+import { vendorLogin, saveVendorSession, getLoggedInVendor, vendorLogout, getCustomerNotifications, markAllCustomerNotificationsAsRead, clearCustomerNotification } from "@/services/supabaseService";
 import { getLikedVendors } from "@/services/likedVendorsApiService";
 import { CATEGORY_LIST } from "@/constants/categories";
 
@@ -201,6 +201,20 @@ const Header = () => {
     }
   };
 
+  const handleClearNotification = async (notificationId: number) => {
+    try {
+      const success = await clearCustomerNotification(notificationId);
+      if (success) {
+        // Remove the notification from the local state
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        // Update unread count
+        setUnreadNotificationsCount(prev => Math.max(0, prev - 1));
+      }
+    } catch (error) {
+      console.error('Error clearing notification:', error);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await customerSignOut();
@@ -357,36 +371,56 @@ const Header = () => {
                     </div>
                     <div className="max-h-80 overflow-y-auto">
                       {notifications.length > 0 ? (
-                        notifications.map((notification) => (
-                          <div key={notification.id} className={`p-4 border-b border-gray-100 hover:bg-gray-50 ${!notification.is_read ? 'bg-orange-50' : ''}`}>
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Bell className="w-4 h-4 text-orange-600" />
-                                  {!notification.is_read && (
-                                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                      NEW
-                                    </span>
+                        notifications.map((notification) => {
+                          // Check if this is a vendor status update (customer receiving from vendor)
+                          const isVendorUpdate = notification.message && notification.message.includes('updated your status');
+                          return (
+                            <div
+                              key={notification.id}
+                              className={`p-4 border-b border-gray-100 hover:bg-gray-50 ${
+                                isVendorUpdate
+                                  ? 'bg-green-50 hover:bg-green-100'
+                                  : !notification.is_read
+                                    ? 'bg-orange-50'
+                                    : ''
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Bell className="w-4 h-4 text-orange-600" />
+                                    {!notification.is_read && (
+                                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                        NEW
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-gray-900 font-medium">
+                                    {notification.title}
+                                  </p>
+                                  <p className="text-xs text-gray-600 mt-1">
+                                    {notification.message}
+                                  </p>
+                                  {notification.vendors && notification.vendors.brand_name && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Vendor: {notification.vendors.brand_name}
+                                    </p>
                                   )}
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(notification.created_at).toLocaleDateString()}
+                                  </p>
                                 </div>
-                                <p className="text-sm text-gray-900 font-medium">
-                                  {notification.title}
-                                </p>
-                                <p className="text-xs text-gray-600 mt-1">
-                                  {notification.message}
-                                </p>
-                      {notification.vendors && notification.vendors.brand_name && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Vendor: {notification.vendors.brand_name}
-                        </p>
-                      )}
-                                <p className="text-xs text-gray-500 mt-1">
-                                  {new Date(notification.created_at).toLocaleDateString()}
-                                </p>
+                                <button
+                                  onClick={() => handleClearNotification(notification.id)}
+                                  className="flex-shrink-0 text-gray-400 hover:text-red-600 transition-colors p-1"
+                                  title="Clear notification"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <div className="p-8 text-center text-gray-500">
                           <Bell className="w-12 h-12 mx-auto mb-4 text-gray-300" />

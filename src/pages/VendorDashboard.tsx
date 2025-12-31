@@ -37,6 +37,8 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Textarea } from '../components/ui/textarea';
 import { getLoggedInVendor, vendorLogout, getVendorPendingChanges, getVendorRejectedChanges, getVendorNotifications, getVendorLeads, getVendorLeadStats, updateLeadStatus, deleteVendorLead, updateVendorLead, getVendorEvents, createVendorEvent, updateVendorEvent, deleteVendorEvent, getVendorCalendarStats, refreshVendorSession, markAllNotificationsAsRead } from '../services/supabaseService';
 import { getVendorCustomers, updateVendorStatusForContact, updateNotesForContact, flagCustomer, unflagCustomer } from '../services/contactedVendorsApiService';
 import { Vendor } from '../lib/supabase';
@@ -102,6 +104,14 @@ const VendorDashboard: React.FC = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [notesValue, setNotesValue] = useState('');
+  
+  // Lost and Report dialog states
+  const [showLostDialog, setShowLostDialog] = useState(false);
+  const [lostReason, setLostReason] = useState('');
+  const [pendingLostStatus, setPendingLostStatus] = useState<{contactId: string, status: string} | null>(null);
+  const [showReportDialog, setShowReportDialog] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [customerToReport, setCustomerToReport] = useState<any>(null);
   
   const navigate = useNavigate();
 
@@ -566,50 +576,44 @@ const VendorDashboard: React.FC = () => {
     setShowCustomerDetails(true);
   };
 
-  const handleFlagCustomer = async (customer: any) => {
+  const handleUnreportCustomer = async (customer: any) => {
     if (!vendor) return;
 
     try {
-      const isCurrentlyFlagged = customer.is_flagged_by_vendor;
-      
-      if (isCurrentlyFlagged) {
-        // Unflag the customer
-        const result = await unflagCustomer(vendor.vendor_id.toString(), customer.customer_id);
-        if (result.success) {
-          console.log('Customer unflagged successfully');
-          // Reload customers to get updated flag status
-          loadCustomersData(parseInt(vendor.vendor_id));
-        } else {
-          console.error('Failed to unflag customer:', result.error);
-          alert('Failed to unflag customer: ' + result.error);
-        }
+      const result = await unflagCustomer(vendor.vendor_id.toString(), customer.customer_id);
+      if (result.success) {
+        console.log('Customer unreported successfully');
+        // Reload customers to get updated report status
+        loadCustomersData(parseInt(vendor.vendor_id));
       } else {
-        // Flag the customer
-        const result = await flagCustomer(vendor.vendor_id.toString(), customer.customer_id);
-        if (result.success) {
-          console.log('Customer flagged successfully');
-          // Check if customer is now blocked
-          if (result.data?.is_blocked) {
-            alert(`Customer flagged. This customer has been blocked (flagged ${result.data.flag_count} times).`);
-          }
-          // Reload customers to get updated flag status
-          loadCustomersData(parseInt(vendor.vendor_id));
-        } else {
-          console.error('Failed to flag customer:', result.error);
-          alert('Failed to flag customer: ' + result.error);
-        }
+        console.error('Failed to unreport customer:', result.error);
+        alert('Failed to unreport customer: ' + result.error);
       }
     } catch (error) {
-      console.error('Error flagging/unflagging customer:', error);
-      alert('An error occurred while flagging/unflagging the customer');
+      console.error('Error unreporting customer:', error);
+      alert('An error occurred while unreporting the customer');
     }
   };
 
   const handleVendorStatusUpdate = async (contactId: string, newStatus: string) => {
     try {
+      // If status is "Lost", show popup first
+      if (newStatus === 'Lost') {
+        setPendingLostStatus({ contactId, status: newStatus });
+        setShowLostDialog(true);
+        return;
+      }
+      
       console.log(`Updating vendor status for contact ${contactId} to: ${newStatus}`);
       
-      const result = await updateVendorStatusForContact(contactId, newStatus);
+      // Get customer_id and vendor_id from the customer object
+      const customerData = customers.find(c => c.contact_id?.toString() === contactId);
+      const result = await updateVendorStatusForContact(
+        contactId, 
+        newStatus,
+        customerData?.customer_id,
+        customerData?.vendor_id || vendor?.vendor_id
+      );
       
       if (result.success && vendor) {
         // Reload customers data to reflect the change
@@ -621,6 +625,74 @@ const VendorDashboard: React.FC = () => {
     } catch (error) {
       console.error('Error updating vendor status:', error);
       alert('Error updating vendor status. Please try again.');
+    }
+  };
+
+  const handleLostSubmit = async () => {
+    if (!lostReason.trim()) {
+      alert('Please provide a reason for losing this deal.');
+      return;
+    }
+
+    if (!pendingLostStatus || !vendor) return;
+
+    try {
+      // Update status with reason in notes
+      const result = await updateVendorStatusForContact(pendingLostStatus.contactId, pendingLostStatus.status);
+      
+      if (result.success) {
+        // Update notes with the reason
+        await updateNotesForContact(pendingLostStatus.contactId, lostReason);
+        // Reload customers data
+        loadCustomersData(parseInt(vendor.vendor_id));
+        setShowLostDialog(false);
+        setLostReason('');
+        setPendingLostStatus(null);
+      } else {
+        alert('Failed to update status. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating lost status:', error);
+      alert('Error updating status. Please try again.');
+    }
+  };
+
+  const handleReportCustomer = (customer: any) => {
+    setCustomerToReport(customer);
+    setShowReportDialog(true);
+  };
+
+  const handleReportSubmit = async () => {
+    if (!reportReason.trim()) {
+      alert('Please provide a reason for reporting this customer.');
+      return;
+    }
+
+    if (!customerToReport || !vendor) return;
+
+    try {
+      const result = await flagCustomer(vendor.vendor_id.toString(), customerToReport.customer_id, reportReason);
+      
+      if (result.success) {
+        console.log('Customer reported successfully');
+        // Check if customer is now blocked
+        if (result.data?.is_blocked) {
+          alert(`Customer reported. This customer has been blocked (reported ${result.data.flag_count} times).`);
+        } else {
+          alert(`Customer reported successfully. Total reports: ${result.data?.flag_count || 0}/5`);
+        }
+        // Reload customers to get updated report status
+        loadCustomersData(parseInt(vendor.vendor_id));
+        setShowReportDialog(false);
+        setReportReason('');
+        setCustomerToReport(null);
+      } else {
+        console.error('Failed to report customer:', result.error);
+        alert('Failed to report customer: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error reporting customer:', error);
+      alert('An error occurred while reporting the customer');
     }
   };
 
@@ -1410,13 +1482,17 @@ const VendorDashboard: React.FC = () => {
                             'linear-gradient(135deg, #FFA326 0%, #FF8C00 100%)'
                         }}
                       >
-                        <option value="Contacted">📞 Contacted</option>
-                        <option value="Customer Interested">💡 Customer Interested</option>
-                        <option value="Deal Made">🤝 Deal Made</option>
+                        <option value="Customer Contacted">📞 Customer Contacted</option>
+                        <option value="Discussion in Progress">💬 Discussion in Progress</option>
+                        <option value="Quotation Shared">📋 Quotation Shared</option>
+                        <option value="Negotiation Ongoing">🤝 Negotiation Ongoing</option>
+                        <option value="Deal Confirmed">✅ Deal Confirmed</option>
                         <option value="Advance Received">💰 Advance Received</option>
-                        <option value="Event Completed">✅ Event Completed</option>
-                        <option value="Full Amount Settled">💳 Full Amount Settled</option>
-                        <option value="Closed">🔒 Closed</option>
+                        <option value="Event Scheduled">📅 Event Scheduled</option>
+                        <option value="Service in Progress">⚙️ Service in Progress</option>
+                        <option value="Service Completed">🎉 Service Completed</option>
+                        <option value="Payment Settled">💳 Payment Settled</option>
+                        <option value="Lost">❌ Lost</option>
                       </select>
                     </div>
                     
@@ -1489,16 +1565,20 @@ const VendorDashboard: React.FC = () => {
                         </Button>
                       )}
                       
-                      {/* Flag Button */}
+                      {/* Report Button */}
                       {customer.customer_id > 0 && (
                         <Button 
                           size="sm" 
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleFlagCustomer(customer);
+                            if (customer.is_flagged_by_vendor) {
+                              handleUnreportCustomer(customer);
+                            } else {
+                              handleReportCustomer(customer);
+                            }
                           }}
-                          title={customer.is_flagged_by_vendor ? "Unflag Customer" : "Flag Customer"}
+                          title={customer.is_flagged_by_vendor ? "Unreport Customer" : "Report Customer"}
                           className="p-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border-0"
                           style={{ 
                             background: customer.is_flagged_by_vendor 
@@ -2463,6 +2543,88 @@ const VendorDashboard: React.FC = () => {
           </Button>
     </div>
       )}
+
+      {/* Lost Status Dialog */}
+      <Dialog open={showLostDialog} onOpenChange={setShowLostDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Why did you lose this deal?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-gray-600">
+              Please provide a reason for losing this deal. This helps us improve our services.
+            </p>
+            <Textarea
+              value={lostReason}
+              onChange={(e) => setLostReason(e.target.value)}
+              placeholder="Please tell us why this deal was lost..."
+              className="min-h-[120px] resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowLostDialog(false);
+                  setLostReason('');
+                  setPendingLostStatus(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLostSubmit}
+                disabled={!lostReason.trim()}
+              >
+                Submit
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report Customer Dialog */}
+      <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Report Customer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-gray-600">
+              Please provide a reason for reporting this customer. Customers with 5 or more reports will be automatically blocked.
+            </p>
+            {customerToReport && (
+              <p className="text-sm font-medium text-gray-800">
+                Reporting: {customerToReport.customer_name}
+              </p>
+            )}
+            <Textarea
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              placeholder="Please provide a reason for reporting this customer..."
+              className="min-h-[120px] resize-none"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowReportDialog(false);
+                  setReportReason('');
+                  setCustomerToReport(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleReportSubmit}
+                disabled={!reportReason.trim()}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Report Customer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
     </>
   );

@@ -1482,13 +1482,11 @@ I'm really excited to connect and explore working with you soon! ✨`;
       </div>
 
       {/* Add Review Modal */}
-      {isAuthenticated && customer && (
+      {isAuthenticated && customer && vendorId && (
         <AddReviewModal
           isOpen={showReviewModal}
           onClose={() => setShowReviewModal(false)}
-          vendorId={vendorId || ''}
-          customerId={customer.id}
-          customerName={customer.name}
+          vendorId={vendorId}
           onReviewSubmitted={refreshVendorData}
         />
       )}

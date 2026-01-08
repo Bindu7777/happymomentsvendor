@@ -193,14 +193,28 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
   const experience = getExperienceDisplay();
   const allLanguages = getAllLanguages();
 
+  // Handle card click to navigate to vendor profile
+  const handleCardClick = () => {
+    // Check if customer is logged in before viewing profile
+    if (!customer) {
+      // Redirect to customer login
+      navigate('/customer-login?redirect=' + encodeURIComponent(`/vendor/${vendor.vendor_id}`));
+      return;
+    }
+    navigate(`/vendor/${vendor.vendor_id}`);
+  };
+
   return (
-    <Card className="group hover:shadow-xl transition-all duration-300 border-2 border-gray-300 md:border-gray-200 bg-white overflow-hidden h-full flex flex-col rounded-xl md:rounded-lg shadow-md md:shadow-sm">
+    <Card 
+      className="group hover:shadow-xl transition-all duration-300 border-2 border-gray-300 md:border-gray-200 bg-white overflow-hidden h-full flex flex-col rounded-xl md:rounded-lg shadow-md md:shadow-sm cursor-pointer"
+      onClick={handleCardClick}
+    >
       <CardContent className="p-0 flex flex-col h-full">
         {/* Subtle top accent for visual start */}
         <div className="h-1 bg-gradient-to-r from-[#F7941D] via-[#FFA326] to-[#F7941D]"></div>
         
         {/* Cover Image or Placeholder */}
-        <div className={`relative ${coverImage ? 'h-48 md:h-48' : 'h-32 md:h-48'} overflow-hidden bg-gradient-to-br from-[#001B5E] via-[#001B5E]/90 to-[#F7941D]/20 flex items-center justify-center`}>
+        <div className={`relative ${coverImage ? 'h-40 sm:h-48 md:h-48' : 'h-28 sm:h-32 md:h-48'} overflow-hidden bg-gradient-to-br from-[#001B5E] via-[#001B5E]/90 to-[#F7941D]/20 flex items-center justify-center`}>
           {coverImage ? (
             <>
               <img
@@ -249,26 +263,27 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
         </div>
 
         {/* 1. Vendor Brand Name (Primary Heading) */}
-        <div className="px-4 pt-4 pb-3">
-          <h3 className="text-xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-1">
+        <div className="px-3 sm:px-4 pt-3 sm:pt-4 pb-2 sm:pb-3">
+          <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2 break-words">
             {vendor.brand_name}
           </h3>
         </div>
 
         {/* 2. Trust & Availability (same horizontal row) */}
-        <div className="px-4 pb-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="px-3 sm:px-4 pb-2 sm:pb-3 flex items-center justify-between gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
             {vendor.verified && (
-              <Badge className="bg-green-600 text-white text-xs px-2 py-1 font-semibold">
+              <Badge className="bg-green-600 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-semibold">
                 Verified Pro
               </Badge>
             )}
             {vendor.currently_available ? (
-              <Badge className="bg-blue-500 text-white text-xs px-2 py-1 font-semibold">
-                Available for bookings
+              <Badge className="bg-blue-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 font-semibold">
+                <span className="hidden sm:inline">Available for bookings</span>
+                <span className="sm:hidden">Available</span>
               </Badge>
             ) : (
-              <Badge variant="outline" className="text-xs px-2 py-1 text-gray-600 border-gray-300">
+              <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 text-gray-600 border-gray-300">
                 Currently busy
               </Badge>
             )}
@@ -276,9 +291,9 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
         </div>
 
         {/* 4. Experience Highlight with Events Completed */}
-        <div className="px-4 pb-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-semibold text-orange-600">
+        <div className="px-3 sm:px-4 pb-1.5 sm:pb-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <p className="text-xs sm:text-sm font-semibold text-orange-600">
               {experience.match(/\d+/) ? (
                 `Since ${experience.match(/\d+/)?.[0]}+ years`
               ) : (
@@ -288,9 +303,9 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
             {vendor.events_completed && vendor.events_completed > 0 && (
               <>
                 <span className="text-gray-400 font-bold">•</span>
-                <p className="text-sm font-semibold text-gray-800">
+                <p className="text-xs sm:text-sm font-semibold text-gray-800">
                   <span className="text-blue-600 font-bold">{vendor.events_completed}+</span>
-                  <span className="text-gray-700"> events completed</span>
+                  <span className="text-gray-700"> <span className="hidden sm:inline">events completed</span><span className="sm:hidden">events</span></span>
                 </p>
               </>
             )}
@@ -298,14 +313,14 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
         </div>
 
         {/* 5. Rating / Trust Indicator */}
-        <div className="px-4 pb-3">
-          <div className="flex items-center gap-2">
+        <div className="px-3 sm:px-4 pb-2 sm:pb-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {ratingDisplay.showStars && (
               <div className="flex items-center gap-0.5">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`w-4 h-4 ${
+                    className={`w-3 h-3 sm:w-4 sm:h-4 ${
                       i < Math.floor(ratingDisplay.ratingValue || 0)
                         ? 'text-yellow-500 fill-yellow-500'
                         : 'text-gray-300'
@@ -314,16 +329,16 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
                 ))}
               </div>
             )}
-            <p className="text-sm text-gray-700 font-medium">{ratingDisplay.text}</p>
+            <p className="text-xs sm:text-sm text-gray-700 font-medium">{ratingDisplay.text}</p>
           </div>
         </div>
 
         {/* 6. Service Area (Coverage-based) */}
         {serviceArea && (
-          <div className="px-4 pb-3">
-            <div className="flex items-center gap-2 text-gray-700">
-              <MapPin className="w-4 h-4 flex-shrink-0 text-red-500 fill-red-500" />
-              <p className="text-sm">
+          <div className="px-3 sm:px-4 pb-2 sm:pb-3">
+            <div className="flex items-start gap-1.5 sm:gap-2 text-gray-700">
+              <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-red-500 fill-red-500 mt-0.5" />
+              <p className="text-xs sm:text-sm break-words">
                 {serviceArea.includes('|') ? serviceArea : `Serving ${serviceArea} & nearby areas`}
               </p>
             </div>
@@ -331,11 +346,11 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
         )}
 
         {/* 7. Pricing (Contextual) */}
-        <div className="px-4 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-green-600 flex-shrink-0">₹</span>
+        <div className="px-3 sm:px-4 pb-2 sm:pb-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-lg sm:text-xl font-bold text-green-600 flex-shrink-0">₹</span>
             <div>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-xs sm:text-sm font-semibold text-gray-900 break-words">
                 Starting from {vendor.starting_price ? `₹${vendor.starting_price.toLocaleString()}` : 'Contact for pricing'}
               </p>
             </div>
@@ -343,18 +358,18 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
         </div>
 
         {/* Languages - Below Pricing */}
-        <div className="px-4 pb-4">
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4">
           {allLanguages.length > 0 ? (
-            <div className="flex items-center gap-2 text-gray-700">
-              <Languages className="w-4 h-4 flex-shrink-0 text-blue-500 fill-blue-500" />
-              <p className="text-sm">
+            <div className="flex items-start gap-1.5 sm:gap-2 text-gray-700">
+              <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-blue-500 fill-blue-500 mt-0.5" />
+              <p className="text-xs sm:text-sm break-words">
                 Communicates in {allLanguages.join(', ')}
               </p>
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-gray-400">
-              <Languages className="w-4 h-4 flex-shrink-0 text-gray-400" />
-              <p className="text-sm">
+            <div className="flex items-start gap-1.5 sm:gap-2 text-gray-400">
+              <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0 text-gray-400 mt-0.5" />
+              <p className="text-xs sm:text-sm break-words">
                 Communicates in Not specified
               </p>
             </div>
@@ -365,20 +380,20 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
         <div className="flex-1"></div>
 
         {/* 8. Primary CTA - WhatsApp */}
-        <div className="px-4 pb-2">
+        <div className="px-3 sm:px-4 pb-2" onClick={(e) => e.stopPropagation()}>
           <WhatsAppButton
             vendor={vendor}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-lg transition-all duration-200"
+            className="w-full bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base font-semibold py-2 sm:py-2.5 rounded-lg transition-all duration-200"
           >
             WhatsApp
           </WhatsAppButton>
         </div>
 
         {/* 9. Secondary CTA - View Profile */}
-        <div className="px-4 pb-4 md:pb-2">
+        <div className="px-3 sm:px-4 pb-3 sm:pb-4 md:pb-2" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
-            className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 font-semibold py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+            className="w-full border-2 border-orange-500 text-orange-600 hover:bg-orange-50 text-sm sm:text-base font-semibold py-2 sm:py-2.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
             onClick={(e) => {
               e.stopPropagation();
               // Check if customer is logged in before viewing profile
@@ -390,7 +405,7 @@ const VendorShortCard: React.FC<VendorShortCardProps> = ({
               navigate(`/vendor/${vendor.vendor_id}`);
             }}
           >
-            <Eye className="w-4 h-4" />
+            <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>View Profile</span>
           </Button>
         </div>

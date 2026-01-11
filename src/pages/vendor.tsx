@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Navigate, useNavigate } from 'react-router-dom';
 import { Vendor } from '@/lib/supabase';
 import { getVendorByFieldId, getVendorMedia, getHighlightedCatalogImages, getAllCatalogImages } from '../services/supabaseService';
@@ -64,6 +64,7 @@ const VendorProfile = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
   const [contactPersonImageUrl, setContactPersonImageUrl] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState(false);
 
   // Close mobile menu when clicking outside
   useEffect(() => {
@@ -79,8 +80,8 @@ const VendorProfile = () => {
     }
   }, [mobileMenuOpen]);
 
-  // Check contact status
-  const checkContactStatus = async () => {
+  // Check contact status - memoized to prevent unnecessary re-renders
+  const checkContactStatus = useCallback(async () => {
     if (!customer || !vendorId) return;
     
     try {
@@ -97,7 +98,7 @@ const VendorProfile = () => {
       setIsContacted(false);
       setContactStatus('Contacted');
     }
-  };
+  }, [customer, vendorId]);
 
   // Handle status update
   const handleStatusUpdate = (newStatus: string) => {
@@ -108,7 +109,7 @@ const VendorProfile = () => {
     }));
   };
 
-  // Load vendor data and media
+  // Load vendor data and media - only depends on vendorId to prevent unnecessary re-fetches
   useEffect(() => {
     const loadVendorData = async () => {
     if (!vendorId) return;
@@ -125,8 +126,25 @@ const VendorProfile = () => {
           throw new Error('Invalid vendor ID');
         }
 
-        // Fetch vendor data
-        const vendorData = await getVendorByFieldId(vendorIdNum.toString());
+        const vendorIdStr = vendorIdNum.toString();
+
+        // Parallelize all API calls for faster loading
+        const [
+          vendorData,
+          mediaData,
+          highlightedCatalog,
+          allCatalogImages,
+          brandLogo,
+          contactPersonImage
+        ] = await Promise.all([
+          getVendorByFieldId(vendorIdStr),
+          getVendorMedia(vendorIdStr),
+          getHighlightedCatalogImages(vendorIdStr),
+          getAllCatalogImages(vendorIdStr),
+          getVendorBrandLogoFromStorage(vendorIdStr),
+          getVendorContactPersonImageFromStorage(vendorIdStr)
+        ]);
+
         console.log('Fetched vendor data:', vendorData);
         
         if (!vendorData) {
@@ -135,43 +153,27 @@ const VendorProfile = () => {
 
         setVendor(vendorData);
 
-        // Fetch vendor media
-        const mediaData = await getVendorMedia(vendorIdNum.toString());
-        console.log('Fetched vendor media:', mediaData);
-
         // Categorize media
         const highlights = mediaData.filter(m => m.category === 'highlights');
         
-        // Get highlighted catalog images (max 3)
-        const highlightedCatalog = await getHighlightedCatalogImages(vendorIdNum.toString());
+        console.log('Fetched vendor media:', mediaData);
         console.log('Fetched highlighted catalog images:', highlightedCatalog);
         console.log('Highlighted catalog count:', highlightedCatalog.length);
-        
-        // Get all catalog images (max 10)
-        const allCatalogImages = await getAllCatalogImages(vendorIdNum.toString());
         console.log('All catalog images from vendor_media:', allCatalogImages);
         console.log('All catalog images count:', allCatalogImages.length);
-        
-        // Load brand logo and contact person image from storage (same as catalog images)
-        const brandLogo = await getVendorBrandLogoFromStorage(vendorIdNum.toString());
-        const contactPersonImage = await getVendorContactPersonImageFromStorage(vendorIdNum.toString());
-        
         console.log('Brand logo loaded from storage:', brandLogo);
         console.log('Contact person image loaded from storage:', contactPersonImage);
         
         setHighlightImages(highlights);
         setHighlightedCatalogImages(highlightedCatalog);
         setCatalogImages(allCatalogImages);
+        // Reset logo error state when new logo is loaded
+        setLogoError(false);
         setBrandLogoUrl(brandLogo);
         setContactPersonImageUrl(contactPersonImage);
         
         // Reset slide index when images change
         setCurrentSlide(0);
-
-        // Check contact status after vendor data is loaded
-        if (customer) {
-          await checkContactStatus();
-        }
 
       } catch (err) {
         console.error("Failed to fetch vendor details:", err);
@@ -182,7 +184,16 @@ const VendorProfile = () => {
     };
 
     loadVendorData();
-  }, [vendorId, customer]);
+  }, [vendorId]); // Removed customer dependency - only fetch when vendorId changes
+
+  // Check contact status separately - only depends on customer and vendorId
+  useEffect(() => {
+    if (customer && vendorId && vendor) {
+      checkContactStatus().catch(err => {
+        console.error('Error checking contact status:', err);
+      });
+    }
+  }, [customer, vendorId, vendor, checkContactStatus]); // Only check contact status when customer or vendorId changes
 
   // Countdown timer
   useEffect(() => {
@@ -211,6 +222,22 @@ const VendorProfile = () => {
       return () => clearInterval(interval);
     }
   }, [isAutoPlaying, highlightedCatalogImages.length]);
+
+  // Memoize contact person image URL to prevent unnecessary re-renders
+  // MUST be called before any early returns to follow Rules of Hooks
+  const contactPersonImageSrc = useMemo(() => {
+    return contactPersonImageUrl || "/images/vendor.jpeg";
+  }, [contactPersonImageUrl]);
+
+  // Stable error handler for contact person image - prevents flickering
+  // MUST be called before any early returns to follow Rules of Hooks
+  const handleContactPersonImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.target as HTMLImageElement;
+    // Only change src if it's not already the fallback to prevent infinite loops
+    if (img.src !== `${window.location.origin}/images/vendor.jpeg`) {
+      img.src = "/images/vendor.jpeg";
+    }
+  }, []);
 
   // WhatsApp integration - now handled by WhatsAppButton component
 
@@ -548,14 +575,27 @@ const VendorProfile = () => {
               >
                 <ChevronLeft className="h-5 w-5 text-gray-700" />
               </Button>
-              <img 
-                src={brandLogoUrl || "/images/vendor.jpeg"} 
-                alt={vendor.brand_name}
-                className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/images/vendor.jpeg";
-                }}
-              />
+              <div className="w-12 h-12 rounded-full border-2 border-blue-500 flex-shrink-0 overflow-hidden bg-white">
+                <img 
+                  src={logoError || !brandLogoUrl ? "/images/vendor.jpeg" : brandLogoUrl} 
+                  alt={vendor.brand_name || 'Vendor'}
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                  onError={() => {
+                    if (!logoError) {
+                      setLogoError(true);
+                    }
+                  }}
+                  onLoad={(e) => {
+                    // Ensure smooth transition when image loads
+                    (e.target as HTMLImageElement).style.opacity = '1';
+                  }}
+                  style={{ 
+                    opacity: brandLogoUrl && !logoError ? 0 : 1,
+                    transition: 'opacity 0.3s ease-in-out'
+                  }}
+                />
+              </div>
               <div className="flex flex-col gap-2">
                 <h1 className="text-xl font-bold text-gray-900 leading-tight">{vendor.brand_name}</h1>
               </div>
@@ -681,14 +721,14 @@ const VendorProfile = () => {
               )}
             </div>
 
-            {/* GALLERY SECTION - Second Section (4-6 Best Images) */}
-            {catalogImages.length > 0 && (
-              <Card className="mb-4 overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-gray-100">
-                <CardContent className="p-4">
-                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-blue-600" />
-                    Gallery
-                  </h2>
+            {/* GALLERY SECTION - Always Visible in Mobile View */}
+            <Card className="mb-4 overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-gray-100">
+              <CardContent className="p-4">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <Camera className="w-5 h-5 text-blue-600" />
+                  Gallery
+                </h2>
+                {catalogImages.length > 0 ? (
                   <div className="grid grid-cols-2 gap-3">
                     {catalogImages.slice(0, 6).map((image, index) => (
                       <Dialog key={`gallery-${index}`}>
@@ -704,11 +744,11 @@ const VendorProfile = () => {
                                 <Badge className="bg-yellow-500 text-white text-xs px-1.5 py-0.5">
                                   <Sparkles className="w-2 h-2 mr-1" />
                                   ⭐
-                  </Badge>
-                </div>
+                                </Badge>
+                              </div>
                             )}
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
-                  </div>
+                          </div>
                         </DialogTrigger>
                         <DialogContent className="max-w-4xl">
                           <img 
@@ -719,45 +759,55 @@ const VendorProfile = () => {
                         </DialogContent>
                       </Dialog>
                     ))}
-                </div>
-                </CardContent>
-              </Card>
-            )}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                    <Camera className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                    <p className="text-sm text-gray-600 font-medium">No gallery images available yet</p>
+                    <p className="text-xs text-gray-500 mt-1">Check back soon for updates</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* SERVICES + PRICE SECTION - Third Section */}
+            {/* OUR SERVICES SECTION - Mobile View */}
             {vendor.services && Array.isArray(vendor.services) && vendor.services.length > 0 && (
               <Card className="mb-4 overflow-hidden hover:shadow-xl transition-all duration-300 border-2 border-amber-100">
                 <CardContent className="p-4 sm:p-6">
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <CategoryIcon className="w-5 h-5 text-amber-600" />
-                    Services & Pricing
+                    Our Services
                   </h2>
-                  <div className="space-y-3">
-                    {vendor.services.slice(0, 5).map((service: any, index: number) => (
-                      <div key={index} className="p-3 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{service.name || service}</h3>
-                            {service.description && (
-                              <p className="text-xs text-gray-600 mt-1">{service.description}</p>
+                  <p className="text-gray-600 mb-4 text-sm">
+                    Specialized in professional {vendorCategories.length > 0 ? vendorCategories.join(', ') : 'services'} services
+                  </p>
+                  <div className="grid grid-cols-1 gap-3">
+                    {vendor.services.slice(0, 6).map((service: any, index: number) => (
+                      <div key={index} className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200 hover:shadow-md transition-all">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg flex-shrink-0">
+                            <CategoryIcon className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-gray-900 text-base mb-1">{typeof service === 'string' ? service : (service.name || service)}</h3>
+                            {typeof service === 'object' && service.description && (
+                              <p className="text-xs text-gray-600 mb-2">{service.description}</p>
                             )}
-              </div>
-                          {service.price && (
-                            <div className="ml-3 text-right">
-                              <span className="font-bold text-amber-700 text-sm sm:text-base">₹{service.price}</span>
-              </div>
-            )}
+                            {typeof service === 'object' && service.price && (
+                              <p className="text-green-600 font-semibold text-sm">₹{service.price}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
-                    {vendor.starting_price && (
-                      <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 text-center">
-                        <p className="text-sm text-gray-600">Starting from</p>
-                        <p className="text-xl font-bold text-blue-800">₹{vendor.starting_price.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500 mt-1">Custom packages available</p>
-                      </div>
-                    )}
                   </div>
+                  {vendor.starting_price && (
+                    <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 text-center">
+                      <p className="text-sm text-gray-600">Starting from</p>
+                      <p className="text-xl font-bold text-blue-800">₹{vendor.starting_price.toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 mt-1">Custom packages available</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1252,12 +1302,13 @@ const VendorProfile = () => {
                       <div className="flex flex-col items-center flex-shrink-0">
                         <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 shadow-lg">
                           <img 
-                            src={contactPersonImageUrl || "/images/vendor.jpeg"} 
-                            alt={vendor.spoc_name}
+                            key={`contact-person-${vendorId}-${contactPersonImageUrl || 'default'}`}
+                            src={contactPersonImageSrc} 
+                            alt={vendor.spoc_name || "Contact Person"}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = "/images/vendor.jpeg";
-                            }}
+                            onError={handleContactPersonImageError}
+                            loading="eager"
+                            style={{ imageRendering: 'auto' }}
                           />
                         </div>
                         <div className="text-center mt-3 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl shadow-md border border-gray-200">
